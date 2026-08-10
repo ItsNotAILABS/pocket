@@ -56,7 +56,7 @@ def normalize_device(raw: Any = None, *, user_agent: str = "", header: str = "")
     label = {"phone": "Phone", "tablet": "Tablet", "computer": "Computer"}.get(kind, "Computer")
     remote = kind in ("phone", "tablet")
 
-    return {
+    out = {
         "kind": kind,
         "label": label,
         "remote": remote,
@@ -69,6 +69,16 @@ def normalize_device(raw: Any = None, *, user_agent: str = "", header: str = "")
         "platform": (d.get("platform") or "")[:80] or None,
         "source": d.get("source") or ("client" if raw else ("header" if h else "ua")),
     }
+    # First-class hardware identity (Aether ANC-1 · hybrid E-Ink) for phone clients
+    if kind == "phone":
+        try:
+            from pocket.aether_device import for_device_payload
+
+            out = for_device_payload(out)
+            out["label"] = "POCKET Phone"
+        except Exception:
+            pass
+    return out
 
 
 def device_from_request(headers, body: Optional[dict] = None) -> Dict[str, Any]:
@@ -88,21 +98,28 @@ def device_from_request(headers, body: Optional[dict] = None) -> Dict[str, Any]:
 
 def agent_context_line(device: Optional[Dict[str, Any]]) -> str:
     """Short prefix so coding/plan agents know where the human is."""
+    pocket = (
+        "[You are a POCKET host agent — help the user with POCKET "
+        "(desk, phone, skills, protocols).]\n"
+    )
     if not device:
-        return ""
+        return pocket + "\n"
     kind = device.get("kind") or "computer"
     if kind == "phone":
         return (
-            "[Client device: PHONE — user is remote (mobile UI). "
+            pocket
+            + "[Client device: PHONE — user is remote (mobile UI). "
             "Prefer concise results; do not assume they can see this PC screen unless using Desktop mode. "
             "Jobs still run on the POCKET host computer.]\n\n"
         )
     if kind == "tablet":
         return (
-            "[Client device: TABLET — touch remote UI. Jobs run on the POCKET host computer.]\n\n"
+            pocket
+            + "[Client device: TABLET — touch remote UI. Jobs run on the POCKET host computer.]\n\n"
         )
     return (
-        "[Client device: COMPUTER — user is likely on a desktop/laptop browser. "
+        pocket
+        + "[Client device: COMPUTER — user is likely on a desktop/laptop browser. "
         "Jobs run on the POCKET host.]\n\n"
     )
 

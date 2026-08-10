@@ -84,6 +84,14 @@ def chat_complete(
         routed = route_task(task)
         agent = routed.get("agent_id") or "planner"
 
+    # Every API model is a POCKET agent — identity + protocols + help-with-POCKET
+    try:
+        from pocket.pocket_identity import wrap_user_prompt
+
+        task = wrap_user_prompt(task, mode=agent, max_identity=1200)
+    except Exception:
+        pass
+
     wiki_meta: Dict[str, Any] = {"injected": False}
     coding = agent in {
         "coder",

@@ -24,6 +24,31 @@ def _program_files_x86(*parts: str) -> str:
     return os.path.join(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"), *parts)
 
 
+def _discord_candidates() -> List[str]:
+    """Resolve Discord: newest app-*\\Discord.exe, then Update.exe."""
+    out: List[str] = []
+    base = _local_appdata("Discord")
+    try:
+        if os.path.isdir(base):
+            app_dirs = sorted(
+                (
+                    d
+                    for d in os.listdir(base)
+                    if d.startswith("app-") and os.path.isdir(os.path.join(base, d))
+                ),
+                reverse=True,
+            )
+            for d in app_dirs:
+                exe = os.path.join(base, d, "Discord.exe")
+                if os.path.isfile(exe):
+                    out.append(exe)
+    except OSError:
+        pass
+    out.append(_local_appdata("Discord", "Update.exe"))
+    out.append(_local_appdata("Discord", "app-1.0.0", "Discord.exe"))
+    return out
+
+
 def _resolve_cmd(app_id: str, cmd: str) -> Tuple[str, bool]:
     """Resolve allowlisted app to a real executable / protocol when possible."""
     app_id = (app_id or "").strip().lower()
@@ -102,10 +127,7 @@ def _resolve_cmd(app_id: str, cmd: str) -> Tuple[str, bool]:
             _local_appdata("Programs", "Antigravity", "Antigravity.exe"),
             _local_appdata("Programs", "antigravity", "Antigravity.exe"),
         ],
-        "discord": [
-            _local_appdata("Discord", "Update.exe"),
-            _local_appdata("Discord", "app-1.0.0", "Discord.exe"),
-        ],
+        "discord": _discord_candidates(),
         "slack": [
             _local_appdata("slack", "slack.exe"),
             _program_files("Slack", "slack.exe"),

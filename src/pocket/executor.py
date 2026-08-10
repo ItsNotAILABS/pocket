@@ -263,11 +263,19 @@ def available_engines() -> Dict[str, object]:
     codex = which_codex()
     claude = which_claude()
     wsl = which_wsl()
+    claude_sdk = False
+    try:
+        from pocket.claude_agent_bridge import sdk_installed
+
+        claude_sdk = sdk_installed()
+    except Exception:
+        claude_sdk = False
     return {
         "codex": bool(codex),
         "codex_path": codex or None,
-        "claude": bool(claude),
+        "claude": bool(claude) or claude_sdk,
         "claude_path": claude or None,
+        "claude_agent_sdk": claude_sdk,
         "shell": True,
         "wsl": bool(wsl),
         "wsl_path": wsl or None,
@@ -281,8 +289,13 @@ def available_engines() -> Dict[str, object]:
         "agent": True,
         "doer": True,
         "guppy": True,
+        "genetic": True,
+        "genetic_flow": True,
+        "internal_models": True,
         "browser": True,
         "capture": True,
+        "vision": True,
+        "github": True,
         "repos": True,
         "copilot": True,
         "archon": True,
@@ -292,11 +305,11 @@ def available_engines() -> Dict[str, object]:
         "headless_agents": True,
         "ai_api": True,
         "session_resume": True,
-        "default": "codex" if codex else ("claude" if claude else "shell"),
+        "default": "codex" if codex else ("claude" if (claude or claude_sdk) else "shell"),
         "workspaces": [{**w, "exists": Path(w["path"]).is_dir()} for w in KNOWN_WORKSPACES],
         "note": "AI for the whole computer — desk UI + headless sellable API. One session tab = one Codex thread.",
         "value": [
-            "Codex/Grok/Claude for code (Codex resumes same thread per tab)",
+            "Codex/Grok/Claude (Claude Agent SDK embedded loop + CLI fallback)",
             "Headless doer · multi-step desktop (≤5) without chat",
             "15+ headless agents (researcher, squad, security…)",
             "Desktop 40+ apps (native + third-party + Copilot)",
@@ -312,6 +325,165 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
     cwd = resolve_cwd(job)
     Path(cwd).mkdir(parents=True, exist_ok=True)
     jid = job.get("id") or ""
+    sid = str(job.get("session_id") or "")
+
+    # --- Auto RAH: agents escalate without the user naming RAH ---
+    # Independent large parallel work → full harness fan-out (not bare RLM).
+    # Twin wallet pulse — every real job meters the digital twin for this mode
+    if mode not in ("shell",) and not job.get("_twin_pulsed"):
+        try:
+            from pocket.economy import twin_pulse, ensure_twin
+
+            ensure_twin(mode if mode not in ("ask",) else "plan", label=mode)
+            twin_pulse(mode if mode not in ("ask",) else "plan", amount=3, reason=f"job:{mode}")
+            job = dict(job)
+            job["_twin_pulsed"] = True
+        except Exception:
+            pass
+
+    if (
+        prompt
+        and not job.get("_rah_done")
+        and not job.get("rah_skip")
+        and mode not in ("shell", "term", "rah", "recursive_harness", "rah_fanout", "rah_audit")
+        and str(os.environ.get("POCKET_RAH_AUTO", "1")).strip().lower()
+        not in ("0", "false", "no", "off")
+    ):
+        try:
+            from pocket.rah import maybe_auto_rah, score_rah_fit
+
+            fit = score_rah_fit(prompt, mode=mode)
+            if fit.get("use_rah"):
+                try:
+                    from pocket.stream_util import update_progress
+
+                    update_progress(
+                        jid,
+                        f"[RAH auto] score={fit.get('score')} ≥ {fit.get('threshold')} — "
+                        f"spawning recursive harnesses (user need not ask)\n",
+                        engine="rah",
+                    )
+                except Exception:
+                    pass
+                auto = maybe_auto_rah(prompt, mode=mode, job=job, cwd=cwd, execute=True)
+                if auto and auto.get("execute") and auto.get("markdown") is not None:
+                    err = "" if auto.get("ok") else "rah auto completed with failures"
+                    head = (
+                        f"[engine=rah auto=true score={fit.get('score')} "
+                        f"run={((auto.get('run') or {}).get('run_id') or '—')}]\n"
+                        f"[POCKET selected Recursive Agent Harnesses — independent parallel work]\n\n"
+                    )
+                    return head + str(auto.get("markdown") or ""), err, "rah"
+        except Exception as e:
+            try:
+                from pocket.stream_util import update_progress
+
+                update_progress(jid, f"[RAH auto skipped] {e}\n", engine=mode)
+            except Exception:
+                pass
+
+    # Host tools loop — run matching platform skills BEFORE the LLM so agents
+    # actually use screenshot / screen_sense / platform_map / etc.
+    # Always inject POCKET identity so every model knows it is in POCKET.
+    tool_meta: Dict = {}
+    if (
+        prompt
+        and not job.get("_tools_done")
+        and str(os.environ.get("POCKET_AGENT_TOOLS", "1")).strip().lower()
+        not in ("0", "false", "no")
+        and mode not in ("shell",)  # ask/plan/voice get identity+tools too
+    ):
+        try:
+            from pocket.agent_tools_loop import enrich_prompt
+
+            prompt, tool_meta = enrich_prompt(prompt, mode=mode)
+            job = dict(job)
+            job["prompt"] = prompt
+            job["_tools_done"] = True
+            # If tools already executed a full RAH run, short-circuit to that result
+            if tool_meta.get("rah_auto_result"):
+                rr = tool_meta["rah_auto_result"]
+                return (
+                    f"[engine=rah auto=true via tools]\n\n{rr.get('markdown') or ''}",
+                    "" if rr.get("ok") else "rah tool path failures",
+                    "rah",
+                )
+            if jid and tool_meta.get("ran"):
+                try:
+                    from pocket.stream_util import update_progress
+
+                    skills = ", ".join(
+                        str(r.get("skill")) for r in (tool_meta.get("results") or []) if r.get("skill")
+                    )
+                    update_progress(
+                        jid,
+                        f"[tools] ran host skills: {skills}\n",
+                        engine=mode,
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            tool_meta = {}
+    elif prompt and not job.get("_identity_done") and mode not in ("shell",):
+        # Tools disabled — still stamp POCKET identity + protocols
+        try:
+            from pocket.pocket_identity import wrap_user_prompt
+
+            prompt = wrap_user_prompt(prompt, mode=mode)
+            job = dict(job)
+            job["prompt"] = prompt
+            job["_identity_done"] = True
+        except Exception:
+            pass
+
+    # Universal agentic harness: Codex/Grok/Claude/plan/build get real subagents
+    # (animated on desk). Skip nested systems that already multi-agent.
+    _harness_parents = {
+        "codex",
+        "grok",
+        "claude",
+        "plan",
+        "build",
+        "ship",
+        "wiki",
+        "infinite_wiki",
+        "codebase",
+        "agent",
+        "doer",
+        "custom_agent",
+        "use_case",
+        "emergent",
+        "loop",
+        "work",
+        "working",
+        "live_work",
+        "muse_spark",
+        "muse",
+        "spark",
+        "assist",
+        "assistant",
+        "digital",
+    }
+    use_harness = (
+        mode in _harness_parents
+        and job.get("harness") is not False
+        and str(os.environ.get("POCKET_HARNESS", "1")).strip().lower() not in ("0", "false", "no")
+    )
+    if use_harness and not job.get("_harness_inner"):
+        from pocket.agentic_harness import run_with_harness
+
+        inner = dict(job)
+        inner["_harness_inner"] = True  # prevent re-entry
+        return run_with_harness(
+            mode,
+            prompt,
+            job_id=jid,
+            session_id=sid,
+            cwd=cwd,
+            main=lambda: run_job(inner),
+            sub_agents=job.get("sub_agents") or job.get("subagents"),
+            parallel_subs=True,
+        )
 
     if mode == "shell":
         return _run_shell(prompt, cwd, job_id=jid)
@@ -321,6 +493,8 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         return run_wsl_job(prompt, cwd=cwd, job=job)
     if mode == "claude":
         return _run_claude(prompt, cwd, job_id=jid)
+    if mode in ("voice", "v2v", "voice_agent", "voice2voice"):
+        return _run_voice_agent(prompt, cwd, job_id=jid)
     if mode == "ask":
         return _run_ask(prompt, cwd)
     if mode == "plan":
@@ -387,9 +561,23 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         low = (prompt or "").strip().lower()
         if low in ("start", "on", "enable"):
             return json.dumps(swarm_start(), indent=2), "", "swarm"
-        if low in ("status", "help", ""):
+        if low in ("status", "help", "always-on", "daemon"):
             return json.dumps(swarm_status(), indent=2), "", "swarm"
-        return json.dumps(pulse_now(), indent=2), "", "swarm"
+        if low in ("pulse", "tick"):
+            return json.dumps(pulse_now(), indent=2), "", "swarm"
+        # Coding tasks → multi-agent harness (Sophia / Solver / Twin) + pixel artifacts
+        from pocket.coding_swarm import run_coding_swarm
+
+        return run_coding_swarm(prompt, cwd, job_id=jid)
+    if mode in ("coding_swarm", "pixel_swarm", "harness", "swarm_code", "code_swarm"):
+        from pocket.coding_swarm import run_coding_swarm
+
+        return run_coding_swarm(prompt, cwd, job_id=jid)
+    # Recursive Agent Harnesses — full harness recursion (not bare model RLM)
+    if mode in ("rah", "recursive_harness", "rah_fanout", "rah_audit"):
+        from pocket.rah import run_rah_job
+
+        return run_rah_job(prompt, cwd=cwd, job=job)
     if mode in ("build", "ship", "use_case", "emergent", "loop"):
         from pocket.build_loop import manage_until_done, run_use_case, start_loop
         from pocket.use_cases import get_use_case, list_use_cases
@@ -474,7 +662,18 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
     if mode in ("auro", "auro14b", "ro14b", "him"):
         from pocket.auro14b_bridge import run_auro_job
 
-        return run_auro_job(prompt)
+        return run_auro_job(prompt, job=job)
+    if mode in ("assist", "assistant", "digital", "life", "day", "personal"):
+        from pocket.digital_assistant import run_assistant_turn
+
+        r = run_assistant_turn(
+            prompt,
+            engine="auto",
+            session_id=sid,
+            job_id=jid,
+            voice=bool(job.get("voice_engine") or job.get("voice")),
+        )
+        return r.get("reply") or "", "" if r.get("ok") else str(r.get("error") or ""), r.get("engine") or "assist"
     if mode in ("agent", "doer"):
         from pocket.step_agent import run_step_agent
 
@@ -491,6 +690,26 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         from pocket.capture import run_capture_job
 
         return run_capture_job(prompt)
+    if mode in ("studio", "product_studio", "video_studio", "viral"):
+        return _run_studio_agent(prompt, cwd, job_id=jid)
+    if mode in ("vision", "oculus", "see", "pixel_see"):
+        return _run_vision_agent(prompt, cwd, job_id=jid)
+    if mode in ("work", "working", "live_work", "work_mode", "persistent"):
+        return _run_work_mode(prompt, cwd, job_id=jid, session_id=sid)
+    if mode in ("muse_spark", "muse", "spark", "muse-spark", "musespark"):
+        from pocket.muse_spark import run_muse_spark_job
+
+        return run_muse_spark_job(prompt, cwd=cwd, job=job)
+    if mode in ("screen", "screen_share", "share"):
+        return _run_screen_agent(prompt, cwd, job_id=jid)
+    if mode in ("vcomp", "vcomputer", "virtual_computer", "computer"):
+        return _run_vcomp_agent(prompt, cwd, job_id=jid)
+    if mode in ("mcp", "tools"):
+        return _run_mcp_agent(prompt, cwd, job_id=jid)
+    if mode in ("github", "gh"):
+        from pocket.github_hub import run_github_job
+
+        return run_github_job(prompt, cwd=cwd)
     if mode == "repos":
         from pocket.repos import run_repos_job
 
@@ -529,7 +748,8 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
             f"Worker runs embodiment steps + proof pack in background.\n"
         )
         return body, ("" if r.get("ok") else r.get("error") or "offload failed"), "offload"
-    if mode in ("cowork", "work", "demo", "embody-desk"):
+    # "work" is Working mode (earlier) — cowork uses cowork/demo only
+    if mode in ("cowork", "demo", "embody-desk"):
         from pocket.cowork import run_cowork_job
 
         return run_cowork_job(prompt, cwd=cwd, job=job)
@@ -541,14 +761,100 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         from pocket.ghost_math import run_ghost
 
         return run_ghost(prompt)
-    if mode == "term":
-        # Interactive terminals are handled via /v1/terminals — not one-shot jobs
-        return (
-            "This is a live terminal session. Type commands in the UI; they go to the long-lived shell.",
-            "",
-            "term",
-        )
+    if mode in (
+        "genetic",
+        "genetic_flow",
+        "gene",
+        "internal",
+        "internal_models",
+        "internal-models",
+        "eugenetic",
+    ):
+        from pocket.internal_models import run_job as run_genetic_job
+
+        return run_genetic_job(prompt, cwd=cwd, job=job)
+    if mode in ("term", "python", "python_wsl", "py"):
+        return _run_agent_console(prompt, mode=mode, session_id=sid, job_id=jid, cwd=cwd)
     return _run_codex(prompt, cwd, job_id=jid, job=job)
+
+
+def _run_agent_console(
+    prompt: str,
+    *,
+    mode: str = "term",
+    session_id: str = "",
+    job_id: str = "",
+    cwd: str = "",
+) -> Tuple[str, str, str]:
+    """Send user text to the integrated console bound to this session (WSL / Python / PS)."""
+    from pocket.stream_util import update_progress
+    from pocket.terminals import agent_run, ensure_agent_console, catalog
+
+    text = (prompt or "").strip()
+    kind_map = {
+        "term": "powershell",
+        "shell": "powershell",
+        "python": "python",
+        "py": "python",
+        "python_wsl": "python_wsl",
+        "wsl": "wsl",
+        "wsl_native": "wsl",
+        "linux": "wsl",
+    }
+    kind = kind_map.get((mode or "term").lower(), "powershell")
+
+    # Meta commands
+    low = text.lower()
+    if not text or low in ("help", "?", "status", "console"):
+        cat = catalog()
+        lines = [
+            f"# Integrated agent console · `{kind}`",
+            "",
+            cat.get("doctrine") or "",
+            "",
+            "## Available kinds",
+        ]
+        for k in cat.get("kinds") or []:
+            mark = "✓" if k.get("available") else "✗"
+            lines.append(f"- {mark} **{k.get('id')}** — {k.get('label')}")
+        lines.append("")
+        lines.append("Type shell/Python lines here — they run in the **hidden integrated console**.")
+        lines.append("Switch: `use wsl` · `use python` · `use python_wsl` · `use powershell`")
+        return "\n".join(lines), "", kind
+
+    if low.startswith("use "):
+        want = low.split(None, 1)[1].strip().replace("-", "_")
+        kind = kind_map.get(want, want if want in ("powershell", "cmd", "wsl", "python", "python_wsl") else kind)
+        ens = ensure_agent_console(session_id, kind=kind)
+        return (
+            f"Console ready · **{ens.get('kind')}** · alive={ens.get('alive')} · pid={ens.get('pid')}\n\n"
+            f"```\n{(ens.get('log_tail') or '')[-2500:]}\n```",
+            "" if ens.get("ok") or ens.get("alive") else str(ens.get("error") or "start failed"),
+            ens.get("kind") or kind,
+        )
+
+    if job_id:
+        update_progress(job_id, f"console [{kind}] «{text[:80]}»…", engine=kind)
+
+    # Strip accidental code fences for paste
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines)
+
+    r = agent_run(text, session_id=session_id, kind=kind, wait_ms=800)
+    tail = (r.get("log_tail") or "")[-6000:]
+    out = (
+        f"[console={r.get('kind') or kind} · integrated · pid={r.get('pid') or '—'} · "
+        f"alive={r.get('alive')}]\n\n```text\n{tail}\n```\n"
+    )
+    if job_id:
+        update_progress(job_id, out[-2000:], engine=kind)
+    err = "" if r.get("ok") else str(r.get("error") or "console error")
+    return out, err, r.get("kind") or kind
 
 
 def _run_shell(cmd: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
@@ -623,18 +929,38 @@ def _run_wsl(cmd: str, job_id: str = "") -> Tuple[str, str, str]:
 
 
 def _run_ask(prompt: str, cwd: str) -> Tuple[str, str, str]:
+    """Lightweight POCKET-aware reply (no shell). Prefer plan/codex for real models."""
     engines = available_engines()
+    # Strip identity blocks for display of user request head
+    user_head = prompt or ""
+    for marker in ("[POCKET IDENTITY]", "# You are in POCKET", "[POCKET PLATFORM]", "[POCKET PROTOCOLS]"):
+        if marker in user_head:
+            user_head = user_head.split(marker)[0].strip()
+    user_head = (user_head or prompt or "")[:1200]
+    try:
+        from pocket.pocket_identity import IDENTITY_ONE_LINER
+        from pocket.protocols.platform_protocols import list_protocols
+
+        protos = ", ".join(p["slug"] for p in list_protocols())
+        who = IDENTITY_ONE_LINER
+    except Exception:
+        protos = "mesh, mcp-colony, bearer-session, job-session, phone-pair, …"
+        who = "You are a POCKET host agent."
     return (
-        f"## Plan only (no code execution)\n\n"
-        f"**Request:** {prompt[:2000]}\n\n"
-        f"**Workspace:** `{cwd}`\n\n"
-        f"**Engines:** Codex={engines['codex']} · Claude={engines['claude']} · WSL={engines['wsl']}\n\n"
-        "1. Clarify goal and constraints\n"
-        "2. Identify files/modules to touch\n"
-        "3. Implement smallest change\n"
-        "4. Run tests / real verification\n"
-        "5. Report diff summary\n\n"
-        "Open a **Codex** or **Claude** session to execute.",
+        f"## POCKET · Ask\n\n"
+        f"{who}\n\n"
+        f"**You asked:** {user_head}\n\n"
+        f"**Host:** engines Codex={engines.get('codex')} · Claude={engines.get('claude')} · "
+        f"Grok={engines.get('grok', engines.get('wsl'))} · workspace `{cwd}`\n\n"
+        f"**Protocols wired:** {protos}\n\n"
+        "### How I can help in POCKET\n"
+        "1. **Desk** `/desk` — Codex / Claude / Grok / Plan sessions\n"
+        "2. **Phone** `/phone` — pair code + same seat agents\n"
+        "3. **Skills** — POST `/v1/skills/run` or say “platform map” / “protocols”\n"
+        "4. **Protocols** — GET `/v1/protocols` · skill `protocols_map`\n"
+        "5. **Identity** — GET `/v1/identity` (every agent knows it is POCKET)\n\n"
+        "Open a **Codex**, **Claude**, **Grok**, or **Plan** session for deep work. "
+        "Ask mode stays read-only guidance on this host.\n",
         "",
         "ask",
     )
@@ -647,9 +973,17 @@ def _run_planning_ai(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str,
 
     grok = which_grok()
     plan_prompt = (
-        "You are a product/engineering planning partner. PLAN ONLY.\n"
-        "Do not write code, do not edit files, do not run shell.\n"
-        "Give: goals, constraints, ordered steps, risks, open questions, success metrics.\n"
+        "You are a POCKET host planning agent (not a generic chatbot). PLAN ONLY.\n"
+        "Help the user plan work *inside POCKET* (desk sessions, agents, skills, protocols).\n"
+        "Do not write full production code or edit files. Do not run shell.\n"
+        "Format like a clear chat reply (iMessage-style scannable):\n"
+        "- Short paragraphs and numbered steps\n"
+        "- Use **bold** for section labels\n"
+        "- When you show example APIs, schemas, or pseudo-code, put them in fenced "
+        "markdown code blocks with a language tag (```python, ```ts, ```json, ```bash)\n"
+        "- Prefer small snippets over walls of text\n"
+        "Cover: goals, constraints, ordered steps, risks, open questions, success metrics.\n"
+        "If useful, mention POCKET surfaces (desk, phone, loomgraph, mesh, skills).\n"
         f"Workspace context: {cwd}\n\n"
         f"User:\n{prompt}"
     )
@@ -796,52 +1130,56 @@ def _wants_research_only(task: str) -> bool:
     return False
 
 
-def _build_codex_prompt(prompt: str, agent_cwd: str, cwd: str, bridge_note: str = "") -> str:
-    """
-    Build a prompt that survives Windows truncation and idle-resume threads.
-    Put the concrete TASK first so the first line always carries the work.
+def _build_codex_prompt(
+    prompt: str,
+    agent_cwd: str,
+    cwd: str,
+    bridge_note: str = "",
+    *,
+    resumed: bool = False,
+) -> str:
+    """Lean Codex prompt — TASK-first, minimal policy, max signal per token.
+
+    Design (deep-tech token economics):
+      1. TASK on line 1 (survives Windows argv truncation)
+      2. Micro-policy ≤4 short lines (not a system essay)
+      3. Resume threads: TASK only — thread memory already holds prior turns
+      4. Full user message only when multi-line / device-wrapped
     """
     raw = (prompt or "").strip()
     task = _strip_device_prefix(raw)
     if not task:
-        task = (
-            "Continue the current task. If nothing is in progress, inventory this "
-            "workspace for production gaps and implement one concrete improvement."
-        )
-    # Single-line task lead (critical): if anything truncates at first newline, task still lands.
+        task = "Continue current task; if idle, ship one concrete verified fix."
     task_one_line = " ".join(task.split())
+    # Resume = zero policy re-tax (thread already conditioned)
+    if resumed:
+        return f"TASK: {task_one_line}\n"
+
     research_only = _wants_research_only(task_one_line)
-    work_rules = [
-        "You are the POCKET host coding agent on the operator machine.",
-        "Do real work in the working directory. Do NOT ask what to work on — the TASK is already stated.",
-        "If the workspace is PARALLAX, prioritize production/alpha readiness (paper/testnet first).",
-    ]
     if research_only:
-        work_rules.append(
-            "User asked for research/paper work: improve docs/research with tight structure, "
-            "but still leave a short 'how to verify / next code step' note."
-        )
+        policy = "Research mode: tight docs + one verify/next-code note. No repo-wide scans."
     else:
-        work_rules.extend(
-            [
-                "DEFAULT = CODE WORK, not research essays.",
-                "Prefer file edits, tests, configs, and short verification over new markdown papers.",
-                "Only write or expand research docs if the user explicitly asked for a paper/writeup.",
-                "Ship tasks (production/alpha/paradise/overnight): implement a concrete vertical slice and verify.",
-                "End with: what changed, how to verify, one next step — keep chat replies clean and readable.",
-            ]
+        policy = (
+            "Code-first host agent. Edit+verify in cwd. "
+            "No essays; no full-tree walks when PATHS given. "
+            "Reply: changed · verify · next. "
+            "GitHub via `gh` on host. Hierarchy: preview/draft → local or browser → "
+            "promote to folder or GitHub (never jump straight to remote). "
+            "Web UIs & simulations: end with ```preview (title+url), ```html-preview, "
+            "or ```simulation so the desk shows an in-chat bubble before commit."
         )
     parts = [
         f"TASK: {task_one_line}",
-        "",
-        *work_rules,
-        "",
-        f"Working directory: {agent_cwd}",
+        policy,
+        f"cwd={agent_cwd}",
     ]
     if bridge_note:
-        parts.append(f"[POCKET] {bridge_note}. Real project path: {cwd}")
-    if raw and raw != task_one_line:
-        parts.extend(["", "Full user message:", raw])
+        parts.append(f"bridge={bridge_note}; real={cwd}")
+    # Only re-attach multi-line body when it carries structure beyond the one-liner
+    if raw and raw != task and ("\n" in raw or len(raw) > len(task_one_line) + 40):
+        # Cap long pastes — operator can attach files; don't blow the context window
+        body = raw if len(raw) <= 2400 else (raw[:1200] + "\n…\n" + raw[-800:])
+        parts.extend(["---", body])
     return "\n".join(parts) + "\n"
 
 
@@ -888,19 +1226,26 @@ def _run_codex(prompt: str, cwd: str, job_id: str = "", job: Optional[Dict] = No
         agent_cwd = prefer_product_cwd("")
         bridge_note = bridge_note or "product cwd remap"
 
-    full_prompt = _build_codex_prompt(prompt, agent_cwd, product_cwd, bridge_note)
-    try:
-        from pocket.ai_workspace import inject_for_prompt
-
-        full_prompt = inject_for_prompt(
-            full_prompt,
-            workspace=(job.get("workspace") or "parallax"),
-            session_id=(job.get("session_id") or ""),
-            cwd=product_cwd,
-        )
-    except Exception:
-        pass
     resumed = bool(engine_thread)
+    full_prompt = _build_codex_prompt(
+        prompt, agent_cwd, product_cwd, bridge_note, resumed=resumed
+    )
+    # Token gate: on resume, thread already has history — skip workspace reinject.
+    # Fresh threads get a locus digest (~900 chars), not the full AI_WORKSPACE essay.
+    if not resumed:
+        try:
+            from pocket.ai_workspace import inject_for_prompt
+
+            full_prompt = inject_for_prompt(
+                full_prompt,
+                workspace=(job.get("workspace") or "parallax"),
+                session_id=(job.get("session_id") or ""),
+                cwd=product_cwd,
+                lean=True,
+                engine="codex",
+            )
+        except Exception:
+            pass
 
     # Always pass prompt via stdin ("-") — multi-line argv is unreliable on Windows cmd shims
     if resumed:
@@ -1016,15 +1361,693 @@ def _run_codex(prompt: str, cwd: str, job_id: str = "", job: Optional[Dict] = No
     return header + body, "", "codex"
 
 
+def _run_work_mode(
+    prompt: str, cwd: str, job_id: str = "", session_id: str = ""
+) -> Tuple[str, str, str]:
+    """Working state: multi-intent board + real tools (not coding chat)."""
+    from pocket.stream_util import update_progress
+    from pocket.work_mode import run_work_turn
+
+    if job_id:
+        update_progress(
+            job_id,
+            f"Working board · live · {(prompt or '')[:140]}\n\nParsing tasks + running search…",
+            engine="work",
+        )
+    r = run_work_turn(prompt, session_id=session_id or "", job_id=job_id)
+    reply = r.get("reply") or json.dumps(r, indent=2)[:6000]
+    # Light TTS — first choice / summary, not full markdown dump
+    spoken = re.sub(r"\s+", " ", reply.split("## Working board")[0].split("```")[0]).strip()
+    spoken = re.sub(r"[#*_`]", "", spoken)[:260]
+    if len(spoken) > 40 and not spoken.startswith("|"):
+        out = (
+            f"[engine=work · Working board · live tools]\n\n{reply}\n\n"
+            f"```tts\nrate=0.94\npitch=1.04\n{spoken}\n```"
+        )
+    else:
+        out = f"[engine=work · Working board · live tools]\n\n{reply}\n"
+    if job_id:
+        update_progress(job_id, out[:8000], engine="work")
+    return out, "" if r.get("ok", True) else str(r.get("error") or ""), "work"
+
+def _run_mcp_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """Agent MCP catalog / invoke — CLIs and tools without user tabs."""
+    from pocket.mcp_bundle import catalog, invoke, list_tools
+    from pocket.stream_util import update_progress
+
+    text = (prompt or "").strip()
+    low = text.lower()
+    if job_id:
+        update_progress(job_id, "MCP bundle…", engine="mcp")
+    if not text or low in ("help", "?", "list", "catalog"):
+        c = catalog()
+        lines = [
+            "# Embedded MCP (10) · agent access only",
+            "",
+            c.get("doctrine") or "",
+            "",
+            "## Internal (3)",
+        ]
+        for s in c.get("servers") or []:
+            if s.get("kind") == "internal":
+                lines.append(f"- **{s['id']}** — {s.get('blurb')}")
+        lines.append("")
+        lines.append("## External (7)")
+        for s in c.get("servers") or []:
+            if s.get("kind") == "external":
+                lines.append(f"- **{s['id']}** — {s.get('blurb')}")
+        lines.append("")
+        lines.append("Invoke: `mcp pocket screen_sense` · `mcp github repos` · `cli gh --version`")
+        return "\n".join(lines), "", "mcp"
+    if low.startswith("mcp "):
+        parts = text.split()
+        server = parts[1] if len(parts) > 1 else "pocket"
+        tool = parts[2] if len(parts) > 2 else "screen_status"
+        r = invoke(server, tool)
+        return f"```json\n{json.dumps(r, indent=2, default=str)[:5000]}\n```", "", "mcp"
+    if low.startswith("invoke "):
+        parts = text.split()
+        r = invoke(parts[1] if len(parts) > 1 else "pocket", parts[2] if len(parts) > 2 else "cli_list")
+        return f"```json\n{json.dumps(r, indent=2, default=str)[:5000]}\n```", "", "mcp"
+    if low in ("tools",):
+        return f"```json\n{json.dumps(list_tools(), indent=2)[:5000]}\n```", "", "mcp"
+    r = invoke("pocket", "cli_list")
+    return f"```json\n{json.dumps(r, indent=2, default=str)[:4000]}\n```", "", "mcp"
+
+
+def _run_studio_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """First-class Product Studio agent — record · polish · viral · caption · ship."""
+    import json
+    import re
+    from pocket.stream_util import update_progress
+    from pocket.studio_core import run_studio_skill, studio_map, first_class_status, agent_brief
+
+    text = (prompt or "").strip()
+    low = text.lower()
+    if job_id:
+        update_progress(job_id, "Product Studio…", engine="studio")
+
+    if not text or low in ("help", "?", "map", "status", "what can you do"):
+        m = studio_map()
+        st = first_class_status()
+        lines = [
+            "# Product Studio · first-class agent",
+            "",
+            agent_brief(),
+            "",
+            f"**Ready:** {st.get('ready')} · **ffmpeg:** {(st.get('video') or {}).get('ffmpeg')}",
+            f"**Recordings:** {(st.get('video') or {}).get('recordings')} · **Exports:** {(st.get('video') or {}).get('exports')}",
+            "",
+            "## Say",
+        ]
+        for s in m.get("say_examples") or []:
+            lines.append(f"- _{s}_")
+        lines.append("")
+        lines.append("## Skills")
+        for f in (m.get("agent_features") or [])[:14]:
+            lines.append(f"- `{f['skill']}` — {f['use']}")
+        lines.append("")
+        lines.append("UI: `/studio` · API: `GET /v1/studio/first-class`")
+        return "\n".join(lines), "", "studio"
+
+    # One-intent full loop first
+    if re.search(
+        r"\b(record and ship|stop and ship|full (demo|loop)|finish (the )?demo|"
+        r"demo then ship|wrap (the )?demo|end (and )?ship)\b",
+        low,
+    ):
+        skill = "studio_full_loop"
+    elif re.search(r"\b(viral|polish|auto pack|product pack)\b", low):
+        skill = "studio_viral"
+    elif re.search(r"\b(ship)\b", low):
+        skill = "studio_ship"
+    elif re.search(r"\b(storyboard|beats|hook)\b", low):
+        skill = "studio_storyboard"
+    elif re.search(r"\b(caption|blurb|social post)\b", low):
+        skill = "studio_caption"
+    elif re.search(r"\b(start record|begin record|record (the )?(desk|screen|desktop))\b", low):
+        skill = "studio_record_start"
+    elif re.search(r"\b(stop record|end record)\b", low):
+        skill = "studio_record_stop"
+    elif re.search(r"\b(render|rotato|screencast|macbook|clean_demo)\b", low):
+        skill = "studio_render"
+    elif re.search(r"\b(list recording|recordings)\b", low):
+        skill = "studio_list_recordings"
+    elif re.search(r"\b(list export|exports)\b", low):
+        skill = "studio_list_exports"
+    elif re.search(r"\b(playbook|features)\b", low):
+        skill = "studio_playbooks"
+    elif re.search(r"\b(map|open studio)\b", low):
+        skill = "studio_map" if "map" in low else "studio_open"
+    elif re.search(r"\b(compose|imagine|still)\b", low):
+        skill = "imagine_compose"
+    elif re.search(r"\b(batch)\b", low):
+        skill = "studio_batch"
+    else:
+        skill = "studio_status"
+
+    if job_id:
+        update_progress(job_id, f"Studio · {skill}", engine="studio")
+    r = run_studio_skill(skill, prompt=text, params={})
+    ok = bool(r.get("ok", True))
+    md = f"## Studio · `{skill}`\n\n**{r.get('message') or ''}**\n\n```json\n{json.dumps(r, indent=2, default=str)[:5500]}\n```\n"
+    if skill == "studio_full_loop":
+        phase = r.get("phase") or ""
+        md = f"## Studio full loop · `{phase}`\n\n**{r.get('message') or ''}**\n\n"
+        if r.get("storyboard") and r["storyboard"].get("beats"):
+            md += "### Storyboard\n" + "\n".join(
+                f"- **{b.get('name')}**: {b.get('caption')}" for b in r["storyboard"]["beats"]
+            ) + "\n\n"
+        if r.get("next"):
+            md += f"**Next:** {r.get('next')}\n\n"
+        if r.get("ship") and r["ship"].get("exports"):
+            md += "### Exports\n" + "\n".join(
+                f"- {e.get('name') or e.get('preset') or e}" for e in (r["ship"].get("exports") or [])[:8]
+            ) + "\n"
+        md += f"\n```json\n{json.dumps({'steps': r.get('steps'), 'ok': r.get('ok')}, indent=2, default=str)[:2500]}\n```\n"
+    if skill == "studio_storyboard" and r.get("beats"):
+        md = "## Demo storyboard\n\n" + "\n".join(
+            f"**{b.get('beat')}. {b.get('name')}** ({b.get('seconds')})\n"
+            f"- On screen: {b.get('on_screen')}\n"
+            f"- Agent: `{b.get('agent_action')}`\n"
+            f"- Caption: _{b.get('caption')}_\n"
+            for b in r["beats"]
+        ) + f"\n**Next:** {r.get('next')}\n"
+    if skill == "studio_caption" and r.get("social_posts"):
+        md = (
+            f"## Caption pack\n\n{r.get('launch_blurb')}\n\n### Social\n"
+            + "\n\n".join(f"{i}. {p}" for i, p in enumerate(r["social_posts"], 1))
+            + f"\n\nHashtags: {' '.join(r.get('hashtags') or [])}\n"
+        )
+    return md, "" if ok else str(r.get("error") or "studio failed"), "studio"
+
+
+def _run_screen_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """Screen share agent — view/control policy + fusion context for all agents."""
+    from pocket.stream_util import update_progress
+
+    text = (prompt or "").strip()
+    low = text.lower()
+    if job_id:
+        update_progress(job_id, "Screen share · fusion…", engine="screen")
+    try:
+        from pocket.screen_share import status, set_share, fusion_context, act_for_agent, grab_frame
+    except Exception as e:
+        return "", f"screen share unavailable: {e}", "screen"
+
+    if not text or low in ("help", "?", "status"):
+        st = status()
+        return (
+            "# Screen · Fusion · VComputer\n\n"
+            f"**mode:** `{st.get('mode')}` · **monitor:** {st.get('monitor')} · **vcomp:** {st.get('vcomp')}\n\n"
+            "| Command | Effect |\n|---|---|\n"
+            "| `view` / `control` / `off` | Share policy for all agents |\n"
+            "| `sense` / `look` | Fusion context + frame |\n"
+            "| `click Name` | Mouse (control mode only) |\n"
+            "| `type hello` | Keyboard (control mode only) |\n"
+            "| `vcomp on` / `vcomp off` | Virtual computer surface |\n\n"
+            "_Open the **Screen** column on the desk for the live side panel._\n"
+        ), "", "screen"
+
+    if low in ("off", "stop share", "share off"):
+        return f"```json\n{json.dumps(set_share(mode='off'), indent=2)[:1200]}\n```", "", "screen"
+    if low in ("view", "share", "share on", "view only"):
+        return f"```json\n{json.dumps(set_share(mode='view'), indent=2)[:1200]}\n```", "", "screen"
+    if low in ("control", "control on", "let agents control"):
+        return f"```json\n{json.dumps(set_share(mode='control', vcomp=True), indent=2)[:1200]}\n```", "", "screen"
+    if low in ("vcomp on", "vcomputer on"):
+        return f"```json\n{json.dumps(set_share(mode='view', vcomp=True), indent=2)[:1200]}\n```", "", "screen"
+    if low in ("vcomp off",):
+        return f"```json\n{json.dumps(set_share(vcomp=False), indent=2)[:1200]}\n```", "", "screen"
+    if low in ("sense", "look", "observe", "context"):
+        cx = fusion_context(agent="screen")
+        fr = grab_frame(include_image=True) if cx.get("shared") else {}
+        lines = [
+            "# Screen sense",
+            "",
+            f"**shared:** {cx.get('shared')} · **mode:** {cx.get('mode')}",
+            f"**brief:** {cx.get('brief') or cx.get('message') or '—'}",
+            f"**symbols:** {', '.join(cx.get('symbols_sample') or [])[:400]}",
+            "",
+        ]
+        if fr.get("markdown"):
+            lines.append(fr["markdown"][:80000])
+        return "\n".join(lines), "", "screen"
+    if low.startswith("click "):
+        r = act_for_agent("click", agent="screen", name=text.split(None, 1)[1].strip())
+        return f"```json\n{json.dumps(r, indent=2)[:2000]}\n```", "" if r.get("ok") else r.get("error", ""), "screen"
+    if low.startswith("type "):
+        r = act_for_agent("type", agent="screen", text=text.split(None, 1)[1])
+        return f"```json\n{json.dumps(r, indent=2)[:2000]}\n```", "" if r.get("ok") else r.get("error", ""), "screen"
+    # default: sense + answer
+    cx = fusion_context(agent="screen")
+    return (
+        f"# Screen\n\n{cx.get('brief') or cx.get('message')}\n\n"
+        f"UI: {', '.join(cx.get('symbols_sample') or [])[:300]}\n"
+    ), "", "screen"
+
+
+def _run_vcomp_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """Virtual computer agent — sense/act/shell on host machine surface."""
+    from pocket.stream_util import update_progress
+
+    text = (prompt or "").strip()
+    low = text.lower()
+    if job_id:
+        update_progress(job_id, "VComputer…", engine="vcomp")
+    try:
+        from pocket.virtual_computer import status, open_computer, sense_computer, act, shell
+    except Exception as e:
+        return "", f"vcomp unavailable: {e}", "vcomp"
+
+    if not text or low in ("help", "?"):
+        st = status()
+        return (
+            "# POCKET Virtual Computer\n\n"
+            f"**status:** {((st.get('state') or {}).get('status'))}\n"
+            f"**workspace:** `{st.get('workspace')}`\n\n"
+            "Commands: `open` · `sense` · `click Name` · `type …` · `shell …` · `status`\n"
+            "Pairs with **Screen** column Control mode for mouse.\n"
+        ), "", "vcomp"
+    if low in ("open", "boot", "start"):
+        return f"```json\n{json.dumps(open_computer(label='agent'), indent=2)[:2000]}\n```", "", "vcomp"
+    if low in ("status",):
+        return f"```json\n{json.dumps(status(), indent=2)[:2500]}\n```", "", "vcomp"
+    if low in ("sense", "look"):
+        return f"```json\n{json.dumps(sense_computer(), indent=2, default=str)[:4000]}\n```", "", "vcomp"
+    if low.startswith("click "):
+        r = act("click", name=text.split(None, 1)[1].strip())
+        return f"```json\n{json.dumps(r, indent=2, default=str)[:2000]}\n```", "", "vcomp"
+    if low.startswith("type "):
+        r = act("type", text=text.split(None, 1)[1])
+        return f"```json\n{json.dumps(r, indent=2, default=str)[:2000]}\n```", "", "vcomp"
+    if low.startswith("shell ") or low.startswith("run "):
+        cmd = text.split(None, 1)[1]
+        r = shell(cmd)
+        return f"```json\n{json.dumps(r, indent=2, default=str)[:3000]}\n```", "", "vcomp"
+    open_computer(label="agent")
+    s = sense_computer()
+    return (
+        f"# VComputer\n\n{s.get('brief')}\n\n"
+        f"Hints: {s.get('action_hints')}\n"
+        f"Say `click …` or `type …` to act.\n"
+    ), "", "vcomp"
+
+
+def _run_vision_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """First-class OCULUS vision agent — observe · map · OCR · find · click."""
+    from pocket.stream_util import update_progress
+
+    text = (prompt or "").strip()
+    low = text.lower()
+    if job_id:
+        update_progress(job_id, "OCULUS vision · sensing host screen…", engine="vision")
+
+    try:
+        from pocket.vision_core import (
+            observe,
+            build_ui_map,
+            find_in_map,
+            click_by_name,
+            windows_ocr_lines,
+            grab_frame,
+        )
+    except Exception as e:
+        return "", f"vision core unavailable: {e}", "vision"
+
+    def _help() -> str:
+        return (
+            "# OCULUS · first-class vision\n\n"
+            "Sensory layer for the host desk — not a screenshot toy.\n\n"
+            "| Command | What it does |\n"
+            "|---|---|\n"
+            "| `observe` / `see` / `look` | Full observation (UI map + OCR brief + windows) |\n"
+            "| `map` / `ui map` | Enumerate interactive UI elements |\n"
+            "| `ocr` / `read screen` | OCR plain text from the screen |\n"
+            "| `find <name>` | Search UI map for a control |\n"
+            "| `click <name>` | Vision→action: map, match, click center |\n"
+            "| `frame` / `shot` | Capture current frame metadata |\n"
+            "| `status` | Last observation + live feed health |\n"
+            "| `help` | This card |\n\n"
+            "_Wired to `/v1/vision/*` · pixel_translator · live_vision · UI Automation._\n"
+        )
+
+    if not text or low in ("help", "?", "commands"):
+        return _help(), "", "vision"
+
+    try:
+        if low in ("status", "health"):
+            from pocket.live_vision import latest_frame
+            from pathlib import Path
+
+            live = latest_frame(include_image=False)
+            last = Path.home() / ".pocket" / "vision" / "last_observation.json"
+            brief = ""
+            if last.exists():
+                try:
+                    import json as _json
+
+                    o = _json.loads(last.read_text(encoding="utf-8"))
+                    brief = str(o.get("brief") or "")[:400]
+                except Exception:
+                    pass
+            out = (
+                f"# Vision status\n\n"
+                f"- **live seq:** {live.get('seq')}\n"
+                f"- **frame path:** `{live.get('path') or '—'}`\n"
+                f"- **last brief:** {brief or '—'}\n"
+            )
+            return out, "", "vision"
+
+        if low in ("observe", "see", "look", "look around", "what do you see"):
+            obs = observe(with_ui_map=True, with_ocr=True, with_understand=True)
+            names = obs.get("ui_names") or []
+            titles = obs.get("window_titles") or []
+            lines = [
+                "# OCULUS observe",
+                "",
+                f"**primary:** {obs.get('primary_modality') or obs.get('source') or '—'}",
+                f"**why:** {obs.get('why_primary') or '—'}",
+                f"**brief:** {obs.get('brief') or '—'}",
+                f"**ui elements:** {obs.get('ui_map_count') or len(names)}",
+                "",
+                "### Windows",
+            ]
+            for t in titles[:12]:
+                lines.append(f"- {t}")
+            if not titles:
+                lines.append("- _(none)_")
+            lines.append("")
+            lines.append("### UI sample")
+            for n in names[:20]:
+                lines.append(f"- {n}")
+            ocr = (obs.get("ocr_plain") or "")[:1200]
+            if ocr:
+                lines.extend(["", "### OCR", "```", ocr, "```"])
+            hints = obs.get("action_hints") or []
+            if hints:
+                lines.extend(["", "### Action hints"])
+                for h in hints[:8]:
+                    lines.append(f"- {h}")
+            out = "\n".join(lines)
+            if job_id:
+                update_progress(job_id, out, engine="vision")
+            return out, "", "vision"
+
+        if low in ("map", "ui map", "ui_map", "elements"):
+            ui = build_ui_map()
+            els = ui.get("elements") or []
+            lines = [f"# UI map · {ui.get('count') or len(els)} elements", ""]
+            for e in els[:40]:
+                lines.append(
+                    f"- **{e.get('name')}** · {e.get('type','')} @ ({e.get('x')},{e.get('y')}) "
+                    f"{e.get('w')}×{e.get('h')}"
+                )
+            return "\n".join(lines), "", "vision"
+
+        if low in ("ocr", "read", "read screen", "readscreen", "text"):
+            o = windows_ocr_lines()
+            plain = o.get("plain_text") or ""
+            if not plain and o.get("lines"):
+                plain = "\n".join(
+                    (ln.get("text") if isinstance(ln, dict) else str(ln)) for ln in o["lines"][:80]
+                )
+            out = f"# Screen OCR\n\n```\n{(plain or '(no text)')[:4000]}\n```\n"
+            return out, "", "vision"
+
+        if low.startswith("find ") or low.startswith("search "):
+            q = text.split(None, 1)[1].strip()
+            hits = find_in_map(q)
+            if not hits:
+                build_ui_map()
+                hits = find_in_map(q)
+            lines = [f"# Find `{q}` · {len(hits)} hit(s)", ""]
+            for h in hits[:15]:
+                lines.append(
+                    f"- **{h.get('name')}** @ ({h.get('x')},{h.get('y')}) · {h.get('type','')}"
+                )
+            if not hits:
+                lines.append("_No matches — try `map` or a shorter name._")
+            return "\n".join(lines), "", "vision"
+
+        if low.startswith("click "):
+            name = text.split(None, 1)[1].strip().strip("\"'")
+            r = click_by_name(name)
+            out = (
+                f"# Click `{name}`\n\n"
+                f"- **ok:** {r.get('ok')}\n"
+                f"- **method:** {r.get('method')}\n"
+                f"- **matched:** {r.get('matched') or '—'}\n"
+                f"- **candidates:** {r.get('candidates')}\n"
+            )
+            if r.get("error"):
+                out += f"- **error:** {r.get('error')}\n"
+            return out, "", "vision"
+
+        if low in ("frame", "shot", "screenshot", "grab"):
+            fr = grab_frame()
+            out = (
+                f"# Frame grab\n\n"
+                f"- **ok:** {fr.get('ok')}\n"
+                f"- **mime:** {fr.get('mime')}\n"
+                f"- **live:** {fr.get('live')}\n"
+            )
+            b64 = fr.get("base64") or ""
+            if b64:
+                mime = fr.get("mime") or "image/jpeg"
+                out += f"\n![frame](data:{mime};base64,{b64[:120000]})\n"
+            return out, "", "vision"
+
+        # Free-form: treat as observe + find if query-like
+        if any(w in low for w in ("where", "what", "button", "window", "on screen", "do you see")):
+            obs = observe(with_ui_map=True, with_ocr=True, with_understand=True)
+            brief = obs.get("brief") or "Screen observed."
+            names = ", ".join((obs.get("ui_names") or [])[:12])
+            out = f"# OCULUS\n\n{brief}\n\n**UI:** {names or '—'}\n"
+            return out, "", "vision"
+
+        return _help() + f"\n_Unknown command:_ `{text[:120]}`\n", "", "vision"
+    except Exception as e:
+        return "", f"vision agent failed: {e}", "vision"
+
+
+def _aria_local_reply(text: str) -> str:
+    """Always-available Aria brain: everyday skills first, then warm fallback."""
+    u = (text or "").strip()
+    low = u.lower()
+    if not u:
+        return "I'm here — take your time."
+    # Embedded everyday skills (todo, time, travel, focus, …)
+    try:
+        from pocket.voice_skills import try_skill, skill_help
+
+        if re.search(r"\b(what can you (do|help)|your skills|help me with)\b", low):
+            return skill_help()
+        hit = try_skill(u)
+        if hit:
+            return hit[0]
+    except Exception:
+        pass
+    if re.search(r"\b(who are you|what'?s your name|introduce yourself|are you (an? )?(ai|bot))\b", low):
+        return (
+            "Hey — I'm Aria. I help with everyday stuff while we talk — lists, reminders, "
+            "time, focus, travel, quick drafts — and I'm patient if you need a second. What do you need?"
+        )
+    if re.search(r"\b(hello|hi|hey|good (morning|afternoon|evening))\b", low):
+        return "Hey — good to hear you. What's going on?"
+    if re.search(r"\b(thank|thanks|thx)\b", low):
+        return "Anytime. I'm right here if you need anything else."
+    if re.search(r"\b(refund|charge|billing|money back)\b", low):
+        return "Sure — I can look at the billing with you. Was it a recent charge, and do you have an order number?"
+    if re.search(r"\b(cancel|unsubscribe)\b", low):
+        return "Got it. Is this a subscription or a one-time order? I'll walk you through canceling."
+    if re.search(r"\b(broken|not work|bug|error|issue)\b", low):
+        return "Ah, sorry about that. What were you trying to do, and what happens instead?"
+    if re.search(r"\b(help|support|stuck)\b", low):
+        return "I'm with you. Tell me the sticky part in one sentence and we'll unpack it."
+    if re.search(r"\b(bye|goodbye|see you|later)\b", low):
+        return "Take care — talk soon."
+    snip = u if len(u) <= 90 else u[:87] + "…"
+    return f"Okay, I heard you — “{snip}”. Want to dig into that, or is there something more urgent?"
+
+
+def _voice_pack_reply(
+    reply: str,
+    *,
+    thr: int = 1400,
+    rate: float = 0.92,
+    pitch: float = 1.06,
+    source: str = "pocket-voice",
+    listen: Optional[Dict] = None,
+    buf: Optional[Dict] = None,
+    err: str = "",
+) -> Tuple[str, str, str]:
+    spoken = re.sub(r"\s+", " ", (reply or "")).strip()
+    if len(spoken) > 480:
+        spoken = spoken[:460].rsplit(" ", 1)[0] + "…"
+    try:
+        rate_f = float(rate)
+    except Exception:
+        rate_f = 0.92
+    rate_f = max(0.82, min(1.05, rate_f if rate_f else 0.92))
+    try:
+        pitch_f = float(pitch)
+    except Exception:
+        pitch_f = 1.06
+    listen = listen or {}
+    lines = [
+        f"[engine=voice · Aria · patient {thr}ms · {source}]",
+        "",
+        reply,
+        "",
+        f"_listening: Aria · scenario={listen.get('scenario') or 'patient'} · "
+        f"expert={listen.get('expert') or 'hotel_host'} · barge={listen.get('barge_in') or 'medium'}_",
+    ]
+    if buf and isinstance(buf, dict):
+        try:
+            bits = []
+            for dom, entries in buf.items():
+                if isinstance(entries, list) and entries:
+                    bits.append(
+                        f"{dom}: "
+                        + ", ".join(
+                            f"{e.get('key')}={e.get('value')}" for e in entries[:4] if isinstance(e, dict)
+                        )
+                    )
+            if bits:
+                lines.append("")
+                lines.append("**Context buffer:** " + "; ".join(bits))
+        except Exception:
+            pass
+    lines.append("")
+    lines.append(f"```tts\nrate={rate_f}\npitch={pitch_f}\n{spoken}\n```")
+    return "\n".join(lines), err, "voice"
+
+
+def _run_voice_agent(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """Voice product turn — Aria does real host work (skills, life ops, screen) + speak-back.
+
+    Browser still does STT/TTS duplex; this path is the agent brain for typed or
+    transcribed turns. Prefer host actions over empty small-talk.
+    """
+    from pocket.stream_util import update_progress
+
+    text = (prompt or "").strip()
+    if not text:
+        return "", "Say something — voice agent needs a transcript or text.", "voice"
+
+    if job_id:
+        update_progress(job_id, "Aria · listening · acting…", engine="voice")
+
+    session_id = f"pocket-{job_id or 'desk'}"
+    try:
+        from pocket.voice_product import run_voice_turn
+
+        turn = run_voice_turn(text, session_id=session_id, job_id=job_id or "")
+    except Exception as e:
+        turn = {
+            "ok": True,
+            "reply": _aria_local_reply(text),
+            "source": "aria-local-fallback",
+            "error": str(e)[:160],
+        }
+
+    reply = str(turn.get("reply") or "").strip() or _aria_local_reply(text)
+    source = str(turn.get("source") or "voice")
+    thr = 1400
+    fusion_result: Dict = turn.get("fusion") if isinstance(turn.get("fusion"), dict) else {}
+    # Host action appendix (links) for desk display — keep spoken clean via tts fence
+    extra_md = ""
+    host = turn.get("host") if isinstance(turn.get("host"), dict) else None
+    if host and isinstance(host.get("result"), dict):
+        res = host["result"]
+        links = res.get("links") or res.get("choices") or []
+        if links:
+            extra_md = "\n\n**Opened / options**\n" + "\n".join(
+                f"- [{L.get('title') or 'link'}]({L.get('url')})" for L in links[:6] if isinstance(L, dict)
+            )
+        if res.get("gate_message"):
+            extra_md += f"\n\n_{res.get('gate_message')}_"
+
+    out, err, eng = _voice_pack_reply(
+        reply + extra_md,
+        thr=thr,
+        rate=0.93,
+        pitch=1.05,
+        source=source,
+        listen={"scenario": "patient", "expert": fusion_result.get("primary_expert") or "aria"},
+        err=str(turn.get("error") or ""),
+    )
+    # Neural TTS URL for desk/phone Audio() player (edge-tts free)
+    audio = turn.get("tts_audio") or ""
+    if audio and "```tts" in out:
+        out = out.rstrip() + f"\n\n```audio\n{audio}\n```\n"
+    elif audio:
+        out = out.rstrip() + f"\n\n```audio\n{audio}\n```\n"
+    if job_id:
+        update_progress(job_id, out, engine="voice")
+    return out, err, eng
+
+
 def _run_claude(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]:
+    """Prefer Claude Agent SDK (embedded agent loop); fall back to `claude` CLI."""
+    # 1) Claude Agent SDK — same loop as Claude Code, streams into desk + sandbox receipts
+    last_sdk = ""
+    prefer_sdk = os.environ.get("POCKET_CLAUDE_SDK", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "cli",
+    )
+    if prefer_sdk:
+        try:
+            from pocket.claude_agent_bridge import run_claude_agent, sdk_installed
+
+            if sdk_installed():
+                sid = ""
+                try:
+                    from pocket.jobs import get as get_job
+
+                    j = get_job(job_id) if job_id else None
+                    if j:
+                        sid = str(j.get("session_id") or "")
+                except Exception:
+                    pass
+                out, err, eng = run_claude_agent(
+                    prompt,
+                    cwd,
+                    job_id=job_id or "",
+                    session_id=sid,
+                )
+                if out and not err:
+                    return out, "", eng or "claude-agent-sdk"
+                last_sdk = err or ""
+                if out and err:
+                    return out, err, eng or "claude-agent-sdk"
+        except Exception as e:
+            # never block desk if SDK path crashes
+            last_sdk = str(e)
+
+    # 2) Classic Claude Code CLI
     claude = which_claude()
     if not claude:
         if which_codex():
             result, err, _ = _run_codex(prompt, cwd, job_id=job_id)
-            return result + "\n\n_(Claude missing — Codex.)_", err, "codex-fallback"
-        return "", "claude CLI not installed", "claude"
+            note = "_(Claude Agent SDK/CLI missing — Codex.)_"
+            if last_sdk:
+                note = f"_(Claude SDK: {last_sdk[:120]} — Codex.)_"
+            return result + "\n\n" + note, err, "codex-fallback"
+        msg = "claude CLI not installed and claude-agent-sdk unavailable"
+        if last_sdk:
+            msg += f" ({last_sdk[:200]})"
+        return (
+            "",
+            msg + " — pip install claude-agent-sdk or install Claude Code CLI",
+            "claude",
+        )
     from pocket.stream_util import run_streaming
 
+    last = ""
     for cmd in (
         [claude, "-p", prompt, "--output-format", "text"],
         [claude, "--print", prompt],
@@ -1035,7 +2058,13 @@ def _run_claude(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, str]
         )
         text = (out or "").strip()
         if rc == 0 and text:
-            return f"[engine=claude cwd={cwd}]\n\n{text[-60000:]}", "", "claude"
+            try:
+                from pocket.reply_format import polish_agent_output
+
+                body = polish_agent_output(text[-60000:], engine="claude")
+            except Exception:
+                body = text[-60000:]
+            return f"[engine=claude-cli cwd={cwd}]\n\n{body}", "", "claude"
         if "login" in text.lower() or "auth" in text.lower():
             return "", f"claude failed: {text[:2000]}", "claude"
         last = text or err or f"exit {rc}"

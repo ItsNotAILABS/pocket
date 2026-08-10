@@ -78,11 +78,66 @@ Validate the generated Worker URL before changing any existing tunnel or product
 |---|---|
 | Desk | `/desk` |
 | Phone | `/phone` |
+| **Docs hub** | `/docs` |
+| **Agent Mail** | `/mail` |
+| Install slices | `/install` |
+| Work Studio | `/work` |
+| LOOMGRAPH | `/loomgraph` |
 | Overview | `/tour` |
 | Get/install | `/get` |
 | API | `/developers` |
 | Health | `/health` |
-| Class/ready | `/v1/class` · `/v1/ready` |
+| Live catalog | `/v1/catalog` |
+| Class / ready | `/v1/class` · `/v1/ready` |
+
+## Documentation
+
+| Doc | What |
+|-----|------|
+| [docs/INDEX.md](docs/INDEX.md) | Master platform map |
+| [docs/HOW_TO.md](docs/HOW_TO.md) | How-to recipe index |
+| [docs/how-to/AGENT_MAIL.md](docs/how-to/AGENT_MAIL.md) | Our agent email + inboxes |
+| [docs/how-to/GENETIC_FLOW.md](docs/how-to/GENETIC_FLOW.md) | Internal models · genetic |
+| [docs/how-to/WEB_UI_ENGINES.md](docs/how-to/WEB_UI_ENGINES.md) | Models drive websites via Python |
+| [docs/how-to/MCP.md](docs/how-to/MCP.md) | MCP for Grok/Claude/Cursor |
+| [docs/how-to/INSTALL.md](docs/how-to/INSTALL.md) | One-line install slices |
+| [docs/how-to/API_RECIPES.md](docs/how-to/API_RECIPES.md) | Copy-paste APIs |
+
+HTML hub on a running host: **http://127.0.0.1:8787/docs**
+
+---
+
+## Ecosystem (ItsNotAI Labs)
+
+| Product | Repo | What it is |
+|---------|------|------------|
+| **POCKET host** | [ItsNotAILABS/pocket](https://github.com/ItsNotAILABS/pocket) | This repo — desk, phone, MCP, genetic, mail, install hub |
+| **POCKET Agent** | [ItsNotAILABS/pocket-agent](https://github.com/ItsNotAILABS/pocket-agent) | Long-running CLI + **one-line slices** (agent, SDK, skills, knowledge, capsules, **mail**, plug) |
+| **Pocket Voice** | [ItsNotAILABS/pocket-voice-to-text](https://github.com/ItsNotAILABS/pocket-voice-to-text) | Sovereign STT/TTS · patient VAD · multi-personality agents |
+| **Desktop (Electron)** | `desktop-electron/` in this repo | **Sovereign shell** v2.2 — local host or team desk; never stores passwords |
+| **Edge app** | `scripts/Open-POCKET-Edge.cmd` | Edge `--app=` window for desk (host auto-up) |
+
+### New product uses (v3.6+)
+
+| Use | How |
+|-----|-----|
+| **Agent Mail** | Our own `*@agents.pocket.local` accounts + inboxes · UI `/mail` · API `/v1/agent-mail/*` · slice `install/mail.sh` |
+| **Genetic flow** | Internal models as modules · desk **Genetic** · `POST /v1/genetic/run` |
+| **Website UI engines** | Models drive sites via Python MCP (`web_ui_*`, `python_engine`) — not user MCP tabs |
+| **Install slices** | One-liners for agent, SDK, skills, knowledge, capsules, **mail**, plug · `/install` |
+| **Docs hub** | `/docs` + how-tos under `docs/how-to/` · live `GET /v1/catalog` |
+| **RAH** | Recursive full harness fan-out · `POST /v1/rah/run` |
+| **KEEP / ISOLATE / RECALL** | Agents until chat ends · isolated browsers · recall codes |
+| **Sovereign Electron** | Operator = local only · User = source picker · navigation locked to desk origin |
+| **Edge desk** | `scripts/Open-POCKET-Edge.cmd` · production host ensure + app window |
+
+```bash
+# Agent Mail slice (any machine)
+curl -fsSL https://raw.githubusercontent.com/ItsNotAILABS/pocket-agent/main/install/mail.sh | sh
+# Windows: irm …/install/mail.ps1 | iex
+```
+
+---
 
 ## Multi-user
 

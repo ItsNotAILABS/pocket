@@ -81,8 +81,11 @@ def _ensure_sys_path() -> Path:
     return root
 
 
+_model_cache: Dict[str, Any] = {}
+
+
 def load_model_from_web_json(path: Optional[Path] = None) -> Any:
-    """Load AuroTransformer weights from auro.web.v1 model.json."""
+    """Load AuroTransformer weights from auro.web.v1 model.json (cached in-process)."""
     import numpy as np
 
     _ensure_sys_path()
@@ -90,6 +93,10 @@ def load_model_from_web_json(path: Optional[Path] = None) -> Any:
     from auro_native_llm_model.transformer import AuroTransformer
 
     p = Path(path or MODEL_JSON)
+    key = str(p.resolve()) if p.exists() else str(p)
+    cached = _model_cache.get(key)
+    if cached is not None:
+        return cached
     payload = json.loads(p.read_text(encoding="utf-8"))
     cfg = AuroConfig.from_dict(payload["config"])
     weights = {}
@@ -97,7 +104,9 @@ def load_model_from_web_json(path: Optional[Path] = None) -> Any:
         shape = blob.get("shape")
         data = blob.get("data")
         weights[name] = np.asarray(data, dtype=np.float32).reshape(shape)
-    return AuroTransformer(cfg, weights=weights)
+    model = AuroTransformer(cfg, weights=weights)
+    _model_cache[key] = model
+    return model
 
 
 def generate_ids(

@@ -1,4 +1,4 @@
-"""POCKET protocol modules — OS bridges, Hz mesh, and Subagent Mesh Protocol."""
+"""POCKET protocol modules — OS bridges, Hz mesh, Subagent Mesh, Capsule/WebGPU."""
 
 from __future__ import annotations
 
@@ -24,6 +24,34 @@ from pocket.protocols.subagent_mesh_protocol import (
     status as mesh_protocol_status,
     resolve_lane,
 )
+from pocket.protocols.multi_sandbox_capsule import (
+    PROTOCOL_ID as CAPSULE_PROTOCOL_ID,
+    manager as capsule_manager,
+    protocol_manifest as capsule_protocol_manifest,
+    probe_webgpu,
+    run_capsule_skill,
+    status as capsule_status,
+)
+from pocket.protocols.platform_protocols import (
+    MAJOR_PROTOCOLS,
+    list_protocols,
+    manifest as major_protocols_manifest,
+    platform_protocols_status,
+    get_protocol,
+)
+
+# RAH is first-class (also listed in MAJOR_PROTOCOLS)
+try:
+    from pocket.rah import (
+        PROTOCOL_ID as RAH_PROTOCOL_ID,
+        manifest as rah_manifest,
+        status as rah_status,
+        run_rah,
+        plan_fanout as rah_plan_fanout,
+    )
+except Exception:  # pragma: no cover
+    RAH_PROTOCOL_ID = "MEDINA-RAH/1.0"
+    rah_manifest = rah_status = run_rah = rah_plan_fanout = None  # type: ignore
 
 __all__ = [
     "click_ui",
@@ -42,4 +70,20 @@ __all__ = [
     "mesh_protocol_manifest",
     "mesh_protocol_status",
     "resolve_lane",
+    "CAPSULE_PROTOCOL_ID",
+    "capsule_manager",
+    "capsule_protocol_manifest",
+    "probe_webgpu",
+    "run_capsule_skill",
+    "capsule_status",
+    "MAJOR_PROTOCOLS",
+    "list_protocols",
+    "major_protocols_manifest",
+    "platform_protocols_status",
+    "get_protocol",
+    "RAH_PROTOCOL_ID",
+    "rah_manifest",
+    "rah_status",
+    "run_rah",
+    "rah_plan_fanout",
 ]

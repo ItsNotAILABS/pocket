@@ -70,13 +70,16 @@ def _load_env_file() -> None:
 
 
 def health_ok() -> bool:
-    try:
-        req = urllib.request.Request(f"http://127.0.0.1:{PORT}/health", method="GET")
-        with urllib.request.urlopen(req, timeout=3) as r:
-            body = r.read().decode("utf-8", errors="replace")
-            return r.status == 200 and "ok" in body
-    except Exception:
-        return False
+    """Liveness for watchdog. Desk first (proves Edge app works)."""
+    for path in ("/desk", "/health", "/"):
+        try:
+            req = urllib.request.Request(f"http://127.0.0.1:{PORT}{path}", method="GET")
+            with urllib.request.urlopen(req, timeout=2) as r:
+                if int(r.status) == 200:
+                    return True
+        except Exception:
+            continue
+    return False
 
 
 def start_server() -> subprocess.Popen:
@@ -130,12 +133,22 @@ def run_watchdog(poll: float = 12.0) -> None:
         proc = start_server()
         time.sleep(3)
 
+    fails = 0
     while True:
         try:
             if health_ok():
+                fails = 0
                 time.sleep(poll)
                 continue
-            _log("health FAIL — restarting serve")
+            fails += 1
+            # Need 2 consecutive failures (~poll interval) before kill —
+            # avoids thrash when Edge load slows a single health probe.
+            if fails < 2:
+                _log(f"health soft-fail {fails}/2 — wait")
+                time.sleep(min(poll, 5.0))
+                continue
+            _log("health FAIL x2 — restarting serve")
+            fails = 0
             if proc and proc.poll() is None:
                 try:
                     proc.terminate()

@@ -6,6 +6,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>POCKET Studio</title>
+<script src="/auth/client.js"></script>
 <style>
 :root{
   --bg:#09090b;--panel:#121214;--line:rgba(255,255,255,.08);--text:#fafafa;--muted:#a1a1aa;
@@ -64,21 +65,48 @@ input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid 
 <body>
 <div class="boot-splash" id="bootSplash"><div class="m">P</div><div class="t">POCKET Studio</div><div class="s">Same session as Desktop</div></div>
 <header class="pnav">
-  <button type="button" class="back" onclick="goBack()">← Back</button>
+  <button type="button" class="back" onclick="goBack()">← Desk</button>
   <a class="brand" href="/desk"><i>P</i>POCKET</a>
   <nav class="links" aria-label="Product">
-    <a href="/tour">Overview</a>
-    <a href="/desk">Desktop</a>
-    <a href="/developers">API</a>
-    <a class="on" href="/studio">Studio</a>
+    <a href="/desk">Desk</a>
+    <a href="/work">Work Studio</a>
+    <a class="on" href="/studio">Product Studio</a>
+    <a href="/studio/create">Creative Studio</a>
+    <a href="/community">Community</a>
+    <a href="/studio/voice">Voice Studio</a>
+    <a href="/phone">Phone</a>
   </nav>
   <div class="sp"></div>
+  <span class="badge" id="verBadge">v…</span>
   <span class="badge" id="ffBadge">ffmpeg …</span>
   <span class="pill" id="authPill">auth…</span>
-  <a class="cta" href="/desk">Open Desktop</a>
+  <a class="cta" href="/desk?agent=studio">Studio agent</a>
 </header>
 <main>
   <section>
+    <div class="card" style="margin-bottom:16px;border-color:rgba(52,211,153,.28);background:linear-gradient(145deg,rgba(16,163,127,.08),transparent 55%),var(--panel)">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px">
+        <h2 style="margin:0">Product Studio</h2>
+        <span class="badge on" id="readyBadge">agents · first-class</span>
+        <span class="badge" id="recCount">— recs</span>
+        <span class="badge" id="expCount">— exports</span>
+      </div>
+      <p style="margin:0;font-size:13px;color:var(--muted);line-height:1.55">
+        <b style="color:var(--text)">Record → storyboard → viral pack → caption → ship.</b>
+        Same skills for humans and agents (<code style="color:var(--accent)">studio_viral</code>, <code style="color:var(--accent)">studio_ship</code>). Glass stays CONTAIN — never stretch-cropped.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+        <button class="btn primary" type="button" style="width:auto;margin:0;padding:10px 14px" onclick="doShip()">Ship pack</button>
+        <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doLatest()">Viral latest</button>
+        <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doStoryboard()">Storyboard</button>
+        <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doCaption()">Captions</button>
+        <a class="btn ghost" href="/studio/create" style="width:auto;margin:0;text-decoration:none">Creative chat</a>
+        <a class="btn ghost" href="/community" style="width:auto;margin:0;text-decoration:none">Community</a>
+        <a class="btn ghost" href="/desk?agent=studio" style="width:auto;margin:0;text-decoration:none">Seat agent</a>
+        <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="sendClipToDesk()">→ Desk copy</button>
+      </div>
+      <div id="agentFeatures" style="margin-top:14px;display:grid;gap:6px;font-size:12px;color:var(--muted)"></div>
+    </div>
     <div class="card">
       <h2>Recordings</h2>
       <div id="recs"><div style="color:var(--muted);font-size:13px">Loading…</div></div>
@@ -102,8 +130,11 @@ input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid 
       <label>Brand</label>
       <input id="brand" value="ItsNotAI Labs"/>
       <button class="btn primary" id="btnRender" type="button" onclick="doRender()">Render selected</button>
-      <button class="btn ghost" type="button" onclick="doBatch()">Viral pack (phone + web + story + clean)</button>
-      <button class="btn ghost" type="button" onclick="doLatest()">Polish latest recording</button>
+      <button class="btn ghost" type="button" onclick="doBatch()">Batch presets (phone + web + screencast)</button>
+      <button class="btn ghost" type="button" onclick="doLatest()">Viral pack (latest)</button>
+      <button class="btn ghost" type="button" onclick="doShip()">Ship = viral + caption</button>
+      <button class="btn ghost" type="button" onclick="doCaption()">Caption pack only</button>
+      <button class="btn ghost" type="button" onclick="doRecordToggle()" id="btnRec">Start record</button>
     </div>
     <div class="card" style="margin-top:16px">
       <h2>Job log</h2>
@@ -167,6 +198,28 @@ function goBack(){
   }catch(_){}
   location.href = '/desk';
 }
+/** Hand demo caption/title to Desk Grok session (same handoff as Work Studio). */
+function sendClipToDesk(){
+  const title = (document.getElementById('title')||{}).value || 'POCKET';
+  const sub = (document.getElementById('subtitle')||{}).value || '';
+  const cta = (document.getElementById('cta')||{}).value || '';
+  const prompt = [
+    'Product Studio handoff — polish this demo copy for launch:',
+    'Title: '+title,
+    'Subtitle: '+sub,
+    cta ? ('CTA: '+cta) : '',
+    'Write a short launch blurb and 3 social posts. Keep POCKET as the product name.'
+  ].filter(Boolean).join('\\n');
+  try{
+    localStorage.setItem('pocket_work_handoff', JSON.stringify({
+      mode: 'grok',
+      prompt: prompt,
+      from: 'product-studio',
+      at: Date.now()
+    }));
+  }catch(_){}
+  location.href = '/desk?agent=grok';
+}
 function dismissSplash(){
   const el = document.getElementById('bootSplash');
   if (!el) return;
@@ -194,24 +247,57 @@ async function ensureDesktopAuth(force){
     }
   }
   const host = location.hostname;
-  if (host !== '127.0.0.1' && host !== 'localhost') return !!auth.token;
-  try {
-    const r = await fetch('/v1/auth/desktop', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
-    if (!r.ok) return false;
-    const j = await r.json();
-    if (!j.ok || !j.token) return false;
-    storeAuth((j.user && j.user.user) || 'pocket', j.token);
-    return true;
-  } catch(_) { return false; }
+  if (host === '127.0.0.1' || host === 'localhost') {
+    try {
+      const r = await fetch('/v1/auth/desktop', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+      if (r.ok) {
+        const j = await r.json();
+        if (j.ok && j.token) {
+          storeAuth((j.user && j.user.user) || 'pocket', j.token);
+          return true;
+        }
+      }
+    } catch(_) {}
+  }
+  if (auth.token) return true;
+  // Public web: password gate (same ACCESS / seat as desk)
+  if (window.PocketAuth) {
+    return new Promise(function(resolve){
+      PocketAuth.showPasswordGate({
+        device: 'product-studio',
+        onSuccess: function(res){
+          storeAuth((res.user && res.user.user) || 'pocket', res.token || PocketAuth.getToken());
+          resolve(true);
+        }
+      });
+    });
+  }
+  return false;
 }
 
 async function loadAll(){
   try{
     const st = await api('/v1/studio');
-    document.getElementById('ffBadge').textContent = st.ffmpeg ? 'ffmpeg ready' : 'ffmpeg missing';
-    document.getElementById('ffBadge').className = 'badge ' + (st.ffmpeg?'on':'');
+    const ff = document.getElementById('ffBadge');
+    if(ff){
+      ff.textContent = st.ffmpeg ? 'ffmpeg ready' : 'ffmpeg missing';
+      ff.className = 'badge ' + (st.ffmpeg?'on':'');
+    }
+    const rb = document.getElementById('readyBadge');
+    if(rb){
+      rb.textContent = st.first_class ? 'agents · first-class' : 'studio';
+      rb.className = 'badge ' + (st.ffmpeg?'on':'');
+    }
+    const rc = document.getElementById('recCount');
+    const ec = document.getElementById('expCount');
+    const nRec = (st.recordings_list||[]).length || st.recordings || 0;
+    const nExp = (st.exports_list||[]).length || st.exports || 0;
+    if(rc) rc.textContent = nRec + ' recs';
+    if(ec) ec.textContent = nExp + ' exports';
     recordings = st.recordings_list || (await api('/v1/studio/recordings')).recordings || [];
     const exports = st.exports_list || (await api('/v1/studio/exports')).exports || [];
+    if(rc) rc.textContent = recordings.length + ' recs';
+    if(ec) ec.textContent = exports.length + ' exports';
     renderRecs();
     renderExports(exports);
     const presets = st.presets || (await api('/v1/studio/presets')).presets || [];
@@ -280,6 +366,62 @@ async function doLatest(){
     log(j); toast(j.message||'auto pack done'); loadAll();
   }catch(e){ toast(e.message); log(String(e)); }
 }
+async function doStoryboard(){
+  try{
+    const j = await api('/v1/studio/storyboard',{method:'POST',body:JSON.stringify({prompt: meta().subtitle || 'POCKET demo', product: meta().title})});
+    log(j); toast(j.message||'storyboard ready');
+  }catch(e){ toast(e.message); log(String(e)); }
+}
+async function doCaption(){
+  try{
+    const j = await api('/v1/studio/caption',{method:'POST',body:JSON.stringify({...meta(), prompt: meta().subtitle})});
+    log(j); toast('Caption pack ready');
+  }catch(e){ toast(e.message); log(String(e)); }
+}
+async function doShip(){
+  try{
+    log('Agent ship: viral + caption…');
+    const j = await api('/v1/studio/ship',{method:'POST',body:JSON.stringify({...meta(), source: selected || ''})});
+    log(j); toast(j.message||'ship done'); loadAll();
+  }catch(e){ toast(e.message); log(String(e)); }
+}
+let recording = false;
+async function doRecordToggle(){
+  const btn = document.getElementById('btnRec');
+  try{
+    if (!recording){
+      const j = await api('/v1/studio/agent',{method:'POST',body:JSON.stringify({skill:'studio_record_start', label:'studio-ui'})});
+      recording = !!j.ok;
+      if (btn) btn.textContent = recording ? 'Stop record' : 'Start record';
+      log(j); toast(j.message||(recording?'Recording…':'start failed'));
+    } else {
+      const j = await api('/v1/studio/agent',{method:'POST',body:JSON.stringify({skill:'studio_record_stop'})});
+      recording = false;
+      if (btn) btn.textContent = 'Start record';
+      log(j); toast(j.message||'Stopped'); loadAll();
+    }
+  }catch(e){ toast(e.message); log(String(e)); }
+}
+async function loadAgentPanel(){
+  const box = document.getElementById('agentFeatures');
+  if (!box) return;
+  try{
+    const j = await api('/v1/studio/first-class');
+    const feats = (j.agent_features||[]).slice(0,8);
+    const plays = (j.playbooks||[]).slice(0,5);
+    const st = j.status || {};
+    box.innerHTML =
+      '<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Agent skills</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">' +
+      feats.map(f=>`<span class="badge" title="${(f.use||'').replace(/"/g,'')}" style="cursor:default">${f.skill}</span>`).join('') +
+      '</div>' +
+      '<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:4px 0 6px">Playbooks</div>' +
+      plays.map(p=>`<div><b style="color:var(--text)">${p.name}</b> · <span style="color:var(--muted)">“${p.say}”</span></div>`).join('') +
+      (st.message ? `<div style="margin-top:10px;color:var(--muted)">${st.message}</div>` : '');
+  }catch(_){
+    box.innerHTML = '<span>Agent catalog: GET /v1/studio/first-class</span>';
+  }
+}
 (async function bootStudio(){
   // Sync storage from desk (same origin / Edge app profile)
   if (!auth.token && localStorage.getItem('pocket_token')) {
@@ -288,7 +430,13 @@ async function doLatest(){
   await ensureDesktopAuth(false);
   const pill = document.getElementById('authPill');
   if (pill) pill.textContent = auth.token ? (auth.user || 'signed in') : 'need desk login';
+  try{
+    const h = await fetch('/v1/health').then(r=>r.json());
+    const vb = document.getElementById('verBadge');
+    if(vb && h.version){ vb.textContent = 'v'+h.version; vb.className='badge on'; }
+  }catch(_){}
   await loadAll();
+  await loadAgentPanel();
   dismissSplash();
 })();
 </script>

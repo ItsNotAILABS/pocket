@@ -83,51 +83,75 @@ def _ensure_path(root: Path) -> None:
         sys.path.insert(0, s)
 
 
-def try_generate(prompt: str, *, max_tokens: int = 128) -> Dict[str, Any]:
-    """One-shot native use if runtime loads; otherwise status-only."""
+def try_generate(prompt: str, *, max_tokens: int = 160, timeout: int = 75) -> Dict[str, Any]:
+    """One-shot native LMR — shorter default timeout for snappy desk UX."""
     root = auro_root()
     ckpt = checkpoint_path()
     if not root:
         return {"ok": False, "error": "Auro14B root not found", **status()}
     _ensure_path(root)
     prompt = (prompt or "What is MESIE?").strip()
-    # Prefer subprocess isolation so train deps don't crash host
     import subprocess
 
+    # Cap prompt for speed on first response
+    short = prompt[:700]
     cmd = [
         sys.executable,
         "-m",
         "auro_native_llm.use",
         "--resume",
         str(ckpt) if ckpt else _DEFAULT_CKPT,
-        prompt[:500],
+        short,
     ]
+    t0 = time.time()
     try:
         r = subprocess.run(
             cmd,
             cwd=str(root),
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=max(25, int(timeout)),
             env={**os.environ, "PYTHONPATH": str(root) + os.pathsep + os.environ.get("PYTHONPATH", "")},
         )
-        out = (r.stdout or "")[-4000:]
+        out = (r.stdout or "")[-6000:]
         err = (r.stderr or "")[-1500:]
+        ok = r.returncode == 0 or (bool(out.strip()) and "traceback" not in (err or "").lower())
         return {
-            "ok": r.returncode == 0,
+            "ok": ok,
             "stdout": out,
             "stderr": err,
             "checkpoint": str(ckpt),
             "returncode": r.returncode,
+            "ms": int((time.time() - t0) * 1000),
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "ok": False,
+            "error": "native timed out — meaning model still works; retry with `native ` or shorter ask",
+            "checkpoint": str(ckpt),
+            "ms": int((time.time() - t0) * 1000),
         }
     except Exception as e:
         return {"ok": False, "error": str(e), "checkpoint": str(ckpt)}
 
 
-def run_auro_job(prompt: str) -> Tuple[str, str, str]:
-    """Prefer vendored meaning model (browser parity); fall back to full Auro14B LMR."""
+def run_auro_job(prompt: str, *, job: Optional[Dict[str, Any]] = None) -> Tuple[str, str, str]:
+    """Fast-by-default Auro: meaning model first; native only when asked or meaning fails."""
+    job = job or {}
+    jid = str(job.get("id") or "")
     low = (prompt or "").lower().strip()
-    # meaning path first — small trained/exported model.json + NumPy
+
+    def _prog(msg: str) -> None:
+        if not jid:
+            return
+        try:
+            from pocket.stream_util import update_progress
+
+            update_progress(jid, msg, engine="auro")
+        except Exception:
+            pass
+
+    # Explicit meaning path
     if low.startswith("meaning") or low.startswith("web ") or low.startswith("ids ") or low in (
         "meaning",
         "browser",
@@ -137,58 +161,93 @@ def run_auro_job(prompt: str) -> Tuple[str, str, str]:
             from pocket.auro_meaning import run_auro_meaning_job
 
             p = prompt.split(" ", 1)[1] if " " in prompt and low.split()[0] in ("meaning", "web") else prompt
+            _prog("Auro meaning…")
             return run_auro_meaning_job(p)
-        except Exception as e:
+        except Exception:
             pass
 
-    try:
-        from pocket.auro_meaning import run_auro_meaning_job, status as meaning_status
-
-        ms = meaning_status()
-        if ms.get("ok") and low in ("", "status", "help", "who"):
-            text, err, eng = run_auro_meaning_job("status")
-            st = status()
-            text += (
-                f"\n---\n## Full Auro14B host\n"
-                f"**Root:** `{st.get('root')}` ckpt exists={st.get('checkpoint_exists')}\n"
-                f"Use a real question for native LMR, or `ids 1,2,3` for meaning model.\n"
-            )
-            return text, err, eng
-        # short prompts → meaning generate; long research → native
-        if ms.get("ok") and len(prompt or "") < 200 and not low.startswith("native "):
-            return run_auro_meaning_job(prompt)
-    except Exception:
-        pass
-
     st = status()
-    lines = [
-        "# Auro14B · native LMR\n\n",
-        f"**Root:** `{st.get('root')}`\n",
-        f"**Checkpoint:** `{st.get('checkpoint')}` exists={st.get('checkpoint_exists')}\n",
-        f"**Family:** {st.get('family')}\n\n",
-        f"## Prompt\n{prompt or '(status)'}\n\n",
-    ]
-    if not st.get("ok"):
-        # still try meaning-only install
+    force_native = low.startswith("native ")
+    native_prompt = prompt.replace("native ", "", 1).strip() if force_native else (prompt or "").strip()
+
+    # Status / help — instant, no model load thrash
+    if low in ("", "status", "help", "who"):
         try:
             from pocket.auro_meaning import run_auro_meaning_job
 
-            return run_auro_meaning_job(prompt)
+            text, err, eng = run_auro_meaning_job("status")
         except Exception:
-            return "".join(lines), "Auro14B not found", "auro"
-    if low in ("", "status", "help", "who"):
-        lines.append("Use a real question to run `auro_native_llm.use` once.\n")
-        lines.append("Or `meaning status` / open **/auro/** for the browser piece.\n")
-        return "".join(lines), "", "auro"
-    gen = try_generate(prompt.replace("native ", "", 1) if low.startswith("native ") else prompt)
-    if gen.get("ok"):
-        lines.append("## Native output\n```\n")
-        lines.append(gen.get("stdout") or "")
+            text, err, eng = "# Auro\n\n", "", "auro"
+        text += (
+            f"\n---\n## Host Auro14B\n"
+            f"**Root:** `{st.get('root')}` · ckpt={st.get('checkpoint_exists')}\n"
+            f"**Family:** {st.get('family')}\n\n"
+            f"- Default: **fast meaning model**\n"
+            f"- Full checkpoint: prefix `native ` (slower, richer)\n"
+            f"- Browser demo: `/auro/`\n"
+        )
+        return text, err, eng or "auro"
+
+    meaning_text = ""
+    meaning_ok = False
+    if not force_native:
+        try:
+            from pocket.auro_meaning import run_auro_meaning_job, status as meaning_status
+
+            if meaning_status().get("ok"):
+                _prog("Auro meaning (fast)…")
+                meaning_text, m_err, _ = run_auro_meaning_job(prompt)
+                meaning_ok = bool((meaning_text or "").strip()) and not m_err
+        except Exception:
+            pass
+
+    # Default product path: return meaning immediately when it works
+    if meaning_ok and not force_native:
+        body = meaning_text
+        if not body.lstrip().startswith("#"):
+            body = "# Auro\n\n" + body
+        body += "\n\n_Fast meaning model · prefix `native ` for full Auro-2B LMR._\n"
+        return body, "", "auro"
+
+    if not st.get("ok"):
+        if meaning_ok:
+            return meaning_text, "", "auro"
+        return (
+            "# Auro\n\nAuro14B root not found and meaning model unavailable.\n\n"
+            "Clone Auro14B or set `AURO14B_ROOT`. Meaning model needs `vendor/auro_meaning`.\n",
+            "Auro14B not found",
+            "auro",
+        )
+
+    # Native path (explicit or meaning failed)
+    _prog("Auro native LMR…")
+    gen = try_generate(native_prompt or prompt, max_tokens=160, timeout=70)
+    lines = [
+        "# Auro14B · native LMR\n\n",
+        f"**Checkpoint:** `{st.get('checkpoint')}`\n",
+        f"**{gen.get('ms') or '?'}ms**\n\n",
+    ]
+    if meaning_ok and meaning_text:
+        mt = meaning_text
+        if mt.lstrip().startswith("#"):
+            mt = "\n".join(mt.split("\n")[1:]).strip()
+        lines.append("## Meaning (fast)\n\n")
+        lines.append(mt[:1800])
+        lines.append("\n\n")
+    if gen.get("ok") and (gen.get("stdout") or "").strip():
+        lines.append("## Native output\n\n```\n")
+        lines.append((gen.get("stdout") or "").strip())
         lines.append("\n```\n")
+        return "".join(lines), "", "auro"
+    if meaning_ok:
+        lines.append(
+            f"## Native note\n`{gen.get('error') or gen.get('stderr') or 'incomplete'}` — "
+            f"meaning answer above is usable.\n"
+        )
         return "".join(lines), "", "auro"
     lines.append(f"## Run note\n`{gen.get('error') or gen.get('stderr') or 'failed'}`\n")
     if gen.get("stdout"):
-        lines.append("```\n" + gen["stdout"][:2000] + "\n```\n")
+        lines.append("```\n" + gen["stdout"][:1500] + "\n```\n")
     return "".join(lines), gen.get("error") or "auro run incomplete", "auro"
 
 

@@ -9,7 +9,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Known CLI tool catalog (id → discovery)
 CLI_CATALOG: List[Dict[str, str]] = [
@@ -89,13 +89,110 @@ def inventory() -> Dict[str, Any]:
     }
 
 
+# Extra CLIs agents may invoke (headless) — not opened as user tabs
+CLI_CATALOG.extend(
+    [
+        {"id": "rg", "bin": "rg", "label": "ripgrep", "group": "dev"},
+        {"id": "curl", "bin": "curl", "label": "curl", "group": "net"},
+        {"id": "jq", "bin": "jq", "label": "jq", "group": "dev"},
+        {"id": "pnpm", "bin": "pnpm", "label": "pnpm", "group": "runtime"},
+        {"id": "yarn", "bin": "yarn", "label": "yarn", "group": "runtime"},
+        {"id": "uv", "bin": "uv", "label": "uv", "group": "runtime"},
+        {"id": "npx", "bin": "npx", "label": "npx", "group": "runtime"},
+        {"id": "pytest", "bin": "pytest", "label": "pytest", "group": "dev"},
+        {"id": "ssh", "bin": "ssh", "label": "ssh", "group": "ops"},
+        {"id": "scp", "bin": "scp", "label": "scp", "group": "ops"},
+    ]
+)
+
+# Deny dangerous agent CLI patterns
+_DENY_RE = (
+    r"rm\s+-rf\s+[\\/]",
+    r"format\s+",
+    r"mkfs",
+    r"shutdown",
+    r"reboot",
+    r":\s*\(\)\s*\{",
+)
+
+
+def run_cli(
+    bin_name: str,
+    args: Optional[List[str]] = None,
+    *,
+    cwd: str = "",
+    timeout: float = 60,
+    allow_open_app: bool = False,
+) -> Dict[str, Any]:
+    """Run a host CLI **for agents** — stdout capture, no user browser tabs.
+
+    Prefer this over open_cli_app. Desktop app launch is opt-in only.
+    """
+    from pocket.live_events import emit
+
+    bin_name = (bin_name or "").strip()
+    args = list(args or [])
+    if not bin_name:
+        return {"ok": False, "error": "bin required"}
+
+    # Map friendly ids
+    path = which_tool(bin_name) or shutil.which(bin_name) or ""
+    if not path:
+        # try catalog id
+        for t in CLI_CATALOG:
+            if t["id"] == bin_name.lower():
+                path = which_tool(t["bin"])
+                bin_name = t["bin"]
+                break
+    if not path:
+        return {"ok": False, "error": f"CLI not found: {bin_name}", "hint": "install or add to PATH"}
+
+    argv = [path] + [str(a) for a in args]
+    joined = " ".join(argv)
+    import re as _re
+
+    for pat in _DENY_RE:
+        if _re.search(pat, joined, _re.I):
+            return {"ok": False, "error": "command denied by agent CLI policy", "command": joined[:200]}
+
+    work = cwd or str(Path.home() / ".pocket" / "workspace")
+    Path(work).mkdir(parents=True, exist_ok=True)
+    emit("cli", f"agent run {bin_name}", agent="CLI", role="python", meta={"args": args[:8]})
+    try:
+        r = subprocess.run(
+            argv,
+            cwd=work,
+            capture_output=True,
+            text=True,
+            timeout=max(5.0, min(float(timeout or 60), 300.0)),
+            encoding="utf-8",
+            errors="replace",
+        )
+        return {
+            "ok": r.returncode == 0,
+            "returncode": r.returncode,
+            "bin": bin_name,
+            "path": path,
+            "argv": argv[:20],
+            "stdout": (r.stdout or "")[-12000:],
+            "stderr": (r.stderr or "")[-4000:],
+            "cwd": work,
+            "agent_access": True,
+            "user_tab": False,
+        }
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "timeout", "bin": bin_name}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "bin": bin_name}
+
+
 def open_cli_app(tool_id: str) -> Dict[str, Any]:
-    """Open associated desktop app for a CLI when possible."""
+    """Open associated desktop app — user-facing; prefer run_cli for agents."""
     from pocket.desktop import open_app
     from pocket.live_events import emit
 
     tid = (tool_id or "").lower().strip()
-    emit("cli", f"Open tool/app {tid}", agent="cli", role="python")
+    emit("cli", f"Open tool/app {tid} (user surface)", agent="cli", role="python")
     mapping = {
         "antigravity": "antigravity",
         "cursor": "cursor",

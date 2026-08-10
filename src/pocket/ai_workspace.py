@@ -29,6 +29,10 @@ _lock = Lock()
 
 # Cap inject size — this is the whole point (tokens)
 CONTEXT_MAX_CHARS = 2800
+# Codex lean budget — spectral digest, not a second system prompt
+CODEX_CONTEXT_MAX_CHARS = 900
+CODEX_SUMMARY_SNIP = 280
+CODEX_PATHS = 12
 SUMMARY_MAX_CHARS = 4000
 INDEX_MAX_FILES = 80
 RECENT_MAX = 40
@@ -140,6 +144,36 @@ def _shallow_index(root: str, *, max_files: int = INDEX_MAX_FILES) -> List[Dict[
     return out[:max_files]
 
 
+def _strip_noise(text: str) -> str:
+    skip_prefixes = (
+        "[engine=",
+        "[cli=",
+        "[research_package=",
+        "[pocket_session=",
+        "[stream_tokens",
+        "[llm_tokens",
+        "OpenAI Codex v",
+        "workdir:",
+        "model:",
+        "provider:",
+        "approval:",
+        "sandbox:",
+        "session id:",
+        "tokens used",
+    )
+    lines = []
+    for ln in (text or "").splitlines():
+        s = ln.strip()
+        if not s:
+            continue
+        if any(s.startswith(p) for p in skip_prefixes):
+            continue
+        if s in ("user", "codex", "---") or set(s) <= {"-"}:
+            continue
+        lines.append(s)
+    return " ".join(lines)
+
+
 def _extractive_summary(
     *,
     prompt: str,
@@ -148,39 +182,43 @@ def _extractive_summary(
     mode: str,
     prior: str = "",
 ) -> str:
-    """Cheap summary — no LLM. Saves tokens for the next turn."""
-    p = " ".join((prompt or "").split())[:280]
-    # Prefer polished tail of agent reply
-    r = (result or "").strip()
-    # drop engine headers
-    lines = [
-        ln
-        for ln in r.splitlines()
-        if ln.strip()
-        and not ln.strip().startswith("[engine=")
-        and not ln.strip().startswith("[cli=")
-        and not ln.strip().startswith("[research_package=")
-        and not ln.strip().startswith("[pocket_session=")
-        and not ln.strip().startswith("[stream_tokens")
-        and not ln.strip().startswith("[llm_tokens")
-    ]
-    body = "\n".join(lines)
-    # keep last substantive chunk
-    if len(body) > 900:
-        body = body[-900:]
-    body = " ".join(body.split())[:700]
-    stamp = time.strftime("%Y-%m-%d %H:%M")
-    block = (
-        f"### {stamp} · {mode}/{engine or '?'}\n"
-        f"**User:** {p or '(empty)'}\n"
-        f"**Agent:** {body or '(no text)'}\n"
-    )
+    """Readable rolling summary — no LLM. Newest first. For desk rail + agents."""
+    p = " ".join((prompt or "").split())[:220]
+    body = _strip_noise(result or "")
+    body = " ".join(body.split())
+    if len(body) > 420:
+        body = body[:180] + " … " + body[-180:]
+    stamp = time.strftime("%H:%M")
+    label = (mode or engine or "agent").strip()
+    block = f"• [{stamp}] You: {p or '—'}\n  → {label}: {body or '(working…)'}\n"
     if prior:
-        # keep newest first
         merged = block + "\n" + prior
     else:
         merged = block
     return merged[:SUMMARY_MAX_CHARS]
+
+
+def build_brief_from_summary(summary: str, *, recent: Optional[List[Dict[str, Any]]] = None) -> str:
+    """Short brief for the workspace panel."""
+    s = (summary or "").strip()
+    bullets: List[str] = []
+    for ln in s.splitlines():
+        ln = ln.strip()
+        if not ln:
+            continue
+        if ln.startswith("•") or ln.startswith("→") or ln.startswith("**User") or ln.startswith("###"):
+            bullets.append(ln[:220])
+        if len(bullets) >= 8:
+            break
+    for e in (recent or [])[:4]:
+        snip = (e.get("prompt_snip") or "")[:100]
+        if snip:
+            bullets.append(f"Job: {e.get('mode') or '?'} — {snip}")
+    if not bullets and s:
+        return s[:600]
+    if not bullets:
+        return ""
+    return "Session brief:\n" + "\n".join(bullets[:8])
 
 
 def _build_context_md(meta: Dict[str, Any]) -> str:
@@ -497,16 +535,19 @@ def get_workspace_view(
     except Exception:
         bus = []
 
+    recent = _read_recent(ws, 10)
+    brief = build_brief_from_summary(summary, recent=recent)
     return {
         "ok": True,
         "workspace": _safe_ws(workspace),
         "session_id": session_id or "",
         "cwd": state.get("cwd") or resolve_product_cwd(workspace),
         "summary": summary,
+        "brief": brief or summary[:600],
         "summary_html_ready": True,
         "context_chars": len(get_context_block(workspace, session_id=session_id) or ""),
         "index": state.get("index") or [],
-        "recent": _read_recent(ws, 10),
+        "recent": recent,
         "previews": previews,
         "bus": [
             {
@@ -520,14 +561,77 @@ def get_workspace_view(
             for m in bus
         ],
         "token_tips": [
-            "CONTEXT.md is injected automatically — don't re-list the tree",
-            "Use mesh artifacts for cross-agent handoffs instead of pasting long history",
+            "Summary updates from each chat turn",
+            "Use Work Studio to design loops, then run them on the desk",
             "Prefer path-scoped reads over recursive repo walks",
-            "Subagents live on the right rail — activate with @ only when needed",
         ],
         "updated": state.get("updated"),
         "updated_h": state.get("updated_h"),
     }
+
+
+def build_codex_locus_digest(
+    workspace: str = "parallax",
+    *,
+    session_id: str = "",
+    cwd: str = "",
+    max_chars: int = CODEX_CONTEXT_MAX_CHARS,
+) -> str:
+    """Deep-tech token saver for Codex: locus card + path sketch only.
+
+    Instead of re-injecting the full AI_WORKSPACE markdown essay each turn,
+    emit a compressed **locus digest**:
+      - cwd pointer
+      - rolling summary snip (last work only)
+      - top path fingerprints (no recursive tree)
+      - hard ban on full-repo walks
+
+    Resume threads should skip inject entirely (see executor._run_codex).
+    """
+    ws = ws_dir(workspace)
+    product = resolve_product_cwd(workspace, cwd)
+    summary = ""
+    if session_id:
+        sp = session_dir(workspace, session_id) / "SUMMARY.md"
+        if sp.exists():
+            summary = sp.read_text(encoding="utf-8", errors="replace")
+    if not summary and (ws / "SUMMARY.md").exists():
+        summary = (ws / "SUMMARY.md").read_text(encoding="utf-8", errors="replace")
+    # first bullet only — newest first in extractive summary
+    sum_line = ""
+    for ln in (summary or "").splitlines():
+        t = ln.strip()
+        if t.startswith("•") or t.startswith("→"):
+            sum_line = t[:CODEX_SUMMARY_SNIP]
+            break
+    if not sum_line and summary:
+        sum_line = " ".join(summary.split())[:CODEX_SUMMARY_SNIP]
+
+    paths: List[str] = []
+    idx_path = ws / "INDEX.json"
+    if idx_path.exists():
+        try:
+            files = (json.loads(idx_path.read_text(encoding="utf-8")).get("files") or [])[:CODEX_PATHS]
+            for f in files:
+                p = f.get("path") or ""
+                if p:
+                    paths.append(p)
+        except Exception:
+            pass
+    if not paths:
+        for f in _shallow_index(product, max_files=CODEX_PATHS):
+            if f.get("path"):
+                paths.append(str(f["path"]))
+
+    # Compact path sketch — one line, comma-separated (high info density)
+    sketch = ", ".join(paths[:CODEX_PATHS]) if paths else "(empty index)"
+    block = (
+        f"LOCUS cwd=`{product}`\n"
+        f"LAST {sum_line or '—'}\n"
+        f"PATHS {sketch}\n"
+        f"RULE no full-tree rg/Get-ChildItem-Recurse; open only paths you need; diffs > re-reads"
+    )
+    return block[:max_chars]
 
 
 def inject_for_prompt(
@@ -536,15 +640,41 @@ def inject_for_prompt(
     workspace: str = "parallax",
     session_id: str = "",
     cwd: str = "",
+    max_chars: int = CONTEXT_MAX_CHARS,
+    lean: bool = False,
+    engine: str = "",
 ) -> str:
-    """Wrap a user/system prompt with workspace context (token-efficient)."""
-    block = get_context_block(workspace, session_id=session_id, cwd=cwd)
-    if not block.strip():
-        return base_prompt
-    return (
-        f"{base_prompt.rstrip()}\n\n"
-        f"---\n"
-        f"## AI_WORKSPACE (auto · do not re-scan whole repo)\n"
-        f"{block}\n"
-        f"---\n"
-    )
+    """Wrap a user/system prompt with workspace context (token-efficient).
+
+    lean=True or engine=codex → locus digest (~900 chars) instead of full CONTEXT.md.
+    """
+    eng = (engine or "").lower()
+    # Live screen share / fusion block when user granted View or Control
+    screen_blk = ""
+    try:
+        from pocket.screen_share import prompt_inject_block
+
+        screen_blk = prompt_inject_block(agent=eng or "agent", max_chars=700)
+    except Exception:
+        screen_blk = ""
+
+    use_lean = lean or eng in ("codex", "novae_codex", "novae-codex")
+    if use_lean:
+        block = build_codex_locus_digest(
+            workspace, session_id=session_id, cwd=cwd, max_chars=min(max_chars, CODEX_CONTEXT_MAX_CHARS)
+        )
+        parts = [base_prompt.rstrip()]
+        if block.strip():
+            parts.append("[CTX]\n" + block)
+        if screen_blk.strip():
+            parts.append(screen_blk.strip())
+        return "\n\n".join(parts) + "\n"
+    block = get_context_block(workspace, session_id=session_id, cwd=cwd, max_chars=max_chars)
+    parts = [base_prompt.rstrip()]
+    if block.strip():
+        parts.append(
+            "---\n## AI_WORKSPACE (auto · do not re-scan whole repo)\n" + block + "\n---"
+        )
+    if screen_blk.strip():
+        parts.append(screen_blk.strip())
+    return "\n\n".join(parts) + "\n"

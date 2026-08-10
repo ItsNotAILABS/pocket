@@ -30,6 +30,20 @@ def run_skill(
     params = params or {}
     emit("skill", f"Run skill {sid}", agent=worker or "SKILL", role="python")
 
+    # Platform coherence skills (habitat · screen · work · fusion · phone · mcp)
+    try:
+        from pocket.platform_coherence import is_platform_skill, run_platform_skill
+
+        if is_platform_skill(sid):
+            r = run_platform_skill(sid, prompt=prompt, params=params)
+            ok = bool(r.get("ok", True)) if isinstance(r, dict) else True
+            return _md(sid, r if isinstance(r, dict) else {"result": r}), (
+                "" if ok else str((r or {}).get("error") or "skill failed")
+            ), "platform"
+    except Exception as e:
+        if sid in ("platform_map", "fusion_voice", "habitat_status", "phone_surface"):
+            return "", f"platform skill error: {e}", "platform"
+
     # Prefer discrete REAL skills first
     real_ids = {
         "record_start", "record_stop", "github_one_page", "antigravity_explore",

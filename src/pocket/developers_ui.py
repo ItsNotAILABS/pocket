@@ -16,6 +16,7 @@ DEVELOPERS_HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>POCKET API</title>
 <meta name="description" content="POCKET API — host co-pilot for Grok, Codex, Claude. Keys, fusion, agents."/>
+<script src="/auth/client.js"></script>
 <style>
 :root{
   --bg:#000;--panel:#111;--line:rgba(255,255,255,.08);--text:#ececec;--muted:#8e8e8e;
@@ -158,15 +159,24 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.sty
 function openGate(){document.getElementById('gate').style.display='flex'}
 function closeGate(){document.getElementById('gate').style.display='none'}
 async function doLogin(){
-  const user=document.getElementById('u').value.trim();
-  const pass=document.getElementById('p').value;
-  const r=await fetch(BASE+'/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
-  const j=await r.json().catch(()=>({}));
-  if(!r.ok){toast(j.error||'Login failed');return}
-  // Prefer Basic for subsequent API
+  let user=(document.getElementById('u').value||'').trim()||'pocket';
+  if(!(document.getElementById('u').value||'').trim()) document.getElementById('u').value='pocket';
+  const pass=document.getElementById('p').value||'';
+  let tok='';
+  if(window.PocketAuth&&PocketAuth.login){
+    const res=await PocketAuth.login(user,pass,{device:'developers',base:BASE});
+    if(!res.ok){toast(res.error||'Login failed');return}
+    tok=res.token||'';
+    user=(res.user&&res.user.user)||user;
+  }else{
+    const r=await fetch(BASE+'/v1/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,user:user,password:pass})});
+    const j=await r.json().catch(()=>({}));
+    tok=j.token||j.session_token||'';
+    if(!r.ok||(!j.ok&&!tok)){toast(j.error||'Login failed');return}
+  }
   AUTH='Basic '+btoa(user+':'+pass);
   localStorage.setItem('pocket_auth',AUTH);
-  if(j.token) localStorage.setItem('pocket_token',j.token);
+  if(tok){ localStorage.setItem('pocket_token',tok); try{sessionStorage.setItem('pocket_token',tok);}catch(_){ } }
   document.getElementById('authBtn').textContent='Signed in';
   closeGate();toast('Signed in');listKeys();
 }

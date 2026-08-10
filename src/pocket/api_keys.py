@@ -201,11 +201,15 @@ def usage_for(key_id: str = "", *, owner: str = "") -> Dict[str, Any]:
 
 
 def extract_bearer(headers) -> str:
-    """Pull API key from Authorization Bearer or X-API-Key."""
+    """Pull token from Authorization Bearer or X-API-Key.
+
+    Returns session tokens (desk/phone login) and API keys (sk_pocket_…).
+    Callers must distinguish: sk_pocket_ → verify_key; else → user_from_token.
+    """
     try:
-        x = headers.get("X-API-Key") or headers.get("x-api-key") or ""
-        if x.strip().startswith(PREFIX):
-            return x.strip()
+        x = (headers.get("X-API-Key") or headers.get("x-api-key") or "").strip()
+        if x:
+            return x
     except Exception:
         pass
     try:
@@ -213,9 +217,7 @@ def extract_bearer(headers) -> str:
     except Exception:
         auth = ""
     if auth.lower().startswith("bearer "):
-        tok = auth[7:].strip()
-        if tok.startswith(PREFIX):
-            return tok
+        return auth[7:].strip()
     return ""
 
 

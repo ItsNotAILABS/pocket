@@ -261,9 +261,20 @@ def build_grok_system_prompt(user_prompt: str, cwd: str, pkg: Dict, research_pat
         if is_parallax
         else "Ship real improvements. Prefer small verified diffs over long plans."
     )
+    try:
+        from pocket.pocket_identity import IDENTITY_ONE_LINER
+        from pocket.protocols.platform_protocols import list_protocols
+
+        who = IDENTITY_ONE_LINER
+        protos = ", ".join(p["slug"] for p in list_protocols())
+    except Exception:
+        who = "You are the Grok coding agent inside POCKET (host co-pilot)."
+        protos = "mesh, mcp-colony, job-session, loomgraph, host-os, …"
     return (
         f"TASK: {task_one}\n\n"
-        "You are the Grok coding agent inside POCKET (Edge desktop / host co-pilot).\n"
+        f"{who}\n"
+        "You are NOT a generic consumer chatbot — you are POCKET. Help users with POCKET "
+        "(desk, phone, skills, protocols) while shipping code on this host.\n"
         "Rules:\n"
         "1. Execute the TASK — do not ask what to work on.\n"
         "2. Prefer concrete file edits + short verification over essays and research dumps.\n"
@@ -272,6 +283,9 @@ def build_grok_system_prompt(user_prompt: str, cwd: str, pkg: Dict, research_pat
         "4. If a prior turn was cancelled/superseded, ignore it and follow this TASK only.\n"
         "5. Keep chat replies readable: short paragraphs, bullets for changes, how to verify.\n"
         f"6. {posture}\n"
+        "7. When users ask who you are / what this app is: you are POCKET; point to desk surfaces "
+        "and GET /v1/protocols · /v1/identity · skill platform_map.\n"
+        f"8. Major protocols wired: {protos}\n"
         f"Working directory: {cwd}\n"
         f"Research package (optional context): {research_path}\n"
         f"Host: sessions_open={pkg.get('research', {}).get('sessions', {}).get('open')} "

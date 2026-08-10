@@ -167,7 +167,63 @@ def pillars() -> List[Dict[str, Any]]:
     except Exception as e:
         items.append(_ok("WSL native agent", False, str(e)[:80], tier="edge"))
 
+    # Agent OS fabric (2026 native depth)
+    try:
+        from pocket.agent_os import list_systems, parity_report
+
+        ls = list_systems(live=True)
+        pr = parity_report()
+        items.append(
+            _ok(
+                "Agent OS systems",
+                int(ls.get("ready") or 0) >= 8,
+                f"{ls.get('ready')}/{ls.get('total')} ready · /os",
+                tier="class",
+            )
+        )
+        items.append(
+            _ok(
+                "2026 parity matrix",
+                len(pr.get("rows") or []) >= 4,
+                pr.get("systems_ready") or "claude/antigravity/emergent/replit",
+                tier="class",
+            )
+        )
+    except Exception as e:
+        items.append(_ok("Agent OS systems", False, str(e)[:80], tier="class"))
+
+    try:
+        from pocket.pixel_vmem import status as vmem_status
+
+        vs = vmem_status()
+        items.append(
+            _ok(
+                "Pixel memory lattice",
+                bool(vs.get("ok")),
+                f"symbols={vs.get('symbols')} pages={vs.get('pages')}",
+                tier="class",
+            )
+        )
+    except Exception as e:
+        items.append(_ok("Pixel memory lattice", False, str(e)[:80], tier="class"))
+
+    try:
+        from pocket.coding_swarm import list_roster
+
+        ro = list_roster()
+        items.append(
+            _ok(
+                "Coding swarm harness",
+                len(ro.get("agents") or []) >= 3,
+                f"{len(ro.get('agents') or [])} personas AI-bound",
+                tier="class",
+            )
+        )
+    except Exception as e:
+        items.append(_ok("Coding swarm harness", False, str(e)[:80], tier="class"))
+
     # Surfaces
+    items.append(_ok("Agent OS surface", True, "/os", tier="edge"))
     items.append(_ok("Phone surface", True, "/phone", tier="edge"))
     items.append(_ok("Work Studio surface", True, "/work", tier="edge"))
     items.append(_ok("Sellable AI API", True, "/v1/ai/chat + keys", tier="edge"))
@@ -272,15 +328,62 @@ def report() -> Dict[str, Any]:
     }
 
 
-def health_enrichment() -> Dict[str, Any]:
-    """Compact block for /health without heavy work."""
-    try:
-        sc = score()
-        return {
-            "first_class": sc.get("first_class"),
-            "grade": sc.get("grade"),
-            "score": f"{sc.get('passed')}/{sc.get('total')}",
-            "percent": sc.get("percent"),
-        }
-    except Exception:
-        return {"first_class": False, "grade": "?", "score": "0/0"}
+# /health is polled by desk, landing, Ensure-POCKET-Up, and Edge app.
+# score()/pillars() can take 10–15s and freezes the single-threaded host.
+_HEALTH_CACHE: Dict[str, Any] = {}
+_HEALTH_CACHE_TS: float = 0.0
+_HEALTH_CACHE_TTL: float = 90.0
+_HEALTH_WARMING: bool = False
+
+
+def health_enrichment(*, force: bool = False, block: bool = False) -> Dict[str, Any]:
+    """Compact class block for /health.
+
+    Default is non-blocking: return cache (or light stub) and refresh in a
+    background thread so pollers never stall the HTTP server.
+    """
+    global _HEALTH_CACHE, _HEALTH_CACHE_TS, _HEALTH_WARMING
+    now = time.time()
+    fresh = bool(_HEALTH_CACHE) and (now - _HEALTH_CACHE_TS) < _HEALTH_CACHE_TTL
+    if fresh and not force:
+        return dict(_HEALTH_CACHE)
+
+    def _compute() -> Dict[str, Any]:
+        global _HEALTH_CACHE, _HEALTH_CACHE_TS, _HEALTH_WARMING
+        try:
+            sc = score()
+            out = {
+                "first_class": sc.get("first_class"),
+                "grade": sc.get("grade"),
+                "score": f"{sc.get('passed')}/{sc.get('total')}",
+                "percent": sc.get("percent"),
+                "cached_at": time.time(),
+            }
+        except Exception:
+            out = {"first_class": False, "grade": "?", "score": "0/0"}
+        _HEALTH_CACHE = out
+        _HEALTH_CACHE_TS = time.time()
+        _HEALTH_WARMING = False
+        return dict(out)
+
+    if block or force:
+        return _compute()
+
+    # Non-blocking path for /health
+    if not _HEALTH_WARMING:
+        _HEALTH_WARMING = True
+        try:
+            import threading
+
+            threading.Thread(target=_compute, name="pocket-health-warm", daemon=True).start()
+        except Exception:
+            _HEALTH_WARMING = False
+    if _HEALTH_CACHE:
+        return dict(_HEALTH_CACHE)
+    return {
+        "first_class": None,
+        "grade": "…",
+        "score": "warming",
+        "percent": None,
+        "warming": True,
+    }

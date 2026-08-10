@@ -61,6 +61,60 @@ def port_open(host: str = HOST, port: int = PORT) -> bool:
         return False
 
 
+def http_ok(host: str = HOST, port: int = PORT) -> bool:
+    """True only if /health answers (not a hung LISTEN socket)."""
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(
+            f"http://{host}:{port}/health",
+            headers={"User-Agent": "pocket-runtime-worker"},
+        )
+        with urllib.request.urlopen(req, timeout=0.8) as r:
+            return int(getattr(r, "status", 200) or 200) == 200
+    except Exception:
+        return False
+
+
+def _kill_port_holders() -> None:
+    """Drop hung listeners on PORT (Windows)."""
+    if sys.platform != "win32":
+        return
+    try:
+        out = subprocess.check_output(
+            ["netstat", "-ano"],
+            text=True,
+            errors="replace",
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        pids = set()
+        needle = f":{PORT}"
+        for line in out.splitlines():
+            if "LISTENING" not in line.upper() and "LISTEN" not in line.upper():
+                continue
+            if needle not in line:
+                continue
+            parts = line.split()
+            if parts:
+                try:
+                    pids.add(int(parts[-1]))
+                except ValueError:
+                    pass
+        for pid in pids:
+            if pid <= 0 or pid == os.getpid():
+                continue
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/PID", str(pid)],
+                    capture_output=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
 def _python() -> str:
     return sys.executable
 
@@ -69,33 +123,74 @@ def start_serve() -> None:
     global _serve_proc
     if _serve_proc and _serve_proc.poll() is None:
         return
-    if port_open():
+    # If something is listening but not answering HTTP, kill it first
+    if port_open() and not http_ok():
+        print("[POCKET runtime] hung listener — killing before start", flush=True)
+        _kill_port_holders()
+        time.sleep(1.0)
+    if port_open() and http_ok():
         return
+    if port_open() and not http_ok():
+        _kill_port_holders()
+        time.sleep(1.0)
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
     env["POCKET_AURO_TRAIN"] = env.get("POCKET_AURO_TRAIN") or "0"
     # Mesh hook async — never block first HTTP
     env["POCKET_MESH_HOOK_ASYNC"] = "1"
+    # Break away from any parent Job Object (Grok/agent shells kill children
+    # when the shell command ends — that looked like a "crashing" Edge app).
     creation = 0
     if sys.platform == "win32":
-        creation = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        creation = (
+            getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+            | 0x01000000  # CREATE_BREAKAWAY_FROM_JOB
+            | 0x00000200  # CREATE_NEW_PROCESS_GROUP
+            | 0x00000008  # DETACHED_PROCESS
+        )
+    err_log = STATE_DIR / "serve-child-err.log"
+    out_log = STATE_DIR / "serve-child-out.log"
+    try:
+        out_f = open(out_log, "a", encoding="utf-8", errors="replace")
+        err_f = open(err_log, "a", encoding="utf-8", errors="replace")
+    except Exception:
+        out_f = subprocess.DEVNULL
+        err_f = subprocess.DEVNULL
     _serve_proc = subprocess.Popen(
-        [_python(), "-u", "-m", "pocket", "serve", "--host", HOST, "--port", str(PORT)],
+        [_python(), "-u", "-m", "pocket", "serve", "--host", "0.0.0.0", "--port", str(PORT)],
         cwd=str(ROOT),
         env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=out_f,
+        stderr=err_f,
         creationflags=creation,
+        close_fds=True,
     )
 
 
 def heartbeat_loop() -> None:
+    fail = 0
     while not _stop.is_set():
         try:
-            alive = port_open()
-            if not alive:
+            listening = port_open()
+            ok = http_ok() if listening else False
+            if not listening or not ok:
+                fail += 1
+            else:
+                fail = 0
+            # Require 2 failed checks (~1.7s) before restart to avoid thrash
+            if fail >= 2:
+                if listening and not ok:
+                    print("[POCKET runtime] desk not answering — restart hung host", flush=True)
+                    if _serve_proc and _serve_proc.poll() is None:
+                        try:
+                            _serve_proc.kill()
+                        except Exception:
+                            pass
+                    _kill_port_holders()
+                    time.sleep(0.8)
                 start_serve()
-            _write_heart({"port_open": alive or port_open()})
+                fail = 0
+            _write_heart({"port_open": listening, "http_ok": ok})
         except Exception as e:
             try:
                 _write_heart({"ok": False, "error": str(e)[:200]})

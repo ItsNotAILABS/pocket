@@ -345,7 +345,22 @@ def register(
 
 
 def verify(user: str, password: str) -> Optional[Dict[str, Any]]:
+    """Accept username aliases (pocket / owner / admin empty→pocket) + ACCESS password."""
     user = (user or "").strip().lower()
+    password = password if password is not None else ""
+    # Blank username on many gates — treat as founder seat when password present
+    if not user and password:
+        user = "pocket"
+    # Common aliases people type on phone / web
+    if user in ("owner", "admin", "root", "operator", "founder"):
+        try:
+            from pocket.auth import expected_user
+
+            user = (expected_user() or "pocket").lower()
+        except Exception:
+            user = "pocket"
+    if not password:
+        return None
     with _lock:
         data = _load()
         rec = (data.get("users") or {}).get(user)
@@ -353,11 +368,12 @@ def verify(user: str, password: str) -> Optional[Dict[str, Any]]:
             try:
                 from pocket.auth import expected_password, expected_user
 
-                if user == (expected_user() or "pocket").lower() and hmac.compare_digest(
-                    password, expected_password()
-                ):
+                exp_u = (expected_user() or "pocket").lower()
+                exp_p = expected_password()
+                # Match founder ACCESS password for pocket or alias
+                if user in (exp_u, "pocket") and hmac.compare_digest(password, exp_p):
                     return {
-                        "user": user,
+                        "user": exp_u,
                         "role": "admin",
                         "display": "Owner",
                         "is_owner": True,
@@ -372,6 +388,20 @@ def verify(user: str, password: str) -> Optional[Dict[str, Any]]:
                 "display": rec.get("display") or user,
                 "is_owner": bool(rec.get("is_owner")),
             }
+        # Founder password still wins if user row exists but was re-keyed from ACCESS
+        try:
+            from pocket.auth import expected_password, expected_user
+
+            exp_u = (expected_user() or "pocket").lower()
+            if user == exp_u and hmac.compare_digest(password, expected_password()):
+                return {
+                    "user": exp_u,
+                    "role": "admin",
+                    "display": rec.get("display") or "Owner",
+                    "is_owner": True,
+                }
+        except Exception:
+            pass
     return None
 
 

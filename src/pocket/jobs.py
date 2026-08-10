@@ -21,7 +21,9 @@ WORK_DIR.mkdir(parents=True, exist_ok=True)
 VALID_MODES = frozenset({
     "codex", "claude", "shell", "ask", "plan", "wsl", "wsl_native", "linux", "grok", "handoff", "term",
     "desktop", "web", "nexus", "agent", "doer", "guppy", "browser",
-    "capture", "repos", "copilot", "archon", "alpha", "workers",
+    "capture", "vision", "oculus", "see", "pixel_see", "screen", "vcomp", "vcomputer",
+    "work", "working", "live_work", "work_mode", "persistent", "mcp", "tools",
+    "repos", "github", "gh", "copilot", "archon", "alpha", "workers",
     "woa", "wrapped-orch", "wrapped_orch", "mesie", "auro",
     "offload", "embody", "embodiment", "realworld",
     "cowork", "work", "demo", "git", "forge", "sovereign-git", "ghost", "ghost-math", "math",
@@ -29,6 +31,12 @@ VALID_MODES = frozenset({
     "novae_grok", "novae_codex", "novae", "dual", "cortex", "subcortex", "swarm",
     "wiki", "infinite_wiki", "codebase",
     "dream", "duel", "capsule", "serendipity", "proof",
+    "voice", "v2v", "voice_agent", "voice2voice",
+    "coding_swarm", "pixel_swarm", "harness", "swarm_code", "code_swarm",
+    "rah", "recursive_harness", "rah_fanout", "rah_audit",
+    "muse_spark", "muse", "spark", "muse-spark", "musespark",
+    "assist", "assistant", "digital", "life", "day", "personal",
+    "python", "python_wsl",
 })
 
 

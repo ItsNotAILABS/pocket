@@ -77,6 +77,14 @@ class Orchestrator:
             result["fusion_brief"] = fusion_ctx.get("brief")
             result["fusion_counts"] = fusion_ctx.get("counts")
             result["page_hint"] = fusion_ctx.get("page_hint")
+        # Platform coherence pointer on every skill result
+        try:
+            from pocket.agentic_harness import platform_brief
+
+            result["platform_brief"] = platform_brief(max_chars=400)
+            result["discover"] = "/v1/platform/coherent"
+        except Exception:
+            pass
         # vision tape sample
         try:
             fr = latest_frame(include_image=False)

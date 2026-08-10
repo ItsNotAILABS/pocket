@@ -216,13 +216,47 @@ def list_subagents() -> Dict[str, Any]:
 
     # Latin first, then DESIGN + headless pack, then live dynamic, mesh extras, suite
     subagents = latin + core + dynamic + mesh + suite
+
+    # Live harness subagents (Codex/Grok/Claude spawned helpers) — first-class animation
+    harness_live: List[Dict[str, Any]] = []
+    try:
+        from pocket.agentic_harness import list_live
+
+        for h in (list_live().get("subagents") or []):
+            hid = str(h.get("name") or h.get("agent") or h.get("id") or "").upper()
+            if not hid:
+                continue
+            st = str(h.get("status") or "ready")
+            harness_live.append(
+                _entry(
+                    id=str(h.get("id") or hid),
+                    name=hid,
+                    role=f"harness · {(h.get('goal') or h.get('summary') or parent_mode_hint(h))[:80]}",
+                    status="running" if st == "running" else ("done" if st == "done" else st),
+                    source="harness",
+                )
+            )
+    except Exception:
+        pass
+
+    subagents = harness_live + subagents
     uniq: List[Dict[str, Any]] = []
     seen2: Set[str] = set()
     for e in subagents:
+        # Allow multiple harness run ids; collapse static catalog by name
         k = str(e.get("id") or "").upper()
-        if not k or k in seen2:
+        if not k:
             continue
-        seen2.add(k)
+        if e.get("source") != "harness" and k in seen2:
+            continue
+        if e.get("source") != "harness":
+            seen2.add(k)
+        # Prefer harness running over static ready of same name
+        if e.get("source") != "harness":
+            for h in harness_live:
+                if str(h.get("name") or "").upper() == k and _is_running(h.get("status") or ""):
+                    e = {**e, "status": "running", "role": h.get("role") or e.get("role"), "source": "harness"}
+                    break
         uniq.append(e)
 
     running_count = sum(1 for e in uniq if _is_running(e["status"]))
@@ -242,16 +276,46 @@ def list_subagents() -> Dict[str, Any]:
         "mesh_core": list(MESH_CORE.keys()),
         "headless_count": sum(1 for e in uniq if e.get("source") == "headless"),
         "design_count": sum(1 for e in uniq if e.get("source") == "design"),
+        "harness_count": sum(1 for e in uniq if e.get("source") == "harness"),
         "mesh": mesh_meta,
+        "animated": True,
     }
 
 
+def parent_mode_hint(h: Dict[str, Any]) -> str:
+    return str(h.get("parent_mode") or "agent")
+
+
 def list_running() -> Dict[str, Any]:
-    """Only subagents currently running (typically dynamic workers)."""
+    """Only subagents currently running (dynamic + harness)."""
     full = list_subagents()
     running = [e for e in full["subagents"] if _is_running(e["status"])]
+    # Also pull raw harness bus (covers ids not yet merged)
+    try:
+        from pocket.agentic_harness import list_live
+
+        for h in list_live().get("subagents") or []:
+            if str(h.get("status") or "") != "running":
+                continue
+            hid = str(h.get("name") or h.get("agent") or "").upper()
+            if not hid:
+                continue
+            if any(str(x.get("name") or "").upper() == hid for x in running):
+                continue
+            running.append(
+                _entry(
+                    id=str(h.get("id") or hid),
+                    name=hid,
+                    role=f"harness · {(h.get('goal') or '')[:80]}",
+                    status="running",
+                    source="harness",
+                )
+            )
+    except Exception:
+        pass
     return {
         "ok": True,
         "subagents": running,
         "running_count": len(running),
+        "animated": True,
     }

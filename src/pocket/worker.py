@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -13,13 +14,26 @@ from pocket.jobs import claim, finish, next_queued
 _pool: Optional[ThreadPoolExecutor] = None
 _inflight = 0
 _inflight_lock = Lock()
-_MAX = 4  # parallel Codex/shell/WSL jobs
+# Parallel Codex/shell/WSL jobs — raise via POCKET_JOB_WORKERS (default 6)
+_MAX = max(2, min(16, int(os.environ.get("POCKET_JOB_WORKERS") or "6")))
 
 
 def _run_claimed(job: dict) -> None:
     global _inflight
     jid = job["id"]
-    print(f"[POCKET worker] running {jid} mode={job.get('mode')} session={job.get('session_id')}", flush=True)
+    mode = str(job.get("mode") or "agent")
+    print(f"[POCKET worker] running {jid} mode={mode} session={job.get('session_id')}", flush=True)
+    try:
+        from pocket.agent_habitat import pulse as habitat_pulse
+
+        habitat_pulse(
+            mode,
+            status="working",
+            task=str(job.get("prompt") or "")[:120],
+            line=f"Job {jid[:12]}…",
+        )
+    except Exception:
+        pass
     try:
         result, error, engine = run_job(job)
         try:
@@ -30,6 +44,34 @@ def _run_claimed(job: dict) -> None:
         except Exception:
             pass
         finish(jid, result=result, error=error, engine=engine)
+        try:
+            from pocket.agent_habitat import pulse as habitat_pulse
+
+            habitat_pulse(
+                str(engine or mode),
+                status="idle" if not error else "idle",
+                task="",
+                line=(("Done · " + str(result or "")[:100]) if not error else ("Failed · " + str(error)[:80])),
+            )
+        except Exception:
+            pass
+        # First-class: every finished agent run can land in pixel memory (artifacts)
+        try:
+            mode = str(job.get("mode") or engine or "agent")
+            # coding_swarm already stores rich artifacts; still index the full transcript lightly
+            if result and not error:
+                from pocket.pixel_vmem import store_agent_run
+
+                store_agent_run(
+                    agent=str(engine or mode),
+                    mode=mode,
+                    prompt=str(job.get("prompt") or "")[:500],
+                    result=str(result)[:120000],
+                    job_id=jid,
+                    language="md",
+                )
+        except Exception as pe:
+            print(f"[POCKET worker] pixel store skip {jid}: {pe}", flush=True)
         print(f"[POCKET worker] {jid} -> done engine={engine} err={bool(error)}", flush=True)
     except Exception as e:
         finish(jid, result="", error=str(e), engine=job.get("mode") or "unknown")

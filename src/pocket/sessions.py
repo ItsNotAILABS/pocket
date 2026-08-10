@@ -19,7 +19,9 @@ SESS_DIR.mkdir(parents=True, exist_ok=True)
 MODES = frozenset({
     "codex", "claude", "shell", "wsl", "ask", "plan", "grok", "handoff", "term",
     "desktop", "web", "nexus", "agent", "doer", "guppy", "browser",
-    "capture", "repos", "copilot", "archon", "alpha", "workers",
+    "capture", "vision", "oculus", "see", "pixel_see", "screen", "vcomp", "vcomputer",
+    "work", "working", "live_work", "work_mode", "persistent", "mcp", "tools",
+    "repos", "github", "gh", "copilot", "archon", "alpha", "workers",
     "woa", "wrapped-orch", "wrapped_orch",
     "offload", "embody", "embodiment", "realworld",
     "cowork", "work", "demo", "git", "forge", "sovereign-git", "ghost", "ghost-math", "math",
@@ -31,6 +33,12 @@ MODES = frozenset({
     "dual", "cortex", "subcortex", "swarm", "work",
     "wiki", "infinite_wiki", "codebase",
     "dream", "duel", "capsule", "serendipity", "proof",
+    "voice", "v2v", "voice_agent", "voice2voice",
+    "coding_swarm", "pixel_swarm", "harness", "swarm_code", "code_swarm",
+    "muse_spark", "muse", "spark", "muse-spark", "musespark",
+    "assist", "assistant", "digital", "life", "day", "personal",
+    "studio", "product_studio", "video_studio", "viral",
+    "python", "python_wsl",
 })
 
 
@@ -131,59 +139,45 @@ def create_session(
     owner: str = "",
 ) -> Dict[str, Any]:
     mode = (mode or "codex").lower()
+    # Align modes with first-class registry
+    try:
+        from pocket.first_class_agents import ensure_modes_aligned, session_titles as fc_titles
+
+        ensure_modes_aligned()
+        titles = fc_titles()
+    except Exception:
+        titles = {}
     if mode not in MODES:
-        mode = "codex"
+        # last chance: accept any first-class desk mode
+        if mode not in titles:
+            mode = "codex"
+        else:
+            # extend at runtime
+            try:
+                from pocket import sessions as _s
+
+                _s.MODES = frozenset(set(MODES) | {mode})
+            except Exception:
+                mode = "codex"
     sid = f"s-{uuid.uuid4().hex[:10]}"
-    titles = {
+    # Fallback titles for any still-missing modes
+    _fallback = {
         "codex": "Codex agent",
-        "claude": "Claude agent",
-        "shell": "Shell terminal",
-        "wsl": "WSL terminal",
-        "ask": "Quick plan",
+        "claude": "Claude Agent SDK",
+        "voice": "Voice ↔ Voice",
+        "muse_spark": "Muse Spark",
+        "muse": "Muse Spark",
+        "spark": "Muse Spark",
+        "coding_swarm": "Coding Swarm · pixel artifacts",
         "plan": "Planning AI chat",
         "grok": "Grok coding agent",
-        "handoff": "Plan handoff",
-        "term": "Live terminal",
-        "desktop": "Desktop apps",
-        "web": "Web research",
-        "nexus": "NEXUS intelligence",
-        "agent": "Headless doer (≤10 steps)",
-        "doer": "Headless doer (≤10 steps)",
-        "guppy": "GUPPY · local fish agent",
-        "browser": "Browser · real world desk",
-        "capture": "Capture · screenshot / snip",
-        "repos": "Repos · GitHub",
-        "copilot": "CONSILIARIUS · Copilot",
-        "archon": "ARCHON · desk alpha",
-        "alpha": "ARCHON · desk alpha",
-        "workers": "Latin workers roster",
-        "novae_grok": "Grok Novae · hands",
-        "novae_codex": "Codex Novae · hands",
-        "novae-grok": "Grok Novae · hands",
-        "novae-codex": "Codex Novae · hands",
-        "novae": "Grok Novae · hands",
-        "offload": "Offload · real world",
-        "mesie": "MESIE spectral",
-        "auro": "Auro14B",
-        "wsl": "WSL · native Linux hands",
-        "wsl_native": "WSL · native Linux hands",
-        "wsl-native": "WSL · native Linux hands",
-        "linux": "WSL · native Linux hands",
         "build": "Build loop · multi-agent ship",
-        "ship": "Build loop · multi-agent ship",
-        "use_case": "Real use case runner",
-        "emergent": "Emergent-parity ship factory",
-        "loop": "Managed agent loop",
-        "custom_agent": "Custom agent builder",
         "wiki": "Infinite Wiki · hierarchical code",
-        "infinite_wiki": "Infinite Wiki · hierarchical code",
-        "codebase": "Infinite Wiki · hierarchical code",
-        "dream": "Dream Mode · idle consolidator",
-        "duel": "Agent Duels · propose & judge",
-        "capsule": "Time Capsules · future instructions",
-        "serendipity": "Serendipity · unexpected links",
-        "proof": "Proof chain · work receipts",
+        "shell": "Shell terminal",
+        "term": "Live terminal",
     }
+    for k, v in _fallback.items():
+        titles.setdefault(k, v)
     # Number parallel sessions of same mode so tabs stay distinct (Codex 1, Codex 2…)
     mode_n = 1
     try:
@@ -200,6 +194,7 @@ def create_session(
     if mode in (
         "codex", "claude", "grok", "term", "shell", "agent", "doer", "guppy",
         "browser", "capture", "repos", "copilot", "archon", "alpha", "workers",
+        "muse_spark", "muse", "spark",
     ) and not title:
         default_title = f"{titles.get(mode, mode)} · {mode_n}"
 
@@ -225,6 +220,8 @@ def create_session(
         "engine_thread_engine": "",
         "engine_resumes": 0,
         "slot": mode_n,
+        # Voice engine: any chat agent can talk/listen without switching to Aria
+        "voice_engine": mode in ("voice", "v2v", "voice_agent", "voice2voice"),
         "color": {
             "codex": "#2EE6A6",
             "claude": "#D4A574",
@@ -250,25 +247,37 @@ def create_session(
             "workers": "#E11D48",
         }.get(mode, "#2EE6A6"),
     }
-    # Live terminal binding for interactive PTY-like sessions
-    if mode == "term":
+    # Live integrated consoles for agents (hidden process, log in desk)
+    _term_kinds = {
+        "term": "powershell",
+        "shell": "powershell",
+        "wsl": "wsl",
+        "wsl_native": "wsl",
+        "linux": "wsl",
+        "python": "python",
+        "python_wsl": "python_wsl",
+        "py": "python",
+    }
+    if mode in _term_kinds:
         try:
             from pocket.terminals import create_terminal
 
             term = create_terminal(
-                kind="powershell",
+                kind=_term_kinds[mode],
                 workspace=workspace or "workspace",
                 session_id=sid,
+                label=f"{mode}-console",
             )
             sess["terminal_id"] = term.get("id")
             sess["terminal_kind"] = term.get("kind")
+            sess["terminal"] = term
         except Exception as e:
             sess["terminal_error"] = str(e)
     save(sess)
     try:
         from pocket.tokenomics import burn
 
-        if mode != "term":  # terminal create already burns
+        if mode not in _term_kinds:  # console create already burns
             burn("session_open", meta={"session_id": sid, "mode": mode})
     except Exception:
         pass
@@ -428,6 +437,31 @@ def rename(sid: str, title: str) -> Optional[Dict[str, Any]]:
     if not sess:
         return None
     sess["title"] = (title or sess["title"])[:80]
+    save(sess)
+    return sess
+
+
+def set_voice_engine(sid: str, enabled: bool = True) -> Optional[Dict[str, Any]]:
+    """Turn voice engine on/off for any chat agent (mic auto-send + speak-back).
+
+    Does not change the agent mode (codex/grok/claude stay that engine).
+    Native voice modes always behave as voice.
+    """
+    sess = get(sid)
+    if not sess:
+        return None
+    mode = (sess.get("mode") or "").lower()
+    native = mode in ("voice", "v2v", "voice_agent", "voice2voice")
+    on = True if native else bool(enabled)
+    sess["voice_engine"] = on
+    sess["voice_engine_at"] = time.time() if on else 0
+    # Keep a readable title hint without destroying custom titles
+    title = sess.get("title") or mode
+    if on and not native and " · voice" not in title.lower():
+        if not title.lower().endswith("voice"):
+            sess["title"] = (title[:64] + " · voice")[:80]
+    if (not on) and not native and " · voice" in (title or "").lower():
+        sess["title"] = title.replace(" · voice", "").replace(" · Voice", "").strip()[:80] or title
     save(sess)
     return sess
 

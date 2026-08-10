@@ -12,6 +12,16 @@ def dispatch_skill(sid: str, *, prompt: str = "", params: Dict[str, Any] | None 
     params = params or {}
     sid = (sid or "").lower().replace("-", "_")
 
+    # Coherent platform skills (habitat · screen · work · fusion · phone · mcp)
+    try:
+        from pocket.platform_coherence import is_platform_skill, run_platform_skill
+
+        if is_platform_skill(sid):
+            return run_platform_skill(sid, prompt=prompt, params=params)
+    except Exception as e:
+        if sid.startswith("platform") or sid.startswith("habitat") or sid.startswith("fusion"):
+            return {"ok": False, "error": f"platform skill: {e}"}
+
     # Real discrete skills module
     if sid in {
         "github_one_page", "antigravity_explore", "github_desktop_peek",

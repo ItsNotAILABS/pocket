@@ -382,6 +382,24 @@ def _public(a: Dict[str, Any]) -> Dict[str, Any]:
 def route_task(task: str) -> Dict[str, Any]:
     """Cheap keyword router — headless, no LLM required."""
     t = (task or "").lower()
+    # Large parallel work → RAH path (agent chooses; user need not say RAH)
+    try:
+        from pocket.rah import score_rah_fit
+
+        fit = score_rah_fit(task, mode="auto")
+        if fit.get("use_rah") and fit.get("score", 0) >= 4:
+            return {
+                "ok": True,
+                "agent_id": "architect",
+                "name": "RAH · Recursive Harnesses",
+                "reason": f"auto_rah score={fit.get('score')} {fit.get('reasons')[:3]}",
+                "rah": True,
+                "rah_fit": fit,
+                "engine_hint": "rah",
+                "agent": _public(AGENTS.get("architect") or AGENTS.get("planner") or {}),
+            }
+    except Exception:
+        pass
     rules = [
         (["threat", "security", "vuln", "cve", "auth bypass"], "security"),
         (["review", "pr review", "code review", "bug"], "reviewer"),
@@ -437,11 +455,22 @@ def build_prompt(agent_id: str, task: str, *, extra: str = "") -> Tuple[str, str
         if engine in ("agent", "doer"):
             return "agent", task, a
         return engine, task, a
-    # plan / codex / grok
+    # plan / codex / grok — always stamp POCKET identity + protocols
+    try:
+        from pocket.pocket_identity import identity_brief
+
+        id_block = identity_brief(max_chars=900, mode=a.get("id") or engine)
+    except Exception:
+        id_block = (
+            "You are a POCKET host agent (not a generic chatbot). "
+            "Help users operate POCKET: desk, phone, skills, 10 major protocols."
+        )
     prompt = (
+        f"[POCKET IDENTITY]\n{id_block}\n\n"
         f"[Headless agent: {a['name']} ({a['id']})]\n"
         f"Role: {a['role']}\n"
         f"Instructions: {a['system']}\n"
+        "You run inside POCKET on the user's host. Prefer POCKET skills/APIs.\n"
     )
     if extra:
         prompt += f"Context:\n{extra[:4000]}\n"

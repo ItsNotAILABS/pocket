@@ -27,6 +27,16 @@ def build_capability_map() -> Dict[str, Any]:
             "index_tree": "POST /v1/wiki/index {root}",
             "rule": "Never load whole multi-kLOC files — profile then slice",
         },
+        "agent_os": {
+            "dashboard": "GET /v1/os",
+            "systems": "GET /v1/os/systems",
+            "parity": "GET /v1/os/parity",
+            "projects": "GET|POST /v1/os/projects",
+            "run": "POST /v1/os/run {project_id}",
+            "run_artifact": "POST /v1/os/run-artifact {symbol}",
+            "screen": "/os",
+            "rule": "Every agent system is first-class — prefer /os then desk modes",
+        },
         "tips": [],
     }
     try:
@@ -37,6 +47,10 @@ def build_capability_map() -> Dict[str, Any]:
             "codex": bool(eng.get("codex")),
             "grok": bool(eng.get("grok")),
             "claude": bool(eng.get("claude")),
+            "claude_agent_sdk": bool(eng.get("claude_agent_sdk")),
+            "coding_swarm": True,
+            "pixel_memory": True,
+            "agent_os": True,
             "shell": True,
             "wsl": bool(eng.get("wsl")),
             "desktop": True,
@@ -74,6 +88,8 @@ def build_capability_map() -> Dict[str, Any]:
         {
             "screenshot": True,
             "vision": True,
+            "vision_first_class": True,
+            "oculus": True,
             "browser_agent": True,
             "offload_queue": True,
             "proof_packs": True,
@@ -123,12 +139,67 @@ def build_capability_map() -> Dict[str, Any]:
         "paper_money_only_for_parallax": True,
     }
 
+    # Capability sandbox (Wasm-shaped) + voice + studios
+    try:
+        from pocket.agent_sandbox import status as sb_status, list_profiles, wasmtime_available
+
+        sb = sb_status()
+        prof = list_profiles().get("profiles") or {}
+        caps["sandbox"] = {
+            "profiles": list(prof.keys()),
+            "wasmtime": wasmtime_available(),
+            "receipts_dir": sb.get("receipts_dir"),
+            "grant": "POST /v1/sandbox/grant",
+            "check": "POST /v1/sandbox/check",
+            "read": "POST /v1/sandbox/read",
+            "write": "POST /v1/sandbox/write",
+            "voice": "POST /v1/sandbox/voice  (needs pocket-voice :8790)",
+            "wasm": "POST /v1/sandbox/wasm",
+            "doc": "docs/research/POCKET_AGENT_WASM_SANDBOX.md",
+        }
+    except Exception as e:
+        caps["sandbox"] = {"error": str(e)[:120]}
+
+    caps["voice"] = {
+        "oss_repo": "https://github.com/ItsNotAILABS/pocket-voice-to-text",
+        "api_default": "http://127.0.0.1:8790",
+        "catalog": "GET http://127.0.0.1:8790/v1",
+        "desk_mic": "browser STT on /desk 🎙",
+        "agent_bridge": "POST /v1/sandbox/voice",
+        "doc": "docs/AGENT_VOICE.md",
+    }
+
+    caps["studios"] = {
+        "desk": {"url": "/desk", "job": "Chat with Codex/Grok — daily home"},
+        "work_studio": {
+            "url": "/work",
+            "job": "Design work types & loops → hand off to desk",
+            "api": ["GET /v1/work-studio", "POST /v1/work-loops/generate", "POST /v1/dual"],
+            "handoff": "localStorage pocket_work_handoff → /desk?agent=",
+        },
+        "product_studio": {
+            "url": "/studio",
+            "job": "Product demos / viral exports from recordings",
+            "api": ["POST /v1/studio/product_phone", "POST /v1/studio/product_web", "GET /v1/record/*"],
+        },
+        "rule": "Work Studio designs labor; Product Studio packages demos; Desk runs agents",
+    }
+
+    caps["pixel_memory"] = {
+        "status": "GET /v1/vmem",
+        "put": "POST /v1/vmem/put",
+        "look": "GET /v1/vmem/look?symbol=",
+        "pass": "POST /v1/vmem/pass",
+    }
+
     caps["tips"] = [
-        "Prefer /v1/offload for multi-step real-world work — free the chat turn",
+        "Desk is home — Codex and Grok are separate agents",
+        "Custom agents run under sandbox profiles (receipts in ~/.pocket/sandbox)",
+        "Work Studio designs loops; Send to desk to run them",
+        "Product Studio (/studio) is demos/exports — not agent chat",
+        "Voice for agents: start pocket-voice on :8790 then POST /v1/sandbox/voice",
+        "Prefer /v1/offload for multi-step real-world work",
         "Read AI_WORKSPACE CONTEXT before listing the repo",
-        "Use mesh bus artifacts for peer handoffs",
-        "Check capability map before probing engines",
-        "Screenshot + proof pack after desktop actions",
     ]
     return caps
 

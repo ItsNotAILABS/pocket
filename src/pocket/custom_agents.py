@@ -19,7 +19,7 @@ ROOT.mkdir(parents=True, exist_ok=True)
 _lock = Lock()
 
 TOOL_CATALOG = {
-    "files": "Read/write workspace files",
+    "files": "Read/write workspace files (sandbox-gated)",
     "web": "Search and fetch URLs",
     "git": "Sovereign git / repo notes",
     "test": "Run pytest / npm test heuristics",
@@ -29,7 +29,11 @@ TOOL_CATALOG = {
     "mesh": "Send mesh messages / leave artifacts",
     "deploy": "Static deploy helper",
     "plan": "Structured planning only",
+    "voice": "Pocket Voice API (localhost, no host FS)",
 }
+
+# Tools that force a tighter sandbox profile
+FOUNDER_ONLY_TOOLS = frozenset({"shell", "wsl", "desktop", "deploy"})
 
 
 def _slug(name: str) -> str:
@@ -112,8 +116,30 @@ def delete_agent(aid: str) -> Dict[str, Any]:
     return {"ok": False, "error": "not found"}
 
 
-def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict] = None) -> Dict[str, Any]:
-    """Execute one turn: plan → tool actions → optional sub-agent fan-out → artifact."""
+def _profile_for_tools(tools: set, *, is_founder: bool = True) -> str:
+    """Map tool set → sandbox profile (least privilege)."""
+    if tools & FOUNDER_ONLY_TOOLS:
+        return "founder_tool" if is_founder else "market_seat"
+    if "voice" in tools and not (tools & {"files", "web", "git", "mesh"}):
+        return "voice_plugin"
+    if "files" in tools or "plan" in tools or "git" in tools or "test" in tools:
+        return "workspace_write"
+    if "web" in tools:
+        return "workspace_read"
+    return "compute"
+
+
+def run_custom_agent(
+    aid: str,
+    prompt: str,
+    *,
+    cwd: str = "",
+    job: Optional[Dict] = None,
+    is_founder: bool = True,
+) -> Dict[str, Any]:
+    """Execute one turn under capability sandbox (files/plan/web/voice gated)."""
+    from pocket.agent_sandbox import mint_grant, safe_write_text, voice_turn
+
     agent = get_agent(aid)
     if not agent:
         return {"ok": False, "error": f"custom agent {aid} not found"}
@@ -123,32 +149,67 @@ def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict
     work.mkdir(parents=True, exist_ok=True)
     steps: List[Dict[str, Any]] = []
     tools = set(agent.get("tools") or [])
+    # Strip founder-only tools for market seats
+    if not is_founder:
+        tools = tools - FOUNDER_ONLY_TOOLS
 
-    # 1) write brief
+    profile = _profile_for_tools(tools, is_founder=is_founder)
+    grant = mint_grant(
+        profile,
+        workspace_path=str(work.resolve()),
+        agent_id=agent.get("id") or aid,
+        session_id=str(job.get("session_id") or job.get("id") or ""),
+        net_hosts=["127.0.0.1", "localhost"] if "voice" in tools or "web" in tools else [],
+    )
+    # web needs net:http — expand grant caps for workspace_read when web present
+    if "web" in tools:
+        grant.caps.add("net:http")
+        if "*" not in grant.net_hosts and not grant.net_hosts:
+            grant.net_hosts = ["*"]  # web search; still audited via steps
+
+    # 1) write brief (sandbox write)
     if "files" in tools or "plan" in tools:
         brief = work / f"brief_{int(time.time())}.md"
         body = (
             f"# {agent.get('name')} run\n\n"
             f"**Role:** {agent.get('role')}\n"
-            f"**Personality:** {agent.get('personality')}\n\n"
+            f"**Personality:** {agent.get('personality')}\n"
+            f"**Sandbox profile:** {profile}\n\n"
             f"## Task\n{text}\n\n"
             f"## System\n{agent.get('system') or '(default)'}\n"
         )
-        brief.write_text(body, encoding="utf-8")
-        steps.append({"tool": "files", "ok": True, "path": str(brief)})
+        wr = safe_write_text(grant, str(brief), body)
+        steps.append(
+            {
+                "tool": "files",
+                "ok": bool(wr.get("ok")),
+                "path": str(brief),
+                "trap": wr.get("trap"),
+                "receipt": (wr.get("receipt") or {}).get("id"),
+            }
+        )
 
     # 2) plan skeleton
     plan_path = work / "PLAN.md"
-    plan_path.write_text(
+    plan_body = (
         f"# Plan — {agent.get('id')}\n\n"
         f"1. Understand: {text[:400]}\n"
-        f"2. Tools: {', '.join(tools)}\n"
-        f"3. Sub-agents: {', '.join(agent.get('sub_agents') or []) or 'none'}\n"
-        f"4. Deliver artifact under `{work}`\n"
-        f"5. Report status\n",
-        encoding="utf-8",
+        f"2. Tools: {', '.join(sorted(tools))}\n"
+        f"3. Sandbox: `{profile}` · caps `{', '.join(sorted(grant.caps))}`\n"
+        f"4. Sub-agents: {', '.join(agent.get('sub_agents') or []) or 'none'}\n"
+        f"5. Deliver artifact under `{work}`\n"
+        f"6. Report status\n"
     )
-    steps.append({"tool": "plan", "ok": True, "path": str(plan_path)})
+    wrp = safe_write_text(grant, str(plan_path), plan_body)
+    steps.append(
+        {
+            "tool": "plan",
+            "ok": bool(wrp.get("ok")),
+            "path": str(plan_path),
+            "trap": wrp.get("trap"),
+            "receipt": (wrp.get("receipt") or {}).get("id"),
+        }
+    )
 
     # 3) optional web research note
     if "web" in tools and any(k in text.lower() for k in ("research", "lookup", "search", "find")):
@@ -156,10 +217,35 @@ def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict
             from pocket.web_research import search_web
 
             sr = search_web(text[:200])
-            (work / "research.json").write_text(json.dumps(sr, indent=2)[:12000], encoding="utf-8")
-            steps.append({"tool": "web", "ok": True})
+            wr = safe_write_text(grant, str(work / "research.json"), json.dumps(sr, indent=2)[:12000])
+            steps.append({"tool": "web", "ok": bool(wr.get("ok")), "trap": wr.get("trap")})
         except Exception as e:
             steps.append({"tool": "web", "ok": False, "error": str(e)[:200]})
+
+    # 3b) voice (Pocket Voice API) when tool present and prompt looks spoken/support
+    if "voice" in tools and any(
+        k in text.lower() for k in ("say ", "speak", "voice", "call", "support", "customer", "refund", "hello")
+    ):
+        vg = mint_grant(
+            "voice_plugin",
+            agent_id=agent.get("id") or aid,
+            session_id=str(job.get("session_id") or ""),
+            net_hosts=["127.0.0.1", "localhost"],
+        )
+        vr = voice_turn(
+            vg,
+            text[:500],
+            business_mode="customer_service",
+            session_id=str(job.get("session_id") or agent.get("id") or "custom"),
+        )
+        steps.append(
+            {
+                "tool": "voice",
+                "ok": bool(vr.get("ok")),
+                "trap": vr.get("trap"),
+                "reply": ((vr.get("result") or {}).get("reply") if isinstance(vr.get("result"), dict) else None),
+            }
+        )
 
     # 4) mesh artifact
     if "mesh" in tools:
@@ -169,14 +255,14 @@ def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict
             leave_artifact(
                 agent["id"],
                 f"custom_{int(time.time())}.md",
-                f"# {agent['id']}\n\n{text[:2000]}\n",
+                f"# {agent['id']}\n\nprofile={profile}\n\n{text[:2000]}\n",
                 notify=["ARCHON"],
             )
             steps.append({"tool": "mesh", "ok": True})
         except Exception as e:
             steps.append({"tool": "mesh", "ok": False, "error": str(e)[:120]})
 
-    # 5) fan-out sub-agents (non-blocking style sequential with cap)
+    # 5) fan-out sub-agents
     sub_results = []
     for sub in (agent.get("sub_agents") or [])[:4]:
         try:
@@ -192,26 +278,31 @@ def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict
     if any(x in role for x in ("code", "backend", "frontend", "build", "engineer")):
         src = work / "main.py"
         if not src.exists():
-            src.write_text(
-                f'"""Generated by custom agent {agent["id"]}"""\n'
+            code = (
+                f'"""Generated by custom agent {agent["id"]} (sandbox={profile})"""\n'
                 f"def main():\n"
                 f"    print({text[:80]!r})\n"
                 f"\n"
                 f"if __name__ == '__main__':\n"
-                f"    main()\n",
-                encoding="utf-8",
+                f"    main()\n"
             )
-            steps.append({"tool": "files", "ok": True, "path": str(src)})
+            wr = safe_write_text(grant, str(src), code)
+            steps.append({"tool": "files", "ok": bool(wr.get("ok")), "path": str(src), "trap": wr.get("trap")})
 
     agent["runs"] = int(agent.get("runs") or 0) + 1
     agent["last_at"] = time.time()
+    agent["last_profile"] = profile
     with _lock:
         _path(agent["id"]).write_text(json.dumps(agent, indent=2), encoding="utf-8")
 
+    denied = [s for s in steps if s.get("trap")]
     summary = (
         f"## {agent.get('name')} complete\n\n"
-        f"- Steps: {len(steps)}\n"
-        f"- Workspace: `{work}`\n"
+        f"- Sandbox profile: `{profile}`\n"
+        f"- Caps: {', '.join(sorted(grant.caps))}\n"
+        f"- Steps: {len(steps)}"
+        + (f" · denied: {len(denied)}" if denied else "")
+        + f"\n- Workspace: `{work}`\n"
         f"- Sub-agents: {sub_results}\n"
         f"- Tools used: {[s.get('tool') for s in steps]}\n"
     )
@@ -219,6 +310,8 @@ def run_custom_agent(aid: str, prompt: str, *, cwd: str = "", job: Optional[Dict
         "ok": True,
         "agent": agent["id"],
         "workspace": str(work),
+        "sandbox_profile": profile,
+        "caps": sorted(grant.caps),
         "steps": steps,
         "sub_agents": sub_results,
         "summary": summary,

@@ -14,6 +14,62 @@ def _s(id: str, worker: str, desc: str, kind: str = "atomic", tags: str = "") ->
 
 
 SUITE: List[Dict[str, Any]] = [
+    # --- Platform coherence (discoverable · agent skills · one product) ---
+    _s("platform_map", "ARCHON", "Full coherent platform map (Habitat→Phone→Fusion→MCP)", tags="platform discover"),
+    _s("platform_health", "ARCHON", "Domain health habitat/screen/work/fusion/mcp", tags="platform health"),
+    _s("find_feature", "ARCHON", "Find desk tab / phone / API / skill for a feature", tags="platform discover"),
+    _s("list_agents", "ARCHON", "First-class desk + phone agents", tags="platform agents"),
+    _s("habitat_status", "ARCHON", "Habitat residents + rooms", tags="habitat"),
+    _s("habitat_open", "ARCHON", "Open habitat floor", tags="habitat"),
+    _s("habitat_pulse", "ARCHON", "Pulse resident status", tags="habitat"),
+    _s("habitat_assign", "ARCHON", "Assign task to habitat resident", tags="habitat"),
+    _s("screen_status", "OCULUS", "Screen share status", tags="screen"),
+    _s("screen_view", "OCULUS", "Screen View mode (agents see)", tags="screen"),
+    _s("screen_control", "OCULUS", "Screen Control mode (agents drive)", tags="screen"),
+    _s("screen_off", "OCULUS", "Turn screen share off", tags="screen"),
+    _s("screen_sense", "OCULUS", "Fusion brief of shared screen", tags="screen fusion"),
+    _s("work_start", "ARCHON", "Start Working mode (voice+screen+package)", tags="work voice phone"),
+    _s("work_status", "ARCHON", "Working sessions status", tags="work"),
+    _s("work_package", "ARCHON", "Package working conversation", tags="work"),
+    _s("work_handoff", "ARCHON", "Handoff package → artifacts", tags="work"),
+    _s("fusion_voice", "ARCHON", "Conversational Fusion (DFW expert/patience/preload)", tags="fusion voice phone"),
+    _s("fusion_schema", "ARCHON", "Conversational Fusion schema", tags="fusion voice"),
+    _s("fusion_last", "ARCHON", "Last fusion for session_id", tags="fusion"),
+    _s("voice_skills_list", "ARCHON", "Aria everyday skills list", tags="voice"),
+    _s("aria_turn", "ARCHON", "Aria local skill + fusion hint", tags="voice phone"),
+    _s("phone_surface", "ARCHON", "Phone URLs + pair instructions", tags="phone"),
+    _s("pair_mint", "ARCHON", "Mint desk pair code for phone", tags="phone pair"),
+    _s("pair_status", "ARCHON", "Node pair status + peers", tags="phone pair"),
+    _s("mcp_catalog", "ARCHON", "10 embedded MCPs", tags="mcp"),
+    _s("mcp_invoke", "ARCHON", "Invoke MCP server.tool", tags="mcp"),
+    _s("cli_list", "ARCHON", "CLI inventory for agents", tags="cli"),
+    _s("cli_run", "ARCHON", "Run allowlisted CLI", tags="cli"),
+    _s("voice_studio_open", "ARCHON", "Voice Studio URL + paper→product map", tags="voice studio"),
+    # --- Everyday life (all agents · never auto-pay) ---
+    _s("life_catalog", "ARCHON", "Catalog of food/flights/shop/web/reserve skills", tags="life discover"),
+    _s("life_status", "ARCHON", "Working board + life ops status", tags="life work"),
+    _s("life_classify", "ARCHON", "Classify prompt into food/flight/shop/browse/reservation", tags="life route"),
+    _s("food_order", "NAVIGATOR", "Food delivery options — you pay", tags="life food"),
+    _s("flight_search", "NAVIGATOR", "Flight search Google Flights — you book", tags="life travel"),
+    _s("shop_search", "NAVIGATOR", "Shopping search Amazon etc — you checkout", tags="life shop"),
+    _s("web_browse", "NAVIGATOR", "Open/search web in Edge + sense", tags="life web"),
+    _s("reservation", "NAVIGATOR", "Restaurant reservation OpenTable — you confirm", tags="life dining"),
+    _s("web_search", "SCRUTATOR", "Host multi-backend web search", tags="web research"),
+    _s("web_fetch", "SCRUTATOR", "Fetch URL cleaned text", tags="web research"),
+    _s("integrations_list", "ARCHON", "50+ life integrations catalog", tags="integrations life"),
+    _s("assist_route", "ARCHON", "Route request to digital-assistant engine", tags="assist life"),
+    _s("wsl_status", "ARCHON", "WSL / Linux status for integrated console", tags="console wsl"),
+    _s("auro_status", "ARCHON", "Local Auro meaning model status", tags="auro model"),
+    _s("muse_status", "ARCHON", "Muse Spark multimodal assist surface", tags="muse assist"),
+    _s("tools_for_prompt", "ARCHON", "Plan which host tools match a prompt", tags="platform tools"),
+    # --- PROTO-CAPSULE-WASM-009 Multi-Sandbox + WebGPU ---
+    _s("capsule_status", "ARCHON", "Multi-sandbox capsule protocol status", tags="capsule sandbox wasm"),
+    _s("capsule_allocate", "ARCHON", "Allocate capsule tier+WebGPU+repo", tags="capsule sandbox"),
+    _s("capsule_execute", "ARCHON", "Execute command in capsule", tags="capsule sandbox"),
+    _s("capsule_commit", "ARCHON", "Commit OverlayFS ChangeSet", tags="capsule sandbox"),
+    _s("capsule_terminate", "ARCHON", "Terminate capsule release memory", tags="capsule sandbox"),
+    _s("capsule_list", "ARCHON", "List live capsules", tags="capsule sandbox"),
+    _s("webgpu_probe", "ARCHON", "Host GPU/WebGPU probe + doctrine", tags="webgpu gpu capsule"),
     # --- SPECULUM / OCULUS (vision & record) ---
     _s("record_start", "SPECULUM", "Start full-desktop video record", tags="vision record"),
     _s("record_stop", "SPECULUM", "Stop record and save mp4", tags="vision record"),
@@ -33,9 +89,24 @@ SUITE: List[Dict[str, Any]] = [
     _s("stream_start", "OCULUS", "Start real-time page understanding stream", tags="vision"),
     _s("stream_stop", "OCULUS", "Stop understanding stream", tags="vision"),
     _s("stream_latest", "OCULUS", "Poll latest stream frame", tags="vision"),
-    _s("studio_auto", "STUDIO", "Viral pack: rotato_phone + x_screencast + macbook_web", tags="studio"),
+    # Product Studio first-class (agents)
+    _s("studio_map", "STUDIO", "First-class Studio map for agents", tags="studio discover"),
+    _s("studio_status", "STUDIO", "Studio health ffmpeg/recordings/exports", tags="studio"),
+    _s("studio_open", "STUDIO", "Studio surface URLs", tags="studio"),
+    _s("studio_playbooks", "STUDIO", "Agent playbooks viral/record/caption/ship", tags="studio agents"),
+    _s("studio_storyboard", "STUDIO", "Hook→proof→CTA demo storyboard", tags="studio agents"),
+    _s("studio_caption", "STUDIO", "Launch + social caption pack", tags="studio marketing"),
+    _s("studio_list_recordings", "STUDIO", "List host recordings", tags="studio"),
+    _s("studio_list_exports", "STUDIO", "List polished exports", tags="studio"),
+    _s("studio_presets", "STUDIO", "Viral presets catalog", tags="studio"),
+    _s("studio_record_start", "SPECULUM", "Start desktop record for studio", tags="studio record"),
+    _s("studio_record_stop", "SPECULUM", "Stop record save mp4", tags="studio record"),
+    _s("studio_auto", "STUDIO", "Viral pack: phone remake + web + screencast", tags="studio"),
+    _s("studio_viral", "STUDIO", "Alias studio_auto viral pack", tags="studio export"),
     _s("studio_render", "STUDIO", "Render preset rotato_phone|x_screencast|macbook_web|clean_demo", tags="studio"),
-    _s("viral_pack", "STUDIO", "Alias studio_auto", tags="studio"),
+    _s("studio_batch", "STUDIO", "Multi-preset batch render", tags="studio export"),
+    _s("studio_ship", "STUDIO", "End-to-end viral + caption ship", tags="studio ship"),
+    _s("viral_pack", "STUDIO", "Alias studio_viral", tags="studio"),
     _s("fusion_remake", "OCULUS", "Symbols → IR → HTML remake + 3D scene graph", tags="vision imagine"),
     _s("rfe_synthesize", "OCULUS", "RFE-v1 FULL_SYNTHESIS: packet+HTML+3D+GLSL", tags="rfe vision"),
     _s("rfe_v1", "OCULUS", "Alias rfe_synthesize (Recursive Fusion Engine)", tags="rfe"),
@@ -239,9 +310,27 @@ for _p in (
 
 
 def all_skills() -> List[Dict[str, Any]]:
-    # dedupe by id
+    # dedupe by id — merge platform coherence skills first
     seen = set()
     out = []
+    try:
+        from pocket.platform_coherence import platform_skills
+
+        for s in platform_skills():
+            if s["id"] in seen:
+                continue
+            seen.add(s["id"])
+            out.append(
+                {
+                    "id": s["id"],
+                    "worker": s.get("worker") or "ARCHON",
+                    "desc": s.get("desc") or "",
+                    "kind": s.get("kind") or "atomic",
+                    "tags": s.get("tags") or ["platform"],
+                }
+            )
+    except Exception:
+        pass
     for s in SUITE:
         if s["id"] in seen:
             continue

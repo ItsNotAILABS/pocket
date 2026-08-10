@@ -28,11 +28,12 @@ _loops: Dict[str, Dict[str, Any]] = {}
 _threads: Dict[str, threading.Thread] = {}
 _stops: Dict[str, threading.Event] = {}
 
-PHASES_SHIP = ["plan", "design", "implement", "test", "fix", "ship", "done"]
-PHASES_TEST_FIX = ["plan", "test", "fix", "test", "ship", "done"]
-PHASES_AGENT = ["plan", "implement", "test", "ship", "done"]
-PHASES_HOST = ["plan", "implement", "ship", "done"]
-PHASES_WSL = ["plan", "implement", "test", "ship", "done"]
+# Phase pipelines — agents hand off via mesh artifacts between phases
+PHASES_SHIP = ["plan", "design", "implement", "test", "fix", "preview", "ship", "done"]
+PHASES_TEST_FIX = ["plan", "test", "fix", "test", "preview", "ship", "done"]
+PHASES_AGENT = ["plan", "implement", "test", "preview", "ship", "done"]
+PHASES_HOST = ["plan", "implement", "preview", "ship", "done"]
+PHASES_WSL = ["plan", "implement", "test", "preview", "ship", "done"]
 
 AGENT_ROLE = {
     "plan": "PLANNER",
@@ -40,8 +41,21 @@ AGENT_ROLE = {
     "implement": "FORGE",
     "test": "TESTER",
     "fix": "FIXER",
+    "preview": "DESIGN",
     "ship": "SHIP",
     "done": "ARCHON",
+}
+
+# Who each phase should notify so agents work *with* each other
+PHASE_NOTIFY = {
+    "plan": ["DESIGN", "FORGE", "ARCHON"],
+    "design": ["FORGE", "PLANNER"],
+    "implement": ["TESTER", "DESIGN", "ARCHON"],
+    "test": ["FIXER", "FORGE", "SHIP"],
+    "fix": ["TESTER", "FORGE"],
+    "preview": ["SHIP", "DESIGN", "ARCHON"],
+    "ship": ["ARCHON", "SHIP"],
+    "done": ["ARCHON"],
 }
 
 
@@ -525,12 +539,77 @@ def _phase_work(loop: Dict[str, Any], phase: str) -> Dict[str, Any]:
             loop["last_test_ok"] = ok
             log.update({"ok": ok, "output": out[:1500]})
 
+    elif phase == "preview":
+        # In-chat + draft preview before commit — see work before GitHub/folder
+        preview_info: Dict[str, Any] = {}
+        index = project / "index.html"
+        if index.is_file():
+            html = index.read_text(encoding="utf-8", errors="replace")
+            try:
+                from pocket.work_surface import create_draft
+
+                d = create_draft(
+                    title=f"build-{loop.get('slug') or loop['id'][:8]}",
+                    kind="html",
+                    content=html,
+                    layer="preview",
+                    source=f"build_loop:{loop['id']}",
+                    meta={"goal": goal[:200], "project": str(project)},
+                )
+                preview_info["draft"] = d
+                loop["preview_url"] = d.get("preview_url")
+                loop["preview_fence"] = d.get("fence")
+            except Exception as e:
+                preview_info["draft_error"] = str(e)[:160]
+            try:
+                from pocket.app_preview import put_html
+
+                p = put_html(html, title=loop.get("slug") or "build preview", source=f"loop:{loop['id']}")
+                preview_info["preview"] = p
+                if p.get("ok"):
+                    loop["preview_url"] = p.get("url")
+                    loop["preview_fence"] = p.get("fence")
+            except Exception as e:
+                preview_info["preview_error"] = str(e)[:160]
+        else:
+            # non-web: still leave a simulation card from README/PLAN
+            bits = []
+            for name in ("README.md", "PLAN.md", "SHIP.md"):
+                fp = project / name
+                if fp.is_file():
+                    bits.append(f"<h2>{name}</h2><pre>{fp.read_text(encoding='utf-8', errors='replace')[:2000]}</pre>")
+            if bits:
+                try:
+                    from pocket.app_preview import put_html
+
+                    p = put_html(
+                        "<h1>Build preview</h1>" + "".join(bits),
+                        title=f"loop-{loop['id'][:8]}",
+                        source=f"loop:{loop['id']}",
+                    )
+                    preview_info["preview"] = p
+                    loop["preview_url"] = p.get("url")
+                    loop["preview_fence"] = p.get("fence")
+                except Exception as e:
+                    preview_info["error"] = str(e)[:160]
+        (project / "PREVIEW.md").write_text(
+            f"# Preview\n\nurl: {loop.get('preview_url') or '—'}\n\n"
+            f"Fence for desk chat:\n\n{loop.get('preview_fence') or '_(none)_'}\n",
+            encoding="utf-8",
+        )
+        log.update({"ok": True, "preview": preview_info, "url": loop.get("preview_url")})
+
     elif phase == "ship":
         ship = project / "SHIP.md"
         ship.write_text(
             f"# SHIP\n\n**Loop:** {loop['id']}\n**Goal:** {goal}\n"
-            f"**Status:** ready for preview\n"
-            f"**Project:** `{project}`\n\n"
+            f"**Status:** ready · preview first then promote\n"
+            f"**Project:** `{project}`\n"
+            f"**Preview:** {loop.get('preview_url') or 'run preview phase'}\n\n"
+            "## Hierarchy\n"
+            "1. Open preview bubble in desk (PREVIEW.md)\n"
+            "2. Promote draft → folder or GitHub when ready\n"
+            "3. Do not push remote until human confirms\n\n"
             "## How to open\n"
             f"- Static: open `index.html` or POCKET deploy static from this folder\n"
             f"- API: `python app.py` if present\n"
@@ -538,7 +617,7 @@ def _phase_work(loop: Dict[str, Any], phase: str) -> Dict[str, Any]:
             f"— POCKET build_loop @ {time.strftime('%Y-%m-%d %H:%M:%S')}\n",
             encoding="utf-8",
         )
-        # try static deploy if web
+        # try static deploy if web (local preview URL)
         deploy_info = None
         if (project / "index.html").is_file():
             try:
@@ -547,24 +626,49 @@ def _phase_work(loop: Dict[str, Any], phase: str) -> Dict[str, Any]:
                 deploy_info = deploy_static(str(project), title=loop.get("slug") or "build")
             except Exception as e:
                 deploy_info = {"ok": False, "error": str(e)[:200]}
-        log.update({"ok": True, "ship": str(ship), "deploy": deploy_info})
+        log.update({"ok": True, "ship": str(ship), "deploy": deploy_info, "preview_url": loop.get("preview_url")})
 
     elif phase == "done":
-        log.update({"ok": True, "message": "loop complete"})
+        log.update({
+            "ok": True,
+            "message": "loop complete",
+            "preview_url": loop.get("preview_url"),
+            "handoff": "next agent can open PREVIEW.md + SHIP.md",
+        })
 
     else:
         log.update({"ok": True, "message": f"noop {phase}"})
 
+    # Cross-agent mesh: each phase notifies the next workers so agents work with themselves
+    notify = PHASE_NOTIFY.get(phase) or ["ARCHON"]
     if leave_artifact:
         try:
             leave_artifact(
                 agent,
                 f"loop_{loop['id']}_{phase}.md",
-                f"# {phase} · {agent}\n\n{json.dumps(log, indent=2)[:3000]}\n",
-                notify=["ARCHON"],
+                f"# {phase} · {agent}\n\n"
+                f"Notifying: {', '.join(notify)}\n\n"
+                f"{json.dumps(log, indent=2)[:3000]}\n",
+                notify=notify,
             )
         except Exception:
             pass
+    # Also stamp pixel so any agent can look() the phase result
+    try:
+        from pocket.pixel_vmem import put_artifact
+
+        put_artifact(
+            f"# Build loop {loop['id']} · {phase}\n\n```json\n{json.dumps(log, indent=2)[:6000]}\n```\n",
+            title=f"loop-{phase}-{loop['id'][:8]}",
+            language="md",
+            agent=agent.lower(),
+            agent_role=phase,
+            ai_version="build_loop",
+            run_id=loop["id"],
+            tags=["build_loop", phase, agent.lower()],
+        )
+    except Exception:
+        pass
 
     emit("build_loop", f"{loop['id']} phase={phase} ok={log.get('ok')}", agent=agent, role="python")
     return log

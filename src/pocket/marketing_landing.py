@@ -1,23 +1,23 @@
-"""One-app marketing landing: Desktop · API · Studio · MESIE — all clickable."""
+"""Customer marketing pages — plain product language, no lab jargon."""
 
 from __future__ import annotations
 
-from pocket import COMPANY, LAB, ORG, __version__
+from pocket import COMPANY, LAB, __version__
 from pocket.product_shell import SHELL_CSS, shell_nav
 
 GITHUB = "https://github.com/ItsNotAILABS/pocket"
 
 
 def get_app_html() -> str:
-    """Standalone-feeling Get page — share this URL for distribution."""
-    nav = shell_nav(active="get")
+    """Get started — how someone opens POCKET for the first time."""
+    nav = shell_nav(active="start")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Get POCKET — {COMPANY} company host platform</title>
-<meta name="description" content="POCKET by {LAB}: company multi-agent host. Team seats, Edge app, Windows download, sellable API."/>
+<title>Get started with POCKET</title>
+<meta name="description" content="Open POCKET in the browser, install the desktop app, or invite your team."/>
 <meta name="theme-color" content="#09090b"/>
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
@@ -39,7 +39,6 @@ h1{{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;margin:0 0 12px;color:v
 .btn-primary:hover{{background:var(--accent2)}}
 .btn-ghost{{border-color:var(--line);color:var(--fg)}}
 .btn-ghost:hover{{background:rgba(255,255,255,.06)}}
-code{{color:var(--accent);font-size:12.5px}}
 .note{{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#0c0c0e;margin-top:20px}}
 .foot{{margin-top:36px;font-size:12px;color:var(--muted)}}
 .foot a{{color:var(--muted);margin-right:12px}}
@@ -49,61 +48,212 @@ code{{color:var(--accent);font-size:12.5px}}
 <body>
 {nav}
 <main class="wrap">
-  <div class="eyebrow">{COMPANY} · {LAB} · company edition</div>
-  <h1>Get POCKET</h1>
-  <p class="lead">Company multi-agent host for your team. <strong>Market seats</strong> get their own sandbox — never the operator’s personal disk. Built for organizations that keep data on their infrastructure.</p>
+  <div class="eyebrow">Get started</div>
+  <h1>Open POCKET in a few minutes</h1>
+  <p class="lead">Pick how you work — browser, desktop window, or Windows app. Same account either way. Your files stay on this computer.</p>
 
   <div class="step" id="web">
-    <h2>1 · Create a market seat</h2>
-    <p>Open the desk → <strong>Create my seat</strong> with a <code>pk_seat_…</code> invite. You work in your platform space (files + local sandbox + git). You do not browse the operator’s disk.</p>
-    <a class="btn btn-primary" href="/desk">Open desk</a>
-    <a class="btn btn-ghost" href="/tour">Overview</a>
+    <h2>1 · Open in the browser</h2>
+    <p>Sign in, then start a chat. This is the fastest way to try POCKET on a machine that already has it running.</p>
+    <a class="btn btn-primary" href="/desk">Open the app</a>
+    <a class="btn btn-ghost" href="/">Back to home</a>
   </div>
 
   <div class="step" id="edge">
-    <h2>2 · Edge app (what you like on this PC)</h2>
-    <p>Opens as a real window — not a random tab. On the operator PC, use the <strong>POCKET</strong> desktop shortcut
-    (install ship script once) so the host auto-starts, then Edge opens <code>/desk</code> as an app.</p>
-    <ol>
-      <li>Operator: run <code>scripts\\Install-POCKET-Ship.ps1</code> once.</li>
-      <li>Double-click <strong>POCKET</strong> on the Desktop anytime.</li>
-      <li>Or in Edge: ⋯ → Apps → <strong>Install this site as an app</strong>.</li>
-    </ol>
-    <a class="btn btn-primary" href="/desk">Open desk (then Install as app)</a>
+    <h2>2 · Keep it as a desktop window</h2>
+    <p>In Microsoft Edge: open the app → menu → Apps → <strong>Install this site as an app</strong>. It opens like a normal program from your taskbar.</p>
+    <a class="btn btn-primary" href="/desk">Open app, then install</a>
   </div>
 
   <div class="step" id="exe">
-    <h2>3 · Electron / Windows .exe</h2>
-    <p>Classic download for users who want an installer/portable. Marketing site can point here after pay/account.</p>
-    <a class="btn btn-primary" href="/download">Download page</a>
-    <a class="btn btn-ghost" href="/download/desktop">Direct Windows package</a>
-    <a class="btn btn-ghost" href="{GITHUB}/releases" target="_blank" rel="noopener">GitHub Releases</a>
+    <h2>3 · Download for Windows</h2>
+    <p>For a packaged desktop install — same workspace, same sign-in.</p>
+    <a class="btn btn-primary" href="/download">Download</a>
+    <a class="btn btn-ghost" href="{GITHUB}/releases" target="_blank" rel="noopener">Releases</a>
   </div>
 
-  <div class="step" id="multi">
-    <h2>Company multi-user seats</h2>
-    <p>Invite-gated team accounts (not open SaaS). Operator mints <code>pk_seat_…</code> keys.
-    Members create <strong>their own</strong> username + password → RBAC + quotas. Founder disk stays private.</p>
+  <div class="step" id="team">
+    <h2>Invite your team</h2>
+    <p>Admins send an invite. Each person creates their own username and password and works in their own space. They never use the admin password.</p>
+    <a class="btn btn-ghost" href="/desk">Sign in or join with invite</a>
   </div>
 
   <div class="step" id="api">
-    <h2>API (builders)</h2>
-    <p>Machine access for agents and scripts — separate from human download.</p>
-    <a class="btn btn-ghost" href="/developers">Developers / API</a>
+    <h2>For developers</h2>
+    <p>Automate with API keys — separate from day-to-day chat.</p>
+    <a class="btn btn-ghost" href="/developers">Developer docs</a>
   </div>
 
   <div class="note">
-    <strong>Product rule:</strong> never thrash the host or Cloudflare tunnel.
-    Always-on keeps <code>:8787</code> up; Edge/Electron only open the UI.
-    Funnel later: marketing site → pay/account → download Electron or open cloud desk.
+    <strong>Every day:</strong> open the app → pick Code, Research, or Plan → type what you need.
+    Share a file with another of your devices from Devices in the side panel after you sign in.
   </div>
 
   <div class="foot">
-    <a href="/tour">Overview</a>
-    <a href="/desk">Desk</a>
+    <a href="/">Home</a>
+    <a href="/desk">App</a>
+    <a href="/updates">Updates</a>
     <a href="/download">Download</a>
-    <a href="/studio">Studio</a>
-    <span>v{__version__} · {COMPANY} · {LAB}</span>
+    <span>v{__version__}</span>
+  </div>
+</main>
+</body>
+</html>
+"""
+
+
+def updates_html() -> str:
+    """Product updates feed — what shipped and how to use it."""
+    nav = shell_nav(active="updates")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>POCKET Updates</title>
+<meta name="description" content="What is new in POCKET — desk, Working board, voice, remote browser, Aether phone."/>
+<meta name="theme-color" content="#09090b"/>
+<style>
+:root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
+*{{box-sizing:border-box}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
+a{{color:inherit;text-decoration:none}}
+{SHELL_CSS}
+.wrap{{max-width:820px;margin:0 auto;padding:48px 22px 80px}}
+.eyebrow{{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}}
+h1{{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;margin:0 0 12px;color:var(--fg)}}
+.lead{{color:var(--muted);max-width:560px;margin:0 0 36px;font-size:16px}}
+.timeline{{position:relative;padding-left:0}}
+.item{{
+  border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel);margin-bottom:14px;
+  transition:border-color .15s,box-shadow .15s,transform .12s
+}}
+.item:hover{{border-color:rgba(16,163,127,.35);box-shadow:0 0 0 1px rgba(16,163,127,.08);transform:translateY(-1px)}}
+.item .when{{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}}
+.item h2{{margin:0 0 8px;font-size:17px;color:var(--fg);letter-spacing:-.02em}}
+.item p{{margin:0 0 10px;color:var(--muted);font-size:14px}}
+.item ul{{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px}}
+.item li{{margin:4px 0}}
+.item .actions{{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}}
+.item .go{{display:inline-flex;align-items:center;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;background:var(--accent);color:#041}}
+.item .go:hover{{background:var(--accent2)}}
+.item .ghost{{display:inline-flex;align-items:center;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:650;border:1px solid var(--line);color:var(--fg)}}
+.item .ghost:hover{{background:rgba(255,255,255,.05)}}
+.chips{{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 28px}}
+.chips span{{font-size:11.5px;color:var(--muted);border:1px solid var(--line);padding:5px 10px;border-radius:999px}}
+.note{{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#0c0c0e;margin-top:24px}}
+.note code{{color:var(--fg);font-size:12px}}
+.foot{{margin-top:36px;font-size:12px;color:var(--muted)}}
+.foot a{{color:var(--muted);margin-right:12px}}
+.foot a:hover{{color:var(--fg)}}
+</style>
+</head>
+<body>
+{nav}
+<main class="wrap">
+  <div class="eyebrow">Product updates</div>
+  <h1>What is new in POCKET</h1>
+  <p class="lead">Every tab is its own surface. Primary ops on the bar; studios under More. Each panel has actions that do real work.</p>
+  <div class="chips">
+    <span>Desk</span><span>Working</span><span>Habitat</span><span>Screen</span>
+    <span>Remote</span><span>Phone</span><span>Platform</span><span>More → Studios</span>
+  </div>
+
+  <div class="timeline">
+  <article class="item">
+    <div class="when">Latest · v{__version__}</div>
+    <h2>Studio · Phone · Capsules · life tools</h2>
+    <p><strong>POCKET 3.5</strong> upgrades the host for agents and phone: Product Studio is first-class (record → viral pack → caption → ship), the phone PWA loads fully on <code>pocket.medinatechlabs.net</code>, multi-sandbox capsules + WebGPU, and everyday life skills for every agent.</p>
+    <ul>
+      <li><strong>Product Studio</strong> — agent skills, storyboard, viral pack, desk Studio agent</li>
+      <li><strong>Phone PWA</strong> — public shell + pair + Bearer login on the tunnel domain</li>
+      <li><strong>Capsules</strong> — PROTO-CAPSULE-WASM-009 isolated HostWorker / WASI / WebGPU</li>
+      <li><strong>Life ops</strong> — food, flights, shop, reserve, web (never auto-pay)</li>
+      <li><strong>Auth fix</strong> — session Bearer tokens work for phone + desk APIs</li>
+    </ul>
+    <div class="actions">
+      <a class="go" href="/studio">Product Studio →</a>
+      <a class="ghost" href="/phone">Phone</a>
+      <a class="ghost" href="/desk">Desk</a>
+    </div>
+  </article>
+
+  <article class="item">
+    <div class="when">v3.4</div>
+    <h2>Work Studio · digital assistant</h2>
+    <p><strong>Work Studio</strong> is a first-class surface separate from the coding desk — research, plans, life ops (buy / reserve), Muse Spark, Auro, and auto-routing engines. Desk agents gain a <strong>Voice engine</strong> toggle so any chat can talk and listen.</p>
+    <ul>
+      <li><strong>Work Studio</strong> at <code>/work</code> — assistant chat + power loops</li>
+      <li><strong>Voice engine</strong> on any desk agent (Codex, Grok, Claude, …)</li>
+      <li><strong>Muse Spark</strong> + <strong>Auro</strong> first-class models</li>
+      <li><strong>Same-WiFi IoT</strong> shared phone + desk registry</li>
+    </ul>
+    <div class="actions">
+      <a class="go" href="/work">Open Work Studio →</a>
+      <a class="ghost" href="/desk">Coding desk</a>
+    </div>
+  </article>
+
+  <article class="item">
+    <div class="when">Platform</div>
+    <h2>First-class tabs, better organized</h2>
+    <p>Primary tabs stay on the top bar for daily ops. Studios and systems live under <strong>More</strong> — full panels with their own action strip, not merged into one page.</p>
+    <ul>
+      <li><strong>Working</strong> — ops board for buy / analyze / reserve with live tools</li>
+      <li><strong>Remote</strong> — host Edge + Screen View + Fusion sense</li>
+      <li><strong>Phone</strong> — Aether device, pair codes, IoT home</li>
+      <li><strong>Platform</strong> — sovereign stack status and ship loop</li>
+      <li><strong>More</strong> — Voice Studio, Work Studio, Agent OS, API · MCP</li>
+    </ul>
+    <div class="actions">
+      <a class="go" href="/desk">Open the desk →</a>
+      <a class="ghost" href="/get">Get started</a>
+    </div>
+  </article>
+
+  <article class="item">
+    <div class="when">Ops</div>
+    <h2>Working board — real work, not chat stack</h2>
+    <p>Working mode is a multi-intent ops board. Split buy, analyze, and reserve into table rows with tools — agents use host PowerShell, WSL, and Python consoles when needed.</p>
+    <div class="actions"><a class="go" href="/desk">Start Working on desk →</a></div>
+  </article>
+
+  <article class="item">
+    <div class="when">Voice &amp; devices</div>
+    <h2>Voice, Edge shell, Aether phone</h2>
+    <p>Mic and voice proxy run with the desk. Open as an Edge app for a real window. Phone tab pairs mobile and IoT; hardware profile targets Aether (ANC-1 hybrid E-Ink).</p>
+    <ul>
+      <li>Seat <strong>Aria</strong> or open <strong>Voice Studio</strong> from More</li>
+      <li>Use <strong>Open-POCKET-Edge</strong> for the desktop shell</li>
+      <li><strong>Phone · IoT</strong> workflow seeds rooms and issues a pair code</li>
+    </ul>
+    <div class="actions">
+      <a class="go" href="/phone">Phone surface →</a>
+      <a class="ghost" href="/studio/voice">Voice Studio</a>
+    </div>
+  </article>
+
+  <article class="item">
+    <div class="when">Platform</div>
+    <h2>Agents on your machine</h2>
+    <p>Codex, Grok, Claude, Build, Habitat floor, Screen eyes, Remote browser, and internal Damian keepers stay host-local. API and MCP are under Developers.</p>
+    <div class="actions">
+      <a class="go" href="/developers">Developer docs →</a>
+      <a class="ghost" href="/os">Agent OS</a>
+    </div>
+  </article>
+  </div>
+
+  <div class="note">
+    <strong>How to stay current:</strong> open this page anytime at <code>/updates</code>, or check the marketing nav. The desk itself never leaves your machine.
+  </div>
+
+  <div class="foot">
+    <a href="/">Home</a>
+    <a href="/desk">App</a>
+    <a href="/get">Get started</a>
+    <a href="/download">Download</a>
+    <span>v{__version__}</span>
   </div>
 </main>
 </body>
@@ -118,8 +268,8 @@ def landing_html() -> str:
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>POCKET — {COMPANY} company multi-agent host</title>
-<meta name="description" content="POCKET by {LAB}: company host co-pilot. Desktop, API, Studio, team seats. Your infrastructure."/>
+<title>POCKET — AI workspace on your machine</title>
+<meta name="description" content="Chat with coding agents, invite your team, keep work private on your computer. Browser, desktop, and API."/>
 <meta name="theme-color" content="#09090b"/>
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
@@ -131,8 +281,8 @@ a{{color:inherit;text-decoration:none;cursor:pointer}}
 .hero{{padding:64px 22px 48px;border-bottom:1px solid var(--line);position:relative}}
 .hero-inner{{max-width:1040px;margin:0 auto;position:relative;z-index:1}}
 .eyebrow{{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}}
-h1{{font-size:clamp(32px,5vw,48px);line-height:1.08;letter-spacing:-.04em;margin:0 0 14px;color:var(--fg);max-width:18ch}}
-.lead{{font-size:17px;color:var(--muted);max-width:540px;margin:0 0 24px}}
+h1{{font-size:clamp(32px,5vw,48px);line-height:1.08;letter-spacing:-.04em;margin:0 0 14px;color:var(--fg);max-width:16ch}}
+.lead{{font-size:17px;color:var(--muted);max-width:520px;margin:0 0 24px}}
 .cta-row{{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px}}
 .btn{{display:inline-flex;align-items:center;padding:12px 18px;border-radius:10px;font-weight:700;font-size:14px;border:1px solid transparent}}
 .btn-primary{{background:var(--accent);color:#041}}
@@ -143,13 +293,13 @@ h1{{font-size:clamp(32px,5vw,48px);line-height:1.08;letter-spacing:-.04em;margin
 .proof span{{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:6px 11px;border-radius:999px}}
 .section{{max-width:1040px;margin:0 auto;padding:56px 22px}}
 .section h2{{font-size:28px;letter-spacing:-.03em;margin:0 0 8px;color:var(--fg)}}
-.section .sub{{color:var(--muted);margin:0 0 24px}}
+.section .sub{{color:var(--muted);margin:0 0 24px;max-width:520px}}
+.grid3{{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}}
 .grid4{{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}}
-@media(max-width:1000px){{.grid4{{grid-template-columns:1fr 1fr}}}}
-@media(max-width:640px){{.grid4{{grid-template-columns:1fr}}}}
-/* ENTIRE card is one link — always clickable */
+@media(max-width:1000px){{.grid4,.grid3{{grid-template-columns:1fr 1fr}}}}
+@media(max-width:640px){{.grid4,.grid3{{grid-template-columns:1fr}}}}
 a.card-link{{
-  display:flex;flex-direction:column;min-height:220px;padding:22px;border-radius:16px;
+  display:flex;flex-direction:column;min-height:200px;padding:22px;border-radius:16px;
   border:1px solid var(--line);background:var(--panel);transition:border-color .15s,transform .12s;
   color:inherit
 }}
@@ -158,6 +308,9 @@ a.card-link .tag{{font-size:11px;font-weight:800;letter-spacing:.06em;text-trans
 a.card-link h3{{margin:0 0 8px;font-size:18px;color:var(--fg)}}
 a.card-link p{{margin:0;font-size:13.5px;color:var(--muted);flex:1}}
 a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--accent)}}
+.day{{border:1px solid var(--line);border-radius:16px;padding:22px;background:var(--panel);margin-bottom:12px}}
+.day h3{{margin:0 0 6px;font-size:16px;color:var(--fg)}}
+.day p{{margin:0;font-size:14px;color:var(--muted)}}
 .live{{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:20px}}
 .live i{{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.2s infinite}}
 @keyframes pulse{{50%{{opacity:.35}}}}
@@ -171,83 +324,98 @@ a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--acce
 {nav}
 <section class="hero">
   <div class="hero-inner">
-    <div class="eyebrow">One platform · not four products</div>
-    <h1>Desktop, API, Studio &amp; MESIE — same host.</h1>
-    <p class="lead">Click any surface. Same sign-in. Same runtime worker (873ms heartbeat). Built to use, not babysit.</p>
+    <div class="eyebrow">POCKET</div>
+    <h1>AI that works where you work.</h1>
+    <p class="lead">Chat with coding agents, plan projects, and keep team workspaces on your machine — not in a black-box cloud.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="/desk">Use web app now</a>
-      <a class="btn btn-ghost" href="/get">How people get POCKET</a>
-      <a class="btn btn-ghost" href="/download">Windows .exe</a>
-      <a class="btn btn-ghost" href="/developers">API</a>
-      <a class="btn btn-ghost" href="/studio">Studio</a>
+      <a class="btn btn-primary" href="/desk">Open the app</a>
+      <a class="btn btn-ghost" href="/get">Get started</a>
+      <a class="btn btn-ghost" href="/download">Download for Windows</a>
+      <a class="btn btn-ghost" href="/developers">Developers</a>
     </div>
     <div class="proof">
-      <span>Web app (most stable)</span>
-      <span>Edge app window</span>
-      <span>Windows .exe</span>
+      <span>Browser</span>
+      <span>Desktop window</span>
+      <span>Windows app</span>
+      <span>Team invites</span>
       <span>v{__version__}</span>
     </div>
-    <div class="live"><i></i> <span id="heartLabel">Runtime heartbeat…</span></div>
+    <div class="live"><i></i> <span id="heartLabel">Checking connection…</span></div>
   </div>
 </section>
 
-<section class="section" id="get">
-  <h2>How people get POCKET</h2>
-  <p class="sub">Three real doors — pick one. No separate product to babysit.</p>
+<section class="section" id="day">
+  <h2>A normal day with POCKET</h2>
+  <p class="sub">Open it like any work app. Ask for code, research, or a plan. Invite teammates when you need them.</p>
+  <div class="day">
+    <h3>Morning — open and ask</h3>
+    <p>Launch the app, start <strong>Code</strong> or <strong>Research</strong>, and describe the task. Results land in the same conversation.</p>
+  </div>
+  <div class="day">
+    <h3>Afternoon — hand off work</h3>
+    <p>Start a new chat for a different project. Upload a file. Keep sessions organized in the left sidebar.</p>
+  </div>
+  <div class="day">
+    <h3>With a teammate</h3>
+    <p>Send an invite. They create their own login and work in their own space. Your private files stay private.</p>
+  </div>
+  <div class="day">
+    <h3>On another device</h3>
+    <p>Pair with a short code, then send a file or note securely — without opening the whole workspace to the internet.</p>
+  </div>
+</section>
+
+<section class="section" id="start">
+  <h2>Start here</h2>
+  <p class="sub">Choose how you want to open POCKET.</p>
   <div class="grid4">
     <a class="card-link" href="/desk">
-      <div class="tag">1 · Web app</div>
-      <h3>Use in the browser</h3>
-      <p>Share <code style="color:var(--accent)">/desk</code> or your public host. Most stable. Same Edge profile as the app window.</p>
-      <span class="go">Open web app →</span>
+      <div class="tag">Fastest</div>
+      <h3>Open in browser</h3>
+      <p>Sign in and start chatting right away on this machine.</p>
+      <span class="go">Open the app →</span>
     </a>
     <a class="card-link" href="/get#edge">
-      <div class="tag">2 · Edge app</div>
-      <h3>Install as app</h3>
-      <p>Edge → ··· → Apps → Install this site as an app. Launches from your website, stays on.</p>
-      <span class="go">How to install →</span>
+      <div class="tag">Daily use</div>
+      <h3>Install as an app</h3>
+      <p>Pin POCKET to your taskbar with Edge’s Install as app.</p>
+      <span class="go">See steps →</span>
     </a>
     <a class="card-link" href="/download">
-      <div class="tag">3 · Windows .exe</div>
-      <h3>Download package</h3>
-      <p>Portable or installer. Desktop shortcut. Wraps the same desk UI.</p>
-      <span class="go">Download .exe →</span>
+      <div class="tag">Windows</div>
+      <h3>Download</h3>
+      <p>Packaged install for people who prefer a desktop program.</p>
+      <span class="go">Download →</span>
     </a>
     <a class="card-link" href="/developers">
-      <div class="tag">API</div>
-      <h3>Builders &amp; agents</h3>
-      <p>sk_pocket keys for Grok, Codex, Claude, scripts. Not the human UI — the machine door.</p>
-      <span class="go">Open API →</span>
+      <div class="tag">Builders</div>
+      <h3>API</h3>
+      <p>Keys and docs for scripts and product integrations.</p>
+      <span class="go">Developer docs →</span>
     </a>
   </div>
 </section>
 
-<section class="section" id="products">
-  <h2>Everything is one click</h2>
-  <p class="sub">Whole cards are links — nothing is decorative-only.</p>
-  <div class="grid4">
+<section class="section" id="product">
+  <h2>What you get</h2>
+  <p class="sub">One product. Clear jobs.</p>
+  <div class="grid3">
     <a class="card-link" href="/desk">
-      <div class="tag">Web desk</div>
-      <h3>Operator desk</h3>
-      <p>Most stable surface — chat, agents, vision, mesh. Same UI the .exe wraps.</p>
-      <span class="go">Open web desk →</span>
-    </a>
-    <a class="card-link" href="/get">
-      <div class="tag">Get</div>
-      <h3>Give people a link</h3>
-      <p>Web app, Edge install, and .exe download in one place — ready for marketing.</p>
-      <span class="go">Get POCKET →</span>
+      <div class="tag">People</div>
+      <h3>Workspace app</h3>
+      <p>Chat, agents, files, and team invites in one place.</p>
+      <span class="go">Open →</span>
     </a>
     <a class="card-link" href="/developers">
-      <div class="tag">API</div>
-      <h3>Builder keys</h3>
-      <p>sk_pocket keys, catalog, complete. Same host as Desktop.</p>
-      <span class="go">Open API →</span>
+      <div class="tag">Automation</div>
+      <h3>Developer API</h3>
+      <p>Same host, machine-readable access with API keys.</p>
+      <span class="go">Docs →</span>
     </a>
     <a class="card-link" href="/studio">
-      <div class="tag">Studio</div>
-      <h3>Product demos</h3>
-      <p>Phone/web remakes and packs for marketing and beta.</p>
+      <div class="tag">Marketing</div>
+      <h3>Studio</h3>
+      <p>Clean demos and product captures for launches.</p>
       <span class="go">Open Studio →</span>
     </a>
   </div>
@@ -255,13 +423,14 @@ a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--acce
 
 <footer class="foot">
   <div class="foot-inner">
-    <div>© {COMPANY} · {LAB} · POCKET company edition</div>
+    <div>© {COMPANY}</div>
     <div>
-      <a href="/desk">Desktop</a>
+      <a href="/desk">App</a>
+      <a href="/updates">Updates</a>
+      <a href="/get">Get started</a>
       <a href="/download">Download</a>
-      <a href="/developers">API</a>
+      <a href="/developers">Developers</a>
       <a href="/studio">Studio</a>
-      <a href="/desk?agent=mesie">MESIE</a>
     </div>
   </div>
 </footer>
@@ -270,15 +439,11 @@ a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--acce
   try{{
     const r=await fetch('/health');
     const j=await r.json();
-    const h=j.heartbeat||{{}};
     const el=document.getElementById('heartLabel');
-    if(el){{
-      if(h.beat!=null) el.textContent='Runtime beat #'+h.beat+' · '+(h.interval_ms||873)+'ms · host live';
-      else el.textContent='Host live · start runtime-worker for 873ms heart';
-    }}
+    if(el) el.textContent = (j && (j.ok!==false)) ? 'Online — ready when you are' : 'Starting…';
   }}catch(e){{
     const el=document.getElementById('heartLabel');
-    if(el) el.textContent='Host offline — run Launch-POCKET.cmd';
+    if(el) el.textContent='Offline — open POCKET on this computer first';
   }}
 }})();
 </script>
