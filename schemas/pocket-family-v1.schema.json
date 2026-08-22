@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itsnotailabs.dev/schemas/pocket-family-v1.schema.json",
+  "title": "POCKET Family Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "request_id", "action", "principal", "scope", "payload"],
+  "properties": {
+    "schema": {"const": "pocket.family.v1"},
+    "request_id": {"type": "string", "minLength": 8, "maxLength": 128},
+    "action": {"type": "string", "minLength": 3, "maxLength": 128},
+    "principal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "type": {"enum": ["user", "service", "device", "agent"]},
+        "tenant_id": {"type": ["string", "null"], "maxLength": 128},
+        "roles": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 64}}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tenant_id": {"type": ["string", "null"], "maxLength": 128},
+        "session_id": {"type": ["string", "null"], "maxLength": 128},
+        "agent_id": {"type": ["string", "null"], "maxLength": 128},
+        "project_id": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "capabilities": {"type": "array", "maxItems": 64, "items": {"type": "string", "maxLength": 96}},
+        "risk_tier": {"enum": ["low", "medium", "high", "critical"]},
+        "requires_confirmation": {"type": "boolean"}
+      }
+    },
+    "payload": {"type": "object"},
+    "issued_at": {"type": ["string", "null"], "format": "date-time"},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"}
+  }
+}
