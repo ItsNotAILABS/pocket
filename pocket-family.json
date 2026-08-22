@@ -1,0 +1,29 @@
+{
+  "schema": "pocket.family.manifest.v1",
+  "family_protocol": "pocket.family.v1",
+  "host": {
+    "repo": "ItsNotAILABS/pocket",
+    "role": "host-control-plane",
+    "capabilities": ["host.route", "host.account", "host.receipts", "host.catalog", "host.device-pairing"]
+  },
+  "voice": {
+    "repo": "ItsNotAILABS/pocket-voice-to-text",
+    "role": "voice-control-plane",
+    "capabilities": ["voice.turn", "voice.turn.decide", "voice.session", "voice.snap", "voice.studio"]
+  },
+  "agent": {
+    "repo": "ItsNotAILABS/pocket-agent",
+    "role": "long-running-execution-plane",
+    "capabilities": ["agent.run", "agent.attach", "agent.schedule", "agent.capsule"]
+  },
+  "contracts": {
+    "context_snap": "pocket.context-snap.v1",
+    "studio": "pocket.studio.v1"
+  },
+  "rules": {
+    "provider_neutral_family_protocol": true,
+    "preserve_request_id_across_hops": true,
+    "private_reasoning_not_in_receipts": true,
+    "version_contracts_before_dependency": true
+  }
+}
