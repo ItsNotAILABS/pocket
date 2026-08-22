@@ -1,0 +1,20 @@
+{
+  "schema": "nexus.capability.v1",
+  "component": "pocket",
+  "repository": "ItsNotAILABS/pocket",
+  "role": "user-team-policy-and-product-host-plane",
+  "actions": [
+    "host.route",
+    "host.policy.decide",
+    "host.health.aggregate",
+    "host.release_truth.classify",
+    "host.device.pair",
+    "host.receipt.correlate",
+    "host.catalog"
+  ],
+  "produces": ["nexus.policy-decision.v1","nexus.health.v1","nexus.release-evidence.v1","nexus.task.v1","nexus.denial.v1"],
+  "consumes": ["nexus.capability.v1","nexus.compatibility.v1","nexus.execution-receipt.v1","nexus.telemetry.v1"],
+  "limits": {"provider_specific_routing":false,"cross_tenant_routing":false,"hidden_reasoning_export":false,"implicit_privileged_execution":false},
+  "proof": {"state":"source","integration_and_tenant_isolation_evidence_required":true},
+  "authority": "ItsNotAILABS/nexus"
+}
