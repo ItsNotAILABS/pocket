@@ -2,7 +2,7 @@
   "schema": "nexus.capability.v1",
   "component": "pocket",
   "repository": "ItsNotAILABS/pocket",
-  "role": "user-team-policy-and-product-host-plane",
+  "role": "user-team-policy-product-and-voice-execution-host-plane",
   "actions": [
     "host.route",
     "host.policy.decide",
@@ -10,11 +10,51 @@
     "host.release_truth.classify",
     "host.device.pair",
     "host.receipt.correlate",
-    "host.catalog"
+    "host.catalog",
+    "voice.reality.compile",
+    "voice.reality.confirm",
+    "voice.reality.cancel",
+    "voice.reality.dispatch",
+    "voice.reality.seal",
+    "model.mesh.inventory",
+    "model.mesh.route",
+    "model.cli.invoke",
+    "agent.constellation.route",
+    "agent.constellation.team"
   ],
-  "produces": ["nexus.policy-decision.v1","nexus.health.v1","nexus.release-evidence.v1","nexus.task.v1","nexus.denial.v1"],
-  "consumes": ["nexus.capability.v1","nexus.compatibility.v1","nexus.execution-receipt.v1","nexus.telemetry.v1"],
-  "limits": {"provider_specific_routing":false,"cross_tenant_routing":false,"hidden_reasoning_export":false,"implicit_privileged_execution":false},
-  "proof": {"state":"source","integration_and_tenant_isolation_evidence_required":true},
+  "produces": [
+    "nexus.policy-decision.v1",
+    "nexus.health.v1",
+    "nexus.release-evidence.v1",
+    "nexus.task.v1",
+    "nexus.denial.v1",
+    "nexus.execution-receipt.v1",
+    "pocket.voice-reality-envelope.v1",
+    "pocket.voice-reality-receipt.v1"
+  ],
+  "consumes": [
+    "nexus.capability.v1",
+    "nexus.compatibility.v1",
+    "nexus.execution-receipt.v1",
+    "nexus.telemetry.v1"
+  ],
+  "runtimes": {
+    "control": ["python", "go"],
+    "voice": ["pocket-voice-to-text", "browser-stt", "edge-tts"],
+    "model_lanes": ["local", "open-source", "account-free-usage", "provider-api"]
+  },
+  "limits": {
+    "provider_specific_routing": false,
+    "cross_tenant_routing": false,
+    "hidden_reasoning_export": false,
+    "implicit_privileged_execution": false,
+    "unconfirmed_high_risk_voice_execution": false
+  },
+  "proof": {
+    "state": "source-tested",
+    "go_voice_envelope_local_test": true,
+    "node_voice_envelope_local_test": true,
+    "integration_and_tenant_isolation_evidence_required": true
+  },
   "authority": "ItsNotAILABS/nexus"
 }
