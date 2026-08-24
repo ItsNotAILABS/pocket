@@ -14,6 +14,15 @@ jobs:
         with: { node-version: '22' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.23.x' }
+      - name: Voice Reality Go control runtime
+        run: go test ./...
+      - name: Voice Reality and model mesh contracts
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          PYTHONPATH=src python -m pytest -q tests/test_model_mesh.py tests/test_voice_reality.py
+          PYTHONPATH=src python -m py_compile src/pocket/model_mesh.py src/pocket/model_cli_exec.py src/pocket/agent_constellation.py src/pocket/voice_reality.py
       - name: Desktop syntax and contracts
         working-directory: desktop-electron
         run: |
