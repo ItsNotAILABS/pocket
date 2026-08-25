@@ -1,0 +1,109 @@
+{
+  "schema": "pocket.agent_protocol_manifest.v1",
+  "generated_at": "2026-08-25T07:16:00Z",
+  "repo": "ItsNotAILABS/pocket",
+  "source": "AGENTS.md",
+  "posture": "multi_ai_mesh_first_control_plane",
+  "summary": "Machine-readable operating contract for multiple AIs working concurrently inside POCKET with MESIE evidence posture.",
+  "core_assumption": "More than one AI or human operator may be editing, reviewing, testing, or planning at the same time.",
+  "required_protocols": [
+    {
+      "id": "MEDINA-SUBAGENT-MESH",
+      "version": "1.0",
+      "purpose": "Mesh-first coordination; transcript-second execution; artifacts, receipts, channels, and handoffs as durable state.",
+      "required_terms": ["mesh-first", "transcript-second", "handoff", "receipt", "artifact"]
+    },
+    {
+      "id": "MESIE-EVIDENCE",
+      "version": "1.0",
+      "purpose": "Evaluation, benchmark, receipt, and reproducibility posture for measurements and claims.",
+      "required_terms": ["receipt", "benchmark", "method", "runtime", "hash"]
+    },
+    {
+      "id": "POCKET-PRODUCT",
+      "version": "1.0",
+      "purpose": "Desktop, edge, cloud account, teams, policy, devices, agents, voice, and APIs product guardrails.",
+      "required_terms": ["desktop", "edge", "cloud account", "policy", "voice", "API"]
+    },
+    {
+      "id": "POCKET-POLICY",
+      "version": "1.0",
+      "purpose": "Allow, deny, confirm decisions for privileged work.",
+      "required_terms": ["allow", "deny", "confirm", "approval", "audit"]
+    },
+    {
+      "id": "POCKET-HANDOFF",
+      "version": "1.0",
+      "purpose": "Status, changed files, verification, blockers, and next-agent instructions for incomplete or continuing work.",
+      "required_terms": ["HANDOFF", "Status", "Changed", "Verified", "Next agent"]
+    }
+  ],
+  "agent_classes": [
+    "founder_operator_agent",
+    "coding_agent",
+    "research_agent",
+    "mesie_evaluator",
+    "pocket_ui_agent",
+    "policy_security_agent",
+    "release_agent",
+    "memory_continuity_agent"
+  ],
+  "protected_surfaces": [
+    "identity",
+    "organizations",
+    "RBAC",
+    "policy",
+    "approvals",
+    "quotas",
+    "idempotency",
+    "audit",
+    "incidents",
+    "secret_references",
+    "dependency_health",
+    "release_state",
+    "device_control",
+    "voice",
+    "mail",
+    "workflows",
+    "finance",
+    "external_connectors"
+  ],
+  "deny_patterns": [
+    "raw card data",
+    "private key",
+    "seed phrase",
+    "hard-coded token",
+    "silent production deploy",
+    "unlogged privileged action",
+    "bypass auth",
+    "secret in source control"
+  ],
+  "confirm_required_for": [
+    "production_deploy",
+    "secret_configuration",
+    "user_data_export",
+    "billing_or_payment_change",
+    "wallet_or_finance_change",
+    "destructive_filesystem_operation",
+    "device_control",
+    "external_message_on_behalf_of_user",
+    "auth_or_rbac_change",
+    "audit_trail_change"
+  ],
+  "expected_reporting_block": [
+    "DONE_OPEN_BLOCKED",
+    "Repo",
+    "Branch",
+    "PR",
+    "Changed",
+    "Verified",
+    "Not verified",
+    "Next"
+  ],
+  "validation": {
+    "script": "scripts/validate_agents_protocol.py",
+    "inputs": ["AGENTS.md", "protocols/pocket-agent-protocol.manifest.json"],
+    "outputs": ["dist/agents-protocol/validation-receipt.json"],
+    "receipt_schema": "mesie.receipt.v1"
+  }
+}
