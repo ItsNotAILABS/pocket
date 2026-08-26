@@ -1,0 +1,73 @@
+{
+  "schema": "pocket.action_ledger.manifest.v1",
+  "product": "POCKET",
+  "surface": "agentic_work_execution",
+  "runtime": "src/pocket/action_ledger.py",
+  "validator": "scripts/validate_pocket_action_ledger.py",
+  "validation_receipt": "dist/pocket-action-ledger/validation-receipt.json",
+  "supported_action_kinds": [
+    "agent_task",
+    "production_claim",
+    "data_export",
+    "payment_execution",
+    "wallet_execution"
+  ],
+  "decision_modes": ["allow", "deny", "confirm"],
+  "restricted_action_kinds": [
+    "production_claim",
+    "data_export",
+    "payment_execution",
+    "wallet_execution"
+  ],
+  "restricted_action_policy": {
+    "production_claim": [
+      "deploy_target",
+      "verification_url_or_run_id",
+      "operator_assertion",
+      "operator_approval"
+    ],
+    "data_export": [
+      "dataset_id",
+      "export_scope",
+      "destination",
+      "operator_approval"
+    ],
+    "payment_execution": [
+      "provider",
+      "provider_reference",
+      "amount",
+      "currency",
+      "operator_approval",
+      "provider_ready_or_production_mode"
+    ],
+    "wallet_execution": [
+      "provider",
+      "wallet_reference",
+      "network_or_rail",
+      "amount_or_asset",
+      "operator_approval",
+      "provider_ready_or_production_mode"
+    ]
+  },
+  "denied_material": [
+    "raw_api_keys",
+    "raw_private_keys",
+    "seed_phrases",
+    "raw_card_numbers",
+    "cvv_or_cvc",
+    "hidden_unapproved_production_state"
+  ],
+  "receipt_schemas": [
+    "pocket.action.v1",
+    "pocket.action_receipt.v1",
+    "pocket.data_export_receipt.v1",
+    "pocket.provider_execution_packet.v1"
+  ],
+  "operator_boundary": {
+    "do_not_infer_production_claims": true,
+    "restricted_actions_require_evidence": true,
+    "restricted_actions_require_operator_approval": true,
+    "provider_credentials_in_git": false,
+    "receipts_required": true
+  }
+}
