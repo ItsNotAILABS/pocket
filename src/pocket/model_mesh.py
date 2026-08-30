@@ -1,15 +1,15 @@
 """POCKET model/CLI mesh.
 
-Discovers local/open/free-usage model runtimes and coding-agent CLIs and ranks
-available lanes for a task. No provider-specific auth is stored here; POCKET
-uses the user's existing local CLI/session credentials.
+Discovers local/open/free-usage model runtimes, coding-agent CLIs, and the
+AURO/MESIE native intelligence family. No provider-specific auth is stored
+here; POCKET uses the user's existing local CLI/session credentials.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-import os
+import importlib.util
 import shutil
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
 
 @dataclass(frozen=True)
@@ -22,9 +22,12 @@ class Lane:
     capabilities: tuple[str, ...]
     aliases: tuple[str, ...] = ()
     env_hint: str = ""
+    python_module: str = ""
 
 
 LANES: tuple[Lane, ...] = (
+    Lane("auro", "auro", "native-intelligence-runtime", "local-free", "local", ("spectral", "embed", "foundation", "benchmark", "reason", "research"), python_module="mesie"),
+    Lane("mesie", "mesie", "native-intelligence-runtime", "local-free", "local", ("spectral", "embed", "foundation", "benchmark", "validation", "research"), python_module="mesie"),
     Lane("ollama", "ollama", "local-model-runtime", "local-free", "local", ("chat", "code", "reason", "embed")),
     Lane("llama.cpp", "llama-cli", "local-model-runtime", "local-free", "local", ("chat", "code", "reason"), ("llama",)),
     Lane("lmstudio", "lms", "local-model-runtime", "local-free", "local", ("chat", "code", "reason", "server")),
@@ -47,6 +50,8 @@ def _resolve(lane: Lane) -> str:
         path = shutil.which(name)
         if path:
             return path
+    if lane.python_module and importlib.util.find_spec(lane.python_module):
+        return f"python:{lane.python_module}"
     return ""
 
 
@@ -69,9 +74,11 @@ def route(task: str, *, require_local: bool = False, prefer_free: bool = True) -
     if any(x in low for x in ("code", "repo", "bug", "test", "refactor", "build", "deploy")):
         wanted |= {"code", "agent"}
     if any(x in low for x in ("search", "research", "web")):
-        wanted.add("search")
+        wanted.add("research")
     if any(x in low for x in ("mcp", "tool", "connector")):
         wanted.add("mcp")
+    if any(x in low for x in ("spectral", "frequency", "signal", "embed", "benchmark", "mesie", "auro")):
+        wanted |= {"spectral", "embed", "benchmark"}
 
     scored = []
     for lane in inventory():
@@ -84,6 +91,8 @@ def route(task: str, *, require_local: bool = False, prefer_free: bool = True) -
         if prefer_free and ("free" in lane["cost"] or "open-source" in lane["cost"]):
             score += 3
         if lane["privacy"] == "local":
+            score += 2
+        if lane["kind"] == "native-intelligence-runtime" and caps & wanted:
             score += 2
         if "agent" in wanted and lane["kind"] == "coding-agent":
             score += 2
@@ -105,5 +114,6 @@ def summary() -> Dict[str, Any]:
         "registered": len(rows),
         "available": sum(1 for r in rows if r["available"]),
         "local_available": sum(1 for r in rows if r["available"] and r["privacy"] == "local"),
+        "native_intelligence": [r for r in rows if r["kind"] == "native-intelligence-runtime"],
         "lanes": rows,
     }

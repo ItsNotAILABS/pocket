@@ -1,37 +1,46 @@
-"""Hz mesh — frequency channels for subagent coordination.
+"""HZ mesh — governed logical coordination channels for POCKET.
 
-Maps logical Hz lanes + BLE-style MHz to mesh disk channels (freq-N.jsonl).
-Optional BLE later; file-bus is the default real-time transport.
+The HZ values in this module are *logical semantic/cadence labels*. They are
+not literal RF frequencies. Physical frequency models, when needed, live in
+AURO/MESIE (``mesie.edge.hz_ladder``) and device-specific protocols.
 
-Canonical BLE/Hz mapping also in `pocket.protocols.bluetooth_hz`.
+The default transport remains POCKET's encrypted mesh-disk file bus, while the
+channel contract is transport-neutral and can also be carried over HTTP, MCP,
+WebSocket, in-process calls, or governed device bridges.
 """
-
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
+from pocket.channel_fabric import CHANNELS as FABRIC_CHANNELS, envelope as channel_envelope
 from pocket.mesh_disk import channel_tail, leave_artifact, send_message, CHANNELS, PROTOCOLS
 from pocket.protocols import bluetooth_hz as _bt
 
-# Logical frequency → channel file
 HZ_LANES: Dict[str, Dict[str, Any]] = {
-    "user": {"channel": "freq-0", "hz": 0, "purpose": "user @dispatch"},
-    "heartbeat": {"channel": "freq-1", "hz": 1, "purpose": "headless heartbeats"},
-    "design": {"channel": "freq-2", "hz": 2, "purpose": "design bus"},
-    "security": {"channel": "freq-3", "hz": 3, "purpose": "sentinel / audit"},
-    "ship": {"channel": "freq-4", "hz": 4, "purpose": "release / beta"},
-    "intel": {"channel": "freq-5", "hz": 5, "purpose": "research + bluetooth intel stubs"},
+    name: {
+        "channel": f"freq-{meta['hz']}",
+        "hz": meta["hz"],
+        "purpose": meta["class"],
+        "risk": meta["risk"],
+        "retention": meta["retention"],
+    }
+    for name, meta in FABRIC_CHANNELS.items()
 }
 
 
 def list_lanes() -> Dict[str, Any]:
     return {
         "ok": True,
+        "schema": "pocket.hz-mesh.v2",
         "lanes": HZ_LANES,
         "channels_dir": str(CHANNELS),
         "protocols": str(PROTOCOLS / "hz"),
-        "transport": "file-bus",
-        "ble": "optional-future",
+        "transport": "encrypted-mesh-disk-default",
+        "transport_options": ["mesh-disk", "http", "mcp", "websocket", "in-process", "device-bridge"],
+        "logical_hz": True,
+        "physical_frequency_claim": False,
+        "physical_hz_reference": "AURO/MESIE mesie.edge.hz_ladder",
+        "ble": "optional-device-transport",
         "ble_map": _bt.status().get("ble_map"),
         "channels": _bt.list_channels(),
     }
@@ -45,11 +54,7 @@ def resolve_channel(lane_or_freq: str) -> str:
         return key
     if key.isdigit():
         return f"freq-{key}"
-    # treat numeric MHz
-    try:
-        return _bt.channel_for_hz(float(key))
-    except (TypeError, ValueError):
-        return "freq-0"
+    return "freq-0"
 
 
 def publish(
@@ -60,12 +65,27 @@ def publish(
     to_agent: str = "ARCHON",
     kind: str = "hz",
     hz: Optional[float] = None,
+    request_id: str = "",
 ) -> Dict[str, Any]:
+    # Numeric `hz` remains compatibility-only for the BLE mapping. New code
+    # should publish by named logical lane.
     if hz is not None:
         ch = _bt.channel_for_hz(hz)
+        logical_lane = lane
     else:
         ch = resolve_channel(lane)
-    return send_message(from_agent, to_agent, body, channel=ch, kind=kind, encrypt=True)
+        logical_lane = lane if lane in HZ_LANES else "user"
+    msg = channel_envelope(
+        sender=from_agent,
+        recipient=to_agent,
+        channel_name=logical_lane,
+        kind=kind,
+        body=body,
+        request_id=request_id,
+        transport="mesh-disk",
+    )
+    sent = send_message(from_agent, to_agent, body, channel=ch, kind=kind, encrypt=True)
+    return {"ok": bool(sent.get("ok", True)), "mesh": sent, "envelope": msg}
 
 
 def listen(lane: str = "user", *, limit: int = 40) -> Dict[str, Any]:
@@ -74,20 +94,19 @@ def listen(lane: str = "user", *, limit: int = 40) -> Dict[str, Any]:
 
 
 def bluetooth_stub_scan() -> Dict[str, Any]:
-    """Placeholder for BLE device discovery — leaves mesh artifact for intel lane."""
     note = (
-        "# Bluetooth / Hz scan stub\n\n"
-        "Physical BLE not required for mesh messaging.\n"
-        "Agents coordinate via encrypted file-bus frequencies.\n"
-        "When BLE is enabled, map device IDs → agent SHA + lane.\n"
-        f"BLE map: {_bt.status().get('ble_map')}\n"
+        "# Bluetooth / HZ transport note\n\n"
+        "POCKET logical HZ lanes do not require Bluetooth and do not represent literal RF carriers.\n"
+        "Agents coordinate through encrypted transport-neutral channel envelopes; mesh-disk is default.\n"
+        "BLE may be attached later as a governed device transport.\n"
+        f"Compatibility BLE map: {_bt.status().get('ble_map')}\n"
     )
     art = leave_artifact("TABELLARIUS", "bt_scan_stub.md", note, notify=["ARCHON", "RESEARCH_HEADLESS"])
-    publish("TABELLARIUS", "bt scan stub complete", lane="intel", kind="bluetooth")
-    return {"ok": True, "artifact": art, "devices": [], "note": "file-bus only", "ble_map": _bt.status().get("ble_map")}
+    publish("TABELLARIUS", "BLE transport probe complete", lane="intel", kind="bluetooth")
+    return {"ok": True, "artifact": art, "devices": [], "note": "logical HZ + mesh-disk default", "ble_map": _bt.status().get("ble_map")}
 
 
-# Re-exports from protocols.bluetooth_hz
+# Compatibility re-exports from protocols.bluetooth_hz.
 channel_for_hz = _bt.channel_for_hz
 hz_for_channel = _bt.hz_for_channel
 mesh_broadcast = _bt.mesh_broadcast

@@ -1,0 +1,23 @@
+{
+  "schema": "pocket.technology-registry.v1",
+  "version": "2026.08",
+  "claims_boundary": "Internal architecture names. Implemented status means present in this repository family; it does not assert patent novelty or absence of prior art.",
+  "technologies": [
+    {"id":"MRCF","name":"Medina Resonant Channel Fabric","status":"implemented-core","description":"Logical HZ semantic/cadence channels with risk, retention and participant semantics over multiple transports.","artifacts":["src/pocket/channel_fabric.py","src/pocket/hz_mesh.py"]},
+    {"id":"DHS","name":"Dual-HZ Semantics","status":"implemented-core","description":"Separates POCKET logical coordination HZ from AURO/MESIE physical spectral Hz models.","artifacts":["src/pocket/hz_mesh.py","ItsNotAILABS/AURO:mesie/edge/hz_ladder.py"]},
+    {"id":"ECE","name":"Envelope-Coupled Execution","status":"implemented-core","description":"One causal envelope remains the truth object across voice, routing, execution and receipts.","artifacts":["src/pocket/voice_reality.py","cmd/pocket-envelope/main.go"]},
+    {"id":"CCL","name":"Causal Channel Lattice","status":"implemented-core","description":"Request and parent identifiers reconstruct distributed work as a causal graph.","artifacts":["src/pocket/channel_fabric.py"]},
+    {"id":"BIP","name":"Bounded Intelligence Port","status":"implemented-core","description":"Stable AURO/MESIE facade exposes compute without policy or external-side-effect authority.","artifacts":["src/pocket/auro_mesie.py","ItsNotAILABS/AURO:mesie/auro_sdk.py","ItsNotAILABS/AURO:mesie/auro_cli.py"]},
+    {"id":"MWR","name":"Model Witness Receipt","status":"implemented-foundation","description":"Evidence digest for bounded model/scientific compute without authorization semantics.","artifacts":["ItsNotAILABS/AURO:mesie/auro_sdk.py"]},
+    {"id":"RER","name":"Resonant Evidence Routing","status":"implemented-foundation","description":"Validation and benchmark outputs route to a dedicated proof lane.","artifacts":["src/pocket/channel_fabric.py","src/pocket/auro_mesie.py"]},
+    {"id":"CACR","name":"Consequence-Aware Channel Routing","status":"implemented-foundation","description":"Routing separates high-consequence deployment traffic from model/research traffic.","artifacts":["src/pocket/channel_fabric.py"]},
+    {"id":"TNHE","name":"Transport-Neutral HZ Envelope","status":"implemented-core","description":"Semantic HZ envelope survives transport changes across mesh disk, HTTP, MCP, WebSocket, in-process and device bridges.","artifacts":["src/pocket/channel_fabric.py"]},
+    {"id":"VRC","name":"Voice Reality Compiler","status":"implemented-core","description":"Speech compiles into a typed operation envelope and spoken lifecycle reflects execution truth.","artifacts":["src/pocket/voice_reality.py","ItsNotAILABS/pocket-voice-to-text:src/reality-envelope.js"]},
+    {"id":"RCS","name":"Resonant Channel Scheduler","status":"proposed","description":"Policy-driven channel/transport scheduler using semantics, cadence, urgency, locality, load, privacy and proof requirements."},
+    {"id":"SCC","name":"Spectral Context Compiler","status":"proposed","description":"Compiles bounded POCKET context packs into MESIE spectral/embedding representations with provenance."},
+    {"id":"ECMR","name":"Evidence-Coupled Model Router","status":"proposed","description":"Model routing incorporates evidence class and reproducibility requirements in addition to capability/cost/latency."},
+    {"id":"RHT","name":"Reciprocal HZ Translator","status":"proposed","description":"Uses MESIE physical-channel metrics as input to device/network transport choice while preserving logical HZ semantics."},
+    {"id":"MLC","name":"Model Lineage Capsule","status":"proposed","description":"Signed model descriptor binding checkpoint, tokenizer, runtime profile, evaluation receipts and serving policy."},
+    {"id":"SPE","name":"Spectral Proof Envelope","status":"proposed","description":"Hash-bound spectral input/configuration/output/evaluation artifact for reproducible scientific claims."}
+  ]
+}
