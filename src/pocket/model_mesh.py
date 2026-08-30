@@ -26,7 +26,7 @@ class Lane:
 
 
 LANES: tuple[Lane, ...] = (
-    Lane("auro", "auro", "native-intelligence-runtime", "local-free", "local", ("spectral", "embed", "foundation", "benchmark", "reason", "research"), ("mesie",), python_module="mesie"),
+    Lane("auro", "auro", "native-intelligence-runtime", "local-free", "local", ("spectral", "embed", "foundation", "benchmark", "reason", "research"), python_module="mesie"),
     Lane("mesie", "mesie", "native-intelligence-runtime", "local-free", "local", ("spectral", "embed", "foundation", "benchmark", "validation", "research"), python_module="mesie"),
     Lane("ollama", "ollama", "local-model-runtime", "local-free", "local", ("chat", "code", "reason", "embed")),
     Lane("llama.cpp", "llama-cli", "local-model-runtime", "local-free", "local", ("chat", "code", "reason"), ("llama",)),
