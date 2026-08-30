@@ -18,11 +18,25 @@ jobs:
         with: { go-version: '1.23.x' }
       - name: Voice Reality Go control runtime
         run: go test ./...
-      - name: Voice Reality and model mesh contracts
+      - name: Voice Reality, doctrine, channels and model mesh contracts
         run: |
           python -m pip install --disable-pip-version-check pytest
-          PYTHONPATH=src python -m pytest -q tests/test_model_mesh.py tests/test_voice_reality.py
-          PYTHONPATH=src python -m py_compile src/pocket/model_mesh.py src/pocket/model_cli_exec.py src/pocket/agent_constellation.py src/pocket/voice_reality.py
+          PYTHONPATH=src python -m pytest -q tests/test_model_mesh.py tests/test_voice_reality.py tests/test_doctrine_channels.py
+          PYTHONPATH=src python -m py_compile \
+            src/pocket/model_mesh.py \
+            src/pocket/model_cli_exec.py \
+            src/pocket/agent_constellation.py \
+            src/pocket/voice_reality.py \
+            src/pocket/doctrine_laws.py \
+            src/pocket/channel_fabric.py \
+            src/pocket/hz_mesh.py \
+            src/pocket/auro_mesie.py
+      - name: White paper and technology registry contract
+        run: |
+          test -s docs/whitepapers/POCKET_DOCTRINE_COMMUNICATION_LAWS.md
+          test -s docs/whitepapers/HZ_CHANNEL_FABRIC.md
+          test -s docs/whitepapers/AURO_MESIE_POCKET_CONVERGENCE.md
+          python -m json.tool docs/whitepapers/TECHNOLOGY_REGISTRY.json >/dev/null
       - name: Desktop syntax and contracts
         working-directory: desktop-electron
         run: |
