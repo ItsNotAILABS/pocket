@@ -551,7 +551,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .view img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none;-webkit-user-drag:none}
 .dot{position:absolute;width:28px;height:28px;border-radius:50%;border:3px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 6px rgba(0,255,134,.18)}
 .bar,.ctrl{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
-.ctrl{display:grid;grid-template-columns:repeat(4,1fr)}
+.ctrl{display:grid;grid-template-columns:repeat(5,1fr)}
 .ctrl button{min-height:52px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:15px}
 .ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
 .bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
@@ -584,6 +584,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   <button type="button" id="rmb">R click</button>
   <button type="button" id="sup">Scroll ▲</button>
   <button type="button" id="sdn">Scroll ▼</button>
+  <button type="button" id="focusBtn">Focus</button>
 </div>
 <form class="bar" id="kb">
   <input id="keys" placeholder="Tap a field on the PC, then type here" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text"/>
@@ -592,7 +593,8 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 <script>
 let mode='touch', target='desktop', busy=false;
 let zoom=1, panX=0, panY=0;
-let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0;
+let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
+let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -626,17 +628,21 @@ function aim(p, why){
   hint.textContent=(why||'Armed')+' — L / R / Scroll act here';
 }
 function send(kind, nx, ny, extra){
+  extra=Object.assign({}, extra||{});
+  if(activeHwnd && extra.hwnd==null) extra.hwnd=activeHwnd;
   return fetch('/v1/phoneai/portal/touch',{
     method:'POST',
     credentials:'include',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra||{}))
+    body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra))
   }).then(async r=>{
     let j={};
     try{ j=await r.json(); }catch(_){ j={ok:false,error:'HTTP '+r.status}; }
     if(!r.ok){ hint.textContent=j.error||('Touch HTTP '+r.status); return j; }
-    if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
-    if(kind==='focus' || (j && j.focus && j.focus.main)) loadWins();
+    const hid=parseInt((j.focus&&j.focus.hwnd)||j.hwnd||0,10);
+    if(hid) activeHwnd=hid;
+    if(j && j.focus && j.focus.title) hint.textContent=(j.maximized?'Fullscreen: ':'Main: ')+j.focus.title;
+    if(kind==='focus' || kind==='maximize' || (j && j.focus && j.focus.main)) loadWins();
     if(j && j.ok===false && j.error) hint.textContent=j.error;
     return j;
   }).catch(()=>{ hint.textContent='Touch failed — check host / tunnel'; });
@@ -656,7 +662,18 @@ loadWins(); setInterval(loadWins, 3000);
 document.getElementById('tabs').onclick=e=>{
   const b=e.target.closest('[data-hwnd]'); if(!b) return;
   e.preventDefault(); e.stopPropagation();
-  send('focus', lastNx, lastNy, {hwnd: parseInt(b.getAttribute('data-hwnd'),10)});
+  const hwnd=parseInt(b.getAttribute('data-hwnd'),10);
+  const now=Date.now();
+  if(tabTaps.hwnd===hwnd && now-tabTaps.t<900) tabTaps.n+=1; else tabTaps={hwnd:hwnd,n:1,t:now};
+  tabTaps.t=now; activeHwnd=hwnd;
+  if(tabTaps.n>=3){
+    tabTaps.n=0;
+    send('maximize', 0.5, 0.5, {hwnd:hwnd});
+    hint.textContent='Expanding that window to the whole screen';
+  } else {
+    send('focus', 0.5, 0.5, {hwnd:hwnd});
+    hint.textContent=tabTaps.n===2?'Tap once more to fill the screen':'Focused — swipe to scroll this window';
+  }
 };
 const PIN=['edge','explorer','code','cursor','wt','notepad','calc','settings','chrome','antigravity','discord','github','powershell','grok_app'];
 function loadApps(){
@@ -718,8 +735,9 @@ function emitScroll(nx, ny, dx, dy){
   const now=Date.now();
   if(now-lastDrag<40) return;
   lastDrag=now;
-  send('scroll', nx, ny, {dy: dy, dx: dx});
-  hint.textContent='Scrolling the PC';
+  const extra=activeHwnd?{dy:dy, dx:dx, hwnd:activeHwnd}:{dy:dy, dx:dx};
+  send('scroll', nx, ny, extra);
+  hint.textContent=activeHwnd?'Scrolling this window':'Scrolling the PC';
 }
 function onDown(ev){
   if(mode!=='touch') return;
@@ -781,9 +799,19 @@ function onUp(ev){
   clearLong();
   const now=Date.now();
   if(gest==='pending'){
-    if(now-lastTap<340){ lastTap=0; gest='armed'; aim(p, 'Double-press — swipe to scroll'); }
-    else { lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny); }
-  } else if(gest==='armed'){ aim(p, 'Armed — swipe or tap Scroll'); }
+    if(now-streamTaps.t<420) streamTaps.n+=1; else streamTaps={n:1,t:now};
+    streamTaps.t=now;
+    if(streamTaps.n>=3){
+      streamTaps.n=0;
+      aim(p, 'Triple-tap');
+      send('maximize', p.nx, p.ny);
+      hint.textContent='Expanding that window to the whole screen';
+    } else if(now-lastTap<340){
+      lastTap=0; gest='armed'; aim(p, 'Double-press — swipe to scroll this window');
+    } else {
+      lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny);
+    }
+  } else if(gest==='armed'){ aim(p, 'Armed — swipe to scroll this window'); }
   if((ev.touches?ev.touches.length:0)===0){ gest=null; startAt=null; fingers.clear(); }
 }
 stage.addEventListener('touchstart', ev=>{ usingTouch=true; ev.preventDefault(); onDown(ev); }, {passive:false});
@@ -825,6 +853,20 @@ function holdScroll(dy){
 function endScroll(){ if(scrollHold){ clearInterval(scrollHold); scrollHold=null; } }
 bindPress(document.getElementById('sup'), ()=>holdScroll(-0.5), endScroll);
 bindPress(document.getElementById('sdn'), ()=>holdScroll(0.5), endScroll);
+let focusTaps={n:0,t:0};
+bindPress(document.getElementById('focusBtn'), ()=>{
+  const now=Date.now();
+  if(now-focusTaps.t<900) focusTaps.n+=1; else focusTaps={n:1,t:now};
+  focusTaps.t=now;
+  if(focusTaps.n>=3){
+    focusTaps.n=0;
+    send('maximize', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
+    hint.textContent='Fullscreen that window';
+  } else {
+    send('focus', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
+    hint.textContent=focusTaps.n===2?'Tap Focus once more to fill the screen':'Window active — swipe to scroll it';
+  }
+});
 
 keys.addEventListener('input', ()=>{
   const v=keys.value; let i=0;

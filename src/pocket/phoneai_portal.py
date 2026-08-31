@@ -110,6 +110,9 @@ def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
 
 GA_ROOT = 2
 SW_RESTORE = 9
+SW_MAXIMIZE = 3
+WM_MOUSEWHEEL = 0x020A
+WM_MOUSEHWHEEL = 0x020E
 HWND_TOP = 0
 SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
@@ -142,6 +145,7 @@ def _bind_user32():
     u.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, ctypes.c_bool]
     u.IsWindowVisible.argtypes = [wintypes.HWND]
     u.IsWindowVisible.restype = ctypes.c_bool
+    u.PostMessageW.argtypes = [wintypes.HWND, ctypes.c_uint, ctypes.c_size_t, ctypes.c_size_t]
     u._pocket_bound = True  # type: ignore[attr-defined]
     return u
 
@@ -286,10 +290,12 @@ def focus_hwnd(hwnd: int, *, make_main: bool = True) -> Dict[str, Any]:
         pass
     if make_main:
         u.SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
-        u.ShowWindow(hwnd, SW_RESTORE)
+        if u.IsIconic(hwnd):
+            u.ShowWindow(hwnd, SW_RESTORE)
     for tid in attached:
         u.AttachThreadInput(cur, tid, False)
     now = int(u.GetForegroundWindow() or 0)
+    _WIN_CACHE["t"] = 0.0
     return {
         "ok": now == hwnd or now != 0,
         "hwnd": hwnd,
@@ -297,6 +303,64 @@ def focus_hwnd(hwnd: int, *, make_main: bool = True) -> Dict[str, Any]:
         "title": title[:80],
         "main": now == hwnd,
     }
+
+
+def maximize_hwnd(hwnd: int) -> Dict[str, Any]:
+    """Focus a window and expand it to fill the monitor."""
+    hwnd = int(hwnd or 0)
+    r = focus_hwnd(hwnd, make_main=True)
+    try:
+        u = _bind_user32()
+        u.ShowWindow(hwnd, SW_MAXIMIZE)
+        r["maximized"] = True
+    except Exception as e:
+        r["maximized"] = False
+        r["error"] = str(e)[:160]
+    _WIN_CACHE["t"] = 0.0
+    return r
+
+
+def _wheel_hwnd(hwnd: int, x: int, y: int, dy: float, dx: float = 0.0) -> None:
+    """Scroll the given window: activate it, then wheel at that point."""
+    import ctypes
+
+    u = _bind_user32()
+    hwnd = int(hwnd or 0)
+    if hwnd > 0 and u.IsWindow(hwnd):
+        try:
+            if u.IsIconic(hwnd):
+                u.ShowWindow(hwnd, SW_RESTORE)
+            u.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
+
+    def _pack_delta(amount: float) -> int:
+        ticks = int(round(float(amount) * 8))
+        if ticks == 0:
+            ticks = 1 if float(amount) >= 0 else -1
+        ticks = max(-8, min(8, ticks))
+        delta = int(-120 * ticks)
+        return ctypes.c_uint32((delta << 16) & 0xFFFFFFFF).value
+
+    lparam = ctypes.c_uint32(((int(y) & 0xFFFF) << 16) | (int(x) & 0xFFFF)).value
+    if hwnd > 0:
+        try:
+            if abs(float(dy) or 0) >= abs(float(dx) or 0):
+                u.PostMessageW(hwnd, WM_MOUSEWHEEL, _pack_delta(dy), lparam)
+            if abs(float(dx) or 0) > 0.02:
+                u.PostMessageW(hwnd, WM_MOUSEHWHEEL, _pack_delta(dx), lparam)
+        except Exception:
+            pass
+    _move(x, y)
+    times = 1
+    for _ in range(times):
+        if abs(float(dx) or 0) > 0.02:
+            hticks = int(round(float(dx) * 8)) or (1 if float(dx) > 0 else -1)
+            _mouse(MOUSEEVENTF_HWHEEL, 0, 0, int(-120 * max(-8, min(8, hticks))))
+        ticks = int(round(float(dy) * 8))
+        if ticks == 0:
+            ticks = 1 if float(dy) >= 0 else -1
+        _mouse(MOUSEEVENTF_WHEEL, 0, 0, int(-120 * max(-8, min(8, ticks))))
 
 
 def focus_at(x: int, y: int) -> Dict[str, Any]:
@@ -623,7 +687,22 @@ def touch(
                 focused = focus_hwnd(int(hwnd), make_main=True)
             else:
                 focused = focus_at(x, y)
-            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "ms": int((time.time() - t0) * 1000)}
+            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "hwnd": focused.get("hwnd") or hwnd, "ms": int((time.time() - t0) * 1000)}
+        if kind in ("maximize", "full", "expand", "fullscreen"):
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            focused = maximize_hwnd(hid) if hid else {"ok": False, "error": "no window"}
+            return {
+                "ok": bool(focused.get("ok")),
+                "kind": kind,
+                **pt,
+                "focus": focused,
+                "hwnd": hid,
+                "maximized": bool(focused.get("maximized")),
+                "ms": int((time.time() - t0) * 1000),
+            }
         if kind in ("tap", "click", "left", "down", "pen_down", "dbl", "double"):
             try:
                 focused = focus_at(x, y) if int(hwnd or 0) <= 0 else focus_hwnd(int(hwnd), make_main=True)
@@ -656,18 +735,12 @@ def touch(
             _move(x, y)
             _click("right")
         elif kind in ("scroll", "wheel"):
-            _move(x, y)
-            times = max(1, min(int(n or 1), 8))
-            for _ in range(times):
-                if abs(float(dx) or 0) > 0.02:
-                    hticks = int(round(float(dx) * 8)) or (1 if float(dx) > 0 else -1)
-                    hticks = max(-8, min(8, hticks))
-                    _mouse(MOUSEEVENTF_HWHEEL, 0, 0, int(-120 * hticks))
-                ticks = int(round(float(dy) * 8))
-                if ticks == 0:
-                    ticks = 1 if float(dy) >= 0 else -1
-                ticks = max(-8, min(8, ticks))
-                _mouse(MOUSEEVENTF_WHEEL, 0, 0, int(-120 * ticks))
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            _wheel_hwnd(hid, x, y, float(dy or 0), float(dx or 0))
+            pt["hwnd"] = hid
         elif kind in ("open", "launch", "app"):
             from pocket.desktop import open_app
 

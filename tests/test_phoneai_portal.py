@@ -18,6 +18,8 @@ def test_portal_html_phone_zoom_and_controls():
     assert 'id="lmb"' in html and 'id="rmb"' in html
     assert 'id="sup"' in html and 'id="sdn"' in html
     assert "L click" in html
+    assert 'id="focusBtn"' in html
+    assert "maximize" in html
     assert "vk:8" in html
     assert "/v1/phoneai/portal/touch" in html
     assert "touchstart" in html
