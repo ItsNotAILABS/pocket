@@ -600,7 +600,7 @@ def _local_chat(text: str, thought: Dict[str, Any], where: Dict[str, Any]) -> Di
         }
 
 
-def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
+def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "", wrap_coder: bool = False) -> Dict[str, Any]:
     """Think, then one engine. Do not resume the live Grok session (that freezes PhoneAI + desk)."""
     text = (text or "").strip()
     if not text:
@@ -638,6 +638,17 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
         chosen = thought.get("engine") if thought.get("engine") in _KNOWN_ENGINES else "grok"
     else:
         chosen = _pick_engine(text, engine)
+    if chosen == "grok" and (
+        wrap_coder
+        or engine in ("coder", "grok_coder")
+        or "coder" in str(thought.get("why") or "")
+    ):
+        try:
+            from pocket.coder_persona import wrap_task
+
+            text = wrap_task(text)
+        except Exception:
+            pass
     th = _attach_thread(chosen if chosen in ("grok", "codex") else engine, thread_id)
     cwd = str((th or {}).get("cwd") or "") or str(WS)
     Path(cwd).mkdir(parents=True, exist_ok=True)
@@ -738,8 +749,15 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
 
 
 def work(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
-    r = ask_engine(text, engine=engine, thread_id=thread_id)
+    try:
+        from pocket.coder_persona import ensure as ensure_coder
+
+        ensure_coder()
+    except Exception:
+        pass
+    r = ask_engine(text, engine=engine, thread_id=thread_id, wrap_coder=True)
     r["companion"] = "PhoneAI Twin"
+    r["persona"] = "coder"
     r["workspace"] = r.get("cwd") or str(WS)
     try:
         note = f"# {r.get('engine')}\n\n{text}\n\n{r.get('reply') or r.get('error') or ''}\n"

@@ -148,6 +148,8 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/phoneai/desk",
     "/v1/phoneai/sessions",
     "/v1/phoneai/personas",
+    "/v1/phoneai/coder",
+    "/v1/coder",
     "/v1/phoneai/talk",
     "/api/phoneai/sessions",
     "/api/phoneai/talk",

@@ -13,7 +13,8 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | Runtime | `GET /v1/runtime` · `POST /v1/runtime/ensure` | Servers inside the product; agents bring them up |
 | Portal | `/phoneai/portal` | Live PC on the phone. Per-window focus makes that app the main window. Phone-only zoom, L/R, drag, joystick, live type |
 | Antigravity | `/phoneai/anti` | HWND stream of the real Antigravity app + window-local touch |
-| Code desk | `/phoneai/work` | Engines + harness + shell |
+| Code desk | `/phoneai/work` | Coder persona (Grok, KEEP, whole family repos) + harness + shell |
+| Coder | `GET /v1/phoneai/coder` | Long-term Grok coding agent seated on PhoneAI |
 | Agent eyes | `GET /v1/eyes?which=portal\|anti` | Agents see the same frames |
 | Engines | `GET /v1/engines` | Live CLIs + internals |
 | Shell | `POST /v1/phoneai/shell` | Bounded PowerShell |

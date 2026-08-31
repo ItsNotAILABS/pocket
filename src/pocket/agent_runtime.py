@@ -18,7 +18,15 @@ SESS = ROOT / "sessions.json"
 PERSONA_DIR = Path.home() / ".pocket" / "personas"
 
 PERSONAS: List[Dict[str, Any]] = [
-    {"id": "coder", "mode": "codex", "engine": "codex", "long_term": False, "blurb": "Write and patch code"},
+    {
+        "id": "coder",
+        "mode": "grok",
+        "engine": "grok",
+        "long_term": True,
+        "keep": True,
+        "seat": "phoneai",
+        "blurb": "Grok coding agent — long-term, whole-repo, PhoneAI-native",
+    },
     {"id": "researcher", "mode": "grok", "engine": "grok", "long_term": False, "blurb": "Research and explain"},
     {"id": "reviewer", "mode": "claude", "engine": "claude", "long_term": False, "blurb": "Review diffs, short notes"},
     {"id": "shipper", "mode": "build", "engine": "grok", "long_term": False, "blurb": "Package and ship"},
@@ -73,29 +81,56 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
         return {"engine": "copilot", "tool": None, "why": "copilot"}
     if "opencode" in low:
         return {"engine": "opencode", "tool": None, "why": "opencode"}
-    if any(w in low for w in ("implement", "fix this", "write code", "patch ", "test file")):
-        return {"engine": "codex", "tool": None, "why": "code"}
+    if "codex" in low:
+        return {"engine": "codex", "tool": None, "why": "codex asked"}
+    if any(
+        w in low
+        for w in (
+            "implement",
+            "fix this",
+            "write code",
+            "patch ",
+            "test file",
+            "coder",
+            "maintain repo",
+            "large repo",
+            "refactor",
+        )
+    ):
+        return {"engine": "grok", "tool": None, "why": "coder grok — long-term family repos"}
     return {"engine": "grok", "tool": None, "why": "think then grok — no extra tools"}
 
 
 def personas() -> List[Dict[str, Any]]:
-    rows = list(PERSONAS)
+    try:
+        from pocket.coder_persona import ensure as ensure_coder
+
+        ensure_coder()
+    except Exception:
+        pass
+    overlay: Dict[str, Dict[str, Any]] = {}
     if PERSONA_DIR.is_dir():
         for p in PERSONA_DIR.glob("*.json"):
             try:
                 j = json.loads(p.read_text(encoding="utf-8"))
                 if isinstance(j, dict) and j.get("id"):
-                    rows.append(j)
+                    overlay[str(j["id"])] = j
             except Exception:
                 continue
+    out: List[Dict[str, Any]] = []
     seen = set()
-    out = []
-    for r in rows:
+    for r in PERSONAS:
         i = r.get("id")
         if not i or i in seen:
             continue
+        if i in overlay:
+            r = {**r, **overlay[i]}
         seen.add(i)
         out.append(r)
+    for i, j in overlay.items():
+        if i not in seen:
+            seen.add(i)
+            out.append(j)
     return out
 
 
@@ -158,6 +193,14 @@ def create_phoneai_session(
     mode = per.get("mode") or "grok"
     engine = per.get("engine") or "grok"
     keep = per.get("long_term") if long_term is None else bool(long_term)
+    if per.get("id") == "coder":
+        keep = True if long_term is None else bool(long_term)
+        try:
+            from pocket.coder_persona import ensure as ensure_coder
+
+            ensure_coder()
+        except Exception:
+            pass
     kind = (kind or "pocket").lower()
     title = (title or f"PhoneAI · {per.get('id')} · {mode}")[:80]
     out: Dict[str, Any] = {"ok": True, "persona": per, "kind": kind}

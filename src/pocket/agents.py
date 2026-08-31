@@ -49,29 +49,36 @@ AGENTS: Dict[str, Dict[str, Any]] = {
     "coder": {
         "id": "coder",
         "name": "Coder",
-        "role": "Implementation agent (Codex)",
-        "engine": "codex",
+        "role": "Long-term Grok coding agent (PhoneAI seat)",
+        "engine": "grok",
         "tier": "pro",
         "pock": 50,
         "usd_hint": 0.15,
         "sell": True,
         "headless": True,
-        "description": "Writes and edits real code via Codex CLI.",
-        "system": "Implement the smallest correct change. Summarize files touched.",
-        "examples": ["Add health endpoint version field"],
+        "long_term": True,
+        "description": "Grok coding agent for large family repos: Pocket, PhoneAI, forge. KEEP until the session ends.",
+        "system": (
+            "You are CODER on PhoneAI. Grok only unless the user names another engine. "
+            "Map the repo, smallest correct change, verify. Maintain pocket-os, PhoneAI, "
+            "phoneai-desk, pocket-agent, sovereign_forge_os. Portal is the live PC. "
+            "PhoneAI is its own kernel seat."
+        ),
+        "examples": ["Maintain PhoneAI Portal focus and Pocket host runtime across the family repos"],
     },
     "grok_coder": {
         "id": "grok_coder",
         "name": "Grok Coder",
-        "role": "Implementation agent (Grok)",
+        "role": "Alias of Coder (Grok)",
         "engine": "grok",
         "tier": "pro",
         "pock": 40,
         "usd_hint": 0.10,
         "sell": True,
         "headless": True,
-        "description": "Writes code via Grok CLI (--single).",
-        "system": "Ship a useful code change. Report paths and verification.",
+        "long_term": True,
+        "description": "Same agent as coder — Grok, long-term, PhoneAI-native.",
+        "system": "Alias of CODER. Same family repos and KEEP rules.",
         "examples": ["Fix auth header handling in client"],
     },
     "reviewer": {

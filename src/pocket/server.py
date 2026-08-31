@@ -884,6 +884,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.agent_runtime import personas
 
             return self._json(200, {"ok": True, "personas": personas()})
+        if path in ("/v1/phoneai/coder", "/v1/coder", "/api/coder"):
+            from pocket.coder_persona import snapshot as coder_snap
+
+            return self._json(200, coder_snap())
         if path in ("/v1/phoneai/space", "/api/phoneai/space"):
             from pocket.phoneai_space import snapshot as phoneai_space
 

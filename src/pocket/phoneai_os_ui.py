@@ -284,7 +284,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
 <div class="engines" id="eng"></div>
 <div class="log" id="log"></div>
 <form class="form" id="f">
-  <textarea id="t" placeholder="Work from the phone…" rows="1"></textarea>
+  <textarea id="t" placeholder="Coder · Grok — any repo, long-term. What should we ship?" rows="1"></textarea>
   <button type="submit">Send</button>
 </form>
 <form class="form" id="sh" style="border-top:0">
@@ -292,7 +292,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
   <button type="submit" style="background:#222;color:#fff">Harness</button>
 </form>
 <script>
-let engine='grok';
+let engine='grok'; // Coder persona — Grok, long-term, family repos
 let threadId='';
 const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti',auro:'Auro',ghost:'Ghost',logic:'Logic',portal:'Portal'};
 fetch('/v1/engines').then(r=>r.json()).then(cat=>{
@@ -305,9 +305,10 @@ fetch('/v1/engines').then(r=>r.json()).then(cat=>{
 fetch('/v1/phoneai/sessions').then(r=>r.json()).then(s=>{
   const per=document.getElementById('per');
   per.innerHTML=(s.personas||[]).map(p=>'<option value="'+p.id+'">'+p.id+' · '+(p.blurb||p.mode)+'</option>').join('');
+  per.value='coder';
 }).catch(()=>{});
 document.getElementById('ns').onclick=async()=>{
-  const persona=document.getElementById('per').value||'researcher';
+  const persona=document.getElementById('per').value||'coder';
   const j=await fetch('/v1/phoneai/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({persona,kind:'both',title:'PhoneAI '+persona})}).then(r=>r.json());
   const id=(j.pocket_session&&j.pocket_session.id)||(j.phoneai_session&&j.phoneai_session.id)||'';
   if(id){ threadId=id; document.getElementById('now').textContent='New session '+id+' · '+persona; }
@@ -911,6 +912,7 @@ def kernel_manifest() -> dict:
             "POCKET Live (Gemini + atlas)",
             "Grok chat · camera · maps · notes · code desk · Antigravity",
             "Always-on runtime — agents bring the host up",
+            "Coder — long-term Grok agent for Pocket + PhoneAI + forge",
             "MCP · Agent Mail · Novae",
         ],
     }
