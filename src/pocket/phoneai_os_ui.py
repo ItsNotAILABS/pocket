@@ -81,6 +81,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/imagine"><div class="icon">✨</div><span>Imagine</span></a>
     <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Code desk</span></a>
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
+    <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
   <p class="more">Chat is Grok. Code desk is Grok/Codex/Anti plus CLIs you enable. <a href="/login">Seat</a></p>
@@ -137,6 +138,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
   <button class="app" data-go="chat"><div class="icon">💬</div><span>Chat</span></button>
   <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Desk</span></a>
   <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
+  <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>PC</span></a>
   <button class="app" data-go="settings"><div class="icon">⚙</div><span>Set</span></button>
 </nav>
 <script>
@@ -442,6 +444,106 @@ document.getElementById('f').onsubmit=async ev=>{
 
 def phoneai_anti_html() -> str:
     return PHONEAI_ANTI_HTML
+
+
+PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#05060a"/>
+<title>Portal · PhoneAI</title>
+<style>
+:root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden;touch-action:none}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#05060a;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top a{color:var(--muted);text-decoration:none;font-size:13px}
+.top b{flex:1}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
+.seg button.on{background:var(--g);color:#042}
+.stage{flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;min-height:0}
+.stage img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none}
+.bar{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
+.bar input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
+.bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
+.hint{position:absolute;left:12px;bottom:12px;font-size:11px;color:#a1a1aa;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:8px}
+</style></head>
+<body>
+<div class="top">
+  <a href="/phoneai">Home</a>
+  <b>Portal</b>
+  <div class="seg" id="mode">
+    <button type="button" data-m="watch" class="on">Watch</button>
+    <button type="button" data-m="touch">Touch</button>
+  </div>
+  <div class="seg" id="tgt">
+    <button type="button" data-t="desktop" class="on">Desktop</button>
+    <button type="button" data-t="window">App</button>
+  </div>
+</div>
+<div class="stage" id="stage">
+  <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
+  <div class="dot" id="dot"></div>
+  <div class="hint" id="hint">Watch = live view. Touch = your finger is the mouse.</div>
+</div>
+<form class="bar" id="kb">
+  <input id="keys" placeholder="Type on the PC…" autocomplete="off"/>
+  <button>Send</button>
+</form>
+<script>
+let mode='watch', target='desktop', down=false;
+const img=document.getElementById('frame');
+const dot=document.getElementById('dot');
+const hint=document.getElementById('hint');
+function clamp(v){return Math.max(0,Math.min(1,v))}
+function norm(ev){
+  const r=img.getBoundingClientRect();
+  const src=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
+  return {nx:clamp((src.clientX-r.left)/r.width), ny:clamp((src.clientY-r.top)/r.height), cx:src.clientX, cy:src.clientY};
+}
+function showDot(cx,cy){ dot.style.display='block'; const s=document.getElementById('stage').getBoundingClientRect(); dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
+async function send(kind, nx, ny, extra){
+  if(mode!=='touch' && kind!=='type') return;
+  await fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))});
+}
+document.getElementById('mode').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  mode=b.getAttribute('data-m');
+  [...document.getElementById('mode').children].forEach(x=>x.classList.toggle('on',x===b));
+  hint.textContent=mode==='touch'?'Touch is on. Tap, drag, pinch-scroll.':'Watch only — the PC is live but fingers do not click.';
+};
+document.getElementById('tgt').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  target=b.getAttribute('data-t');
+  [...document.getElementById('tgt').children].forEach(x=>x.classList.toggle('on',x===b));
+  img.src='/v1/phoneai/portal/frame?target='+target+'&t='+Date.now();
+};
+setInterval(()=>{ img.src='/v1/phoneai/portal/frame?target='+target+'&t='+Date.now(); }, 700);
+function start(ev){ if(mode!=='touch') return; ev.preventDefault(); down=true; const p=norm(ev); showDot(p.cx,p.cy); send('down', p.nx, p.ny); }
+function move(ev){ if(!down||mode!=='touch') return; ev.preventDefault(); const p=norm(ev); showDot(p.cx,p.cy); send('drag', p.nx, p.ny); }
+function end(ev){ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev.changedTouches&&ev.changedTouches[0]?ev.changedTouches[0]:ev); send(down?'up':'tap', p.nx, p.ny); down=false; setTimeout(()=>dot.style.display='none', 250); }
+img.addEventListener('pointerdown', start, {passive:false});
+img.addEventListener('pointermove', move, {passive:false});
+img.addEventListener('pointerup', end, {passive:false});
+img.addEventListener('pointercancel', end, {passive:false});
+img.addEventListener('contextmenu', ev=>{ ev.preventDefault(); if(mode!=='touch') return; const p=norm(ev); send('right', p.nx, p.ny); });
+let lastY=null;
+img.addEventListener('wheel', ev=>{ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev); send('scroll', p.nx, p.ny, {dy: ev.deltaY/400}); }, {passive:false});
+document.getElementById('kb').onsubmit=async ev=>{
+  ev.preventDefault(); const t=document.getElementById('keys'); const text=t.value; if(!text) return;
+  await send('type', 0.5, 0.5, {text}); t.value='';
+};
+</script>
+</body></html>
+"""
+
+
+def phoneai_portal_html() -> str:
+    return PHONEAI_PORTAL_HTML
 
 
 def kernel_manifest() -> dict:

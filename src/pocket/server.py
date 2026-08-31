@@ -921,6 +921,29 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_anti_html
 
             return self._html(phoneai_anti_html())
+        if path in ("/phoneai/portal", "/phoneai/pc", "/portal"):
+            from pocket.phoneai_os_ui import phoneai_portal_html
+
+            return self._html(phoneai_portal_html())
+        if path in ("/v1/phoneai/portal", "/api/phoneai/portal"):
+            from pocket.phoneai_portal import snapshot as portal_snap
+
+            return self._json(200, portal_snap())
+        if path in ("/v1/phoneai/portal/frame", "/api/phoneai/portal/frame"):
+            from pocket.phoneai_portal import grab_jpeg
+
+            q = parse_qs(urlparse(self.path).query)
+            target = (q.get("target") or ["desktop"])[0]
+            data, meta = grab_jpeg(target=target)
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Pocket-Target", str(meta.get("target") or target))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return None
         if path in ("/v1/phoneai/settings", "/api/phoneai/settings"):
             from pocket.phoneai_settings import snapshot as phoneai_settings
 
@@ -3908,6 +3931,20 @@ class Handler(BaseHTTPRequestHandler):
             if str(body.get("action") or "") in ("status", "snap", ""):
                 return self._json(200, gh_snap())
             return self._json(200, gh_push(message=str(body.get("message") or "phoneai")))
+        if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
+            from pocket.phoneai_portal import touch as portal_touch
+
+            return self._json(
+                200,
+                portal_touch(
+                    str(body.get("kind") or body.get("action") or "tap"),
+                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                    dy=float(body.get("dy") or 0),
+                    text=str(body.get("text") or ""),
+                    target=str(body.get("target") or "desktop"),
+                ),
+            )
 
         if path in ("/v1/phoneai/life", "/api/phoneai/life"):
             from pocket.phone_life import act as phone_life_act

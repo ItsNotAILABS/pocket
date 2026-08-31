@@ -1,0 +1,184 @@
+"""PhoneAI portal — stream the real PC and optionally touch it from the phone."""
+
+from __future__ import annotations
+
+import io
+import time
+from typing import Any, Dict, Optional, Tuple
+
+# SM_XVIRTUALSCREEN … SM_CYVIRTUALSCREEN
+_SM_X = 76
+_SM_Y = 77
+_SM_W = 78
+_SM_H = 79
+
+
+def _user32():
+    import ctypes
+
+    return ctypes.windll.user32
+
+
+def virtual_screen() -> Dict[str, int]:
+    u = _user32()
+    return {
+        "x": int(u.GetSystemMetrics(_SM_X)),
+        "y": int(u.GetSystemMetrics(_SM_Y)),
+        "w": int(u.GetSystemMetrics(_SM_W) or 1920),
+        "h": int(u.GetSystemMetrics(_SM_H) or 1080),
+    }
+
+
+def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
+    from pocket.screen_share import list_windows
+
+    needle = (title_substr or "").lower()
+    for w in list_windows(limit=60):
+        title = (w.get("title") or "").lower()
+        if needle and needle not in title:
+            continue
+        hwnd = int(w.get("hwnd") or 0)
+        if hwnd <= 0:
+            continue
+        import ctypes
+        from ctypes import wintypes
+
+        rect = wintypes.RECT()
+        if not _user32().GetWindowRect(hwnd, ctypes.byref(rect)):
+            continue
+        return {
+            "hwnd": hwnd,
+            "x": int(rect.left),
+            "y": int(rect.top),
+            "w": int(rect.right - rect.left),
+            "h": int(rect.bottom - rect.top),
+            "title": w.get("title") or "",
+        }
+    return None
+
+
+def geom(target: str = "desktop") -> Dict[str, Any]:
+    t = (target or "desktop").lower()
+    if t in ("window", "anti", "antigravity", "app"):
+        wr = window_rect("Antigravity") or window_rect("anti")
+        if wr:
+            return {"ok": True, "target": "window", **wr}
+    vs = virtual_screen()
+    return {"ok": True, "target": "desktop", "hwnd": 0, "title": "desktop", **vs}
+
+
+def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
+    from PIL import ImageGrab
+
+    g = geom(target)
+    x, y, w, h = int(g["x"]), int(g["y"]), int(g["w"]), int(g["h"])
+    if w < 40 or h < 40:
+        vs = virtual_screen()
+        x, y, w, h = vs["x"], vs["y"], vs["w"], vs["h"]
+        g = {"ok": True, "target": "desktop", **vs}
+    img = ImageGrab.grab(bbox=(x, y, x + w, y + h), all_screens=True)
+    img = img.convert("RGB")
+    if img.width > max_w:
+        ratio = max_w / float(img.width)
+        img = img.resize((max_w, max(1, int(img.height * ratio))))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=52, optimize=True)
+    g["frame_w"] = img.width
+    g["frame_h"] = img.height
+    g["bytes"] = buf.tell()
+    return buf.getvalue(), g
+
+
+def map_touch(nx: float, ny: float, *, target: str = "desktop") -> Dict[str, int]:
+    nx = max(0.0, min(1.0, float(nx)))
+    ny = max(0.0, min(1.0, float(ny)))
+    g = geom(target)
+    x = int(g["x"] + nx * g["w"])
+    y = int(g["y"] + ny * g["h"])
+    return {"x": x, "y": y, "target": g.get("target") or target, "hwnd": int(g.get("hwnd") or 0)}
+
+
+def _mouse(flags: int, dx: int = 0, dy: int = 0, data: int = 0) -> None:
+    _user32().mouse_event(int(flags), int(dx), int(dy), int(data), 0)
+
+
+def _move(x: int, y: int) -> None:
+    _user32().SetCursorPos(int(x), int(y))
+
+
+def touch(
+    kind: str = "tap",
+    *,
+    nx: float = 0.5,
+    ny: float = 0.5,
+    dy: float = 0.0,
+    text: str = "",
+    target: str = "desktop",
+) -> Dict[str, Any]:
+    """Phone touch → real mouse/keyboard on this PC."""
+    kind = (kind or "tap").lower().strip()
+    pt = map_touch(nx, ny, target=target)
+    x, y = pt["x"], pt["y"]
+    t0 = time.time()
+    try:
+        if kind in ("move", "hover"):
+            _move(x, y)
+        elif kind in ("down", "pen_down"):
+            _move(x, y)
+            _mouse(0x0002)
+        elif kind in ("up", "pen_up"):
+            _move(x, y)
+            _mouse(0x0004)
+        elif kind in ("drag",):
+            _move(x, y)
+        elif kind in ("tap", "click"):
+            _move(x, y)
+            _mouse(0x0002)
+            time.sleep(0.03)
+            _mouse(0x0004)
+        elif kind in ("dbl", "double"):
+            _move(x, y)
+            for _ in range(2):
+                _mouse(0x0002)
+                time.sleep(0.03)
+                _mouse(0x0004)
+                time.sleep(0.05)
+        elif kind in ("right", "rclick"):
+            _move(x, y)
+            _mouse(0x0008)
+            time.sleep(0.03)
+            _mouse(0x0010)
+        elif kind in ("scroll", "wheel"):
+            _move(x, y)
+            delta = int(-120 if dy >= 0 else 120)
+            if abs(dy) > 0.08:
+                delta = int(-120 * max(-4, min(4, round(dy * 6))))
+            _mouse(0x0800, 0, 0, delta)
+        elif kind in ("type", "text") and text:
+            from pocket.ui_maneuver import type_text
+
+            _move(x, y)
+            type_text(text[:400])
+        else:
+            _move(x, y)
+            _mouse(0x0002)
+            time.sleep(0.03)
+            _mouse(0x0004)
+        return {"ok": True, "kind": kind, **pt, "ms": int((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
+
+
+def snapshot() -> Dict[str, Any]:
+    return {
+        "ok": True,
+        "portal": True,
+        "modes": ["watch", "touch"],
+        "targets": ["desktop", "window"],
+        "geom": geom("desktop"),
+        "window": geom("window") if window_rect("Antigravity") else {},
+        "watch": "/phoneai/portal",
+        "frame": "/v1/phoneai/portal/frame",
+        "touch": "POST /v1/phoneai/portal/touch",
+        "note": "Watch streams the real PC. Touch maps phone taps to the real mouse.",
+    }
