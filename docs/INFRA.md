@@ -20,7 +20,9 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | Shell | `POST /v1/phoneai/shell` | Bounded PowerShell |
 | Harness | `POST /v1/phoneai/harness` | Think → shell → engine |
 | Claims | `GET /v1/claims` | Defensive publication |
-| Glasses HUD | `/phoneai/glasses` | Meta glasses / any HUD browser — stream + voice-to-screen |
+| Glasses HUD | `/phoneai/glasses` | Meta glasses: live PC HUD, AirPods listen/speak, look / open / focus / coder |
+| AirPods | `/phoneai/airpods` | Same loop, audio-first. Pair buds to the phone. |
+| Wear | `POST /v1/phoneai/wear` | Command router for glasses + AirPods |
 | Live web | `/phoneai/web` | Agent previews and project pages |
 | Voice → screen | `POST /v1/phoneai/voice-screen` | Click named UI, scroll, right-click, open URL |
 

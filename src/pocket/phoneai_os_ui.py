@@ -83,6 +83,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
     <a class="app" href="/phoneai/glasses"><div class="icon">👓</div><span>Glasses</span></a>
+    <a class="app" href="/phoneai/airpods"><div class="icon">🎧</div><span>AirPods</span></a>
     <a class="app" href="/phoneai/web"><div class="icon">🌐</div><span>Web live</span></a>
     <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
@@ -842,35 +843,118 @@ def phoneai_portal_html() -> str:
 
 PHONEAI_GLASSES_HTML = r"""<!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#05060a"/>
-<title>PhoneAI Glasses</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#000"/>
+<title>PhoneAI Glasses + AirPods</title>
 <style>
-html,body{margin:0;height:100%;background:#05060a;color:#f4f4f5;font-family:ui-sans-serif,system-ui}
-body{display:flex;flex-direction:column}
-.top{padding:8px 12px;display:flex;gap:10px;align-items:center}
-.top a{color:#8b8b98;text-decoration:none}
-img{width:100%;flex:1;object-fit:contain;background:#000;max-height:62vh}
-.bar{display:flex;gap:8px;padding:10px}
-input,button{min-height:44px;border-radius:12px;border:0;font:inherit}
-input{flex:1;background:#14141c;color:#fff;padding:10px}
-button{background:#00ff86;color:#042;font-weight:800;padding:0 14px}
-.note{padding:0 12px 12px;color:#8b8b98;font-size:12px}
+:root{--g:#00ff86;--fg:#f7f7f4;--muted:#9a9aa6;--bg:#05060a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.hud{position:relative;flex:1;min-height:0;background:#000}
+.hud img{width:100%;height:100%;object-fit:contain;background:#000}
+.ov{position:absolute;left:10px;top:10px;right:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.pill{background:rgba(0,0,0,.62);border:1px solid rgba(0,255,134,.35);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800}
+.reply{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(0,0,0,.72);border-radius:12px;padding:10px 12px;font-size:16px;line-height:1.35;max-height:28%;overflow:auto}
+.row{display:flex;gap:8px;padding:8px 10px;overflow:auto;touch-action:pan-x}
+.row button{flex:0 0 auto;min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}
+.row button.go{background:var(--g);color:#042}
+.bar{display:flex;gap:8px;padding:8px 10px 10px}
+input,button{font:inherit;border:0;border-radius:12px;min-height:48px}
+input{flex:1;background:#14141c;color:#fff;padding:0 12px}
+.bar button{background:var(--g);color:#042;font-weight:800;padding:0 14px}
+.note{padding:0 12px 12px;color:var(--muted);font-size:12px}
+html.air .hud{max-height:32vh}
+a{color:var(--muted);text-decoration:none}
+.top{display:flex;gap:10px;align-items:center;padding:8px 12px}
+.lis{outline:2px solid var(--g)}
 </style></head>
 <body>
-<div class="top"><a href="/phoneai">Home</a><b>Glasses HUD</b><a href="/phoneai/portal">Portal</a></div>
-<img id="f" alt="stream" src="/v1/phoneai/portal/frame?t=1"/>
-<form class="bar" id="v"><input id="t" placeholder="Voice → screen: click File, scroll down, open github.com…"/><button>Go</button></form>
-<p class="note">Meta glasses / any HUD: open this URL in the glasses browser. Same Wi-Fi as the PC. Stream is one primary screen. Voice uses fusion + eyes.</p>
+<div class="top">
+  <a href="/phoneai/app">Home</a>
+  <b id="modeLabel">Glasses HUD</b>
+  <a href="/phoneai/portal">Portal</a>
+  <a href="/phoneai/airpods">AirPods</a>
+</div>
+<div class="hud">
+  <img id="f" alt="PC" src="/v1/phoneai/portal/frame?t=1"/>
+  <div class="ov"><span class="pill" id="fg">…</span><span class="pill" id="st">AirPods · tap Listen</span></div>
+  <div class="reply" id="r">Pair AirPods to the phone. Open this on Meta glasses. Say look, open Edge, scroll down, switch to Code, coder fix auth.</div>
+</div>
+<div class="row" id="chips">
+  <button type="button" class="go" id="listen">Listen</button>
+  <button type="button" id="always">Always</button>
+  <button type="button" data-say="look">Look</button>
+  <button type="button" data-say="scroll down">Scroll</button>
+  <button type="button" data-say="whats open">Tabs</button>
+  <button type="button" data-say="open explorer">Explorer</button>
+  <button type="button" data-say="open edge">Edge</button>
+  <button type="button" data-say="open code">Code</button>
+</div>
+<form class="bar" id="v"><input id="t" placeholder="Speak or type — AirPods hear, glasses show"/><button>Go</button></form>
+<p class="note">AirPods = mic + speaker on the phone. Glasses = HUD of the live PC. Same Wi-Fi or tunnel /phoneai/glasses</p>
 <script>
-const img=document.getElementById('f'); let busy=false;
-function tick(){ if(document.hidden||busy){ setTimeout(tick,600); return;} busy=true; img.onload=()=>{busy=false;setTimeout(tick,900)}; img.onerror=()=>{busy=false;setTimeout(tick,1200)}; img.src='/v1/phoneai/portal/frame?t='+Date.now(); }
+const air=/airpods|wear/.test(location.pathname); if(air) document.documentElement.classList.add('air');
+document.getElementById('modeLabel').textContent=air?'AirPods + glance':'Glasses + AirPods';
+const img=document.getElementById('f'); let busy=false, rec=null, listening=false, always=false;
+function tick(){ if(document.hidden||busy){ setTimeout(tick,700); return;} busy=true; img.onload=()=>{busy=false;setTimeout(tick,900)}; img.onerror=()=>{busy=false;setTimeout(tick,1400)}; img.src='/v1/phoneai/portal/frame?t='+Date.now(); }
 tick();
-document.getElementById('v').onsubmit=async ev=>{
-  ev.preventDefault(); const t=document.getElementById('t'); const text=t.value.trim(); if(!text) return;
-  await fetch('/v1/phoneai/voice-screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
-  t.value='';
+async function glance(){
+  try{
+    const j=await fetch('/v1/phoneai/wear').then(r=>r.json());
+    document.getElementById('fg').textContent=j.focused||'desktop';
+  }catch(_){}
+}
+glance(); setInterval(glance, 2500);
+function speak(text){
+  const s=String(text||'').slice(0,280); if(!s) return;
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(s);
+    u.rate=1.05; u.pitch=1;
+    const vs=window.speechSynthesis.getVoices()||[];
+    const v=vs.find(x=>/en/i.test(x.lang||''))||vs[0];
+    if(v) u.voice=v;
+    window.speechSynthesis.speak(u);
+  }catch(_){}
+}
+async function run(text){
+  const t=(text||'').trim(); if(!t) return;
+  document.getElementById('r').textContent='…';
+  document.getElementById('st').textContent='Working';
+  try{
+    const j=await fetch('/v1/phoneai/wear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})}).then(r=>r.json());
+    const reply=j.reply||j.error||'ok';
+    document.getElementById('r').textContent=reply;
+    if(j.focus && j.focus.title) document.getElementById('fg').textContent=j.focus.title;
+    speak(reply);
+  }catch(e){ document.getElementById('r').textContent='Host unreachable. Keep the PC awake.'; }
+  document.getElementById('st').textContent=listening?'Listening · AirPods':'AirPods · tap Listen';
+}
+document.getElementById('v').onsubmit=ev=>{ ev.preventDefault(); const i=document.getElementById('t'); run(i.value); i.value=''; };
+document.getElementById('chips').onclick=e=>{
+  const b=e.target.closest('[data-say],#listen,#always'); if(!b) return;
+  if(b.id==='listen'){ armListen(false); return; }
+  if(b.id==='always'){ always=!always; b.classList.toggle('go', always); armListen(true); return; }
+  run(b.getAttribute('data-say'));
 };
+function Rec(){ return window.SpeechRecognition||window.webkitSpeechRecognition; }
+function armListen(keep){
+  const C=Rec();
+  if(!C){ document.getElementById('st').textContent='No speech engine — type instead'; return; }
+  if(rec){ try{ rec.stop(); }catch(_){} rec=null; }
+  rec=new C(); rec.lang='en-US'; rec.interimResults=false; rec.continuous=!!always;
+  rec.onresult=ev=>{
+    const t=ev.results[ev.results.length-1][0].transcript;
+    if(t) run(t);
+  };
+  rec.onend=()=>{ listening=false; document.getElementById('listen').classList.remove('lis');
+    if(always){ setTimeout(()=>armListen(true), 250); } else document.getElementById('st').textContent='AirPods · tap Listen'; };
+  rec.onerror=()=>{ listening=false; };
+  try{ rec.start(); listening=true; document.getElementById('listen').classList.add('lis'); document.getElementById('st').textContent=always?'Always listening':'Listening · AirPods'; }catch(_){}
+}
 </script>
 </body></html>
 """
@@ -923,6 +1007,10 @@ fetch('/v1/preview').then(r=>r.json()).then(j=>{
 
 
 def phoneai_glasses_html() -> str:
+    return PHONEAI_GLASSES_HTML
+
+
+def phoneai_airpods_html() -> str:
     return PHONEAI_GLASSES_HTML
 
 

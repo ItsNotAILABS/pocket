@@ -941,7 +941,7 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_portal_html
 
             return self._html(phoneai_portal_html())
-        if path in ("/phoneai/glasses", "/glasses", "/phoneai/hud"):
+        if path in ("/phoneai/glasses", "/glasses", "/phoneai/hud", "/phoneai/airpods", "/airpods", "/phoneai/wear"):
             from pocket.phoneai_os_ui import phoneai_glasses_html
 
             return self._html(phoneai_glasses_html())
@@ -1371,6 +1371,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "product": "POCKET work harness", "post": "POST goal,shell,cwd,engine"})
         if path in ("/v1/phoneai/voice-screen", "/api/phoneai/voice-screen", "/v1/voice-screen"):
             return self._json(200, {"ok": True, "product": "voice to screen", "post": "POST text,which"})
+        if path in ("/v1/phoneai/wear", "/api/phoneai/wear", "/v1/wear"):
+            from pocket.wear import snapshot as wear_snap
+
+            return self._json(200, wear_snap())
         if path in ("/v1/claims", "/v1/invention", "/claims"):
             from pathlib import Path
 
@@ -4059,6 +4063,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(
                 200,
                 voice_screen_act(
+                    str(body.get("text") or body.get("prompt") or body.get("say") or ""),
+                    which=str(body.get("which") or "portal"),
+                ),
+            )
+        if path in ("/v1/phoneai/wear", "/api/phoneai/wear", "/v1/wear"):
+            from pocket.wear import command as wear_command
+
+            return self._json(
+                200,
+                wear_command(
                     str(body.get("text") or body.get("prompt") or body.get("say") or ""),
                     which=str(body.get("which") or "portal"),
                 ),

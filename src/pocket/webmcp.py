@@ -298,6 +298,8 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Agent eyes touch", "eyes_touch", "POST /v1/eyes/touch", "Tap/drag/type on portal or Antigravity from an agent."),
         ("Voice to screen", "voice_screen", "POST /v1/phoneai/voice-screen", "Say click File / scroll / open URL — fusion + eyes."),
         ("Glasses HUD", "glasses_hud", "GET /phoneai/glasses", "Meta glasses / HUD live stream + voice."),
+        ("Wear command", "wear_command", "POST /v1/phoneai/wear", "AirPods + glasses: look, open app, focus window, coder."),
+        ("AirPods", "airpods_open", "GET /phoneai/airpods", "Listen and speak-back through AirPods."),
         ("Live web view", "live_web", "GET /phoneai/web", "Show agent previews and project pages."),
         ("Agent talk", "agent_talk", "POST /v1/phoneai/talk", "Agent mail + encrypted mesh so agents talk to each other."),
         ("Runtime status", "runtime_status", "GET /v1/runtime", "Servers inside Pocket and PhoneAI."),
@@ -484,6 +486,10 @@ def use_action(name: str, *, prompt: str = "") -> Dict[str, Any]:
             from pocket.agent_runtime import create_phoneai_session
 
             return {"ok": True, "used": a, "result": create_phoneai_session(persona_id=(prompt or "researcher").split()[0], kind="both")}
+        if inv == "wear_command":
+            from pocket.wear import command as wear_command
+
+            return {"ok": True, "used": a, "result": wear_command(prompt or name)}
         if inv == "voice_screen":
             from pocket.voice_screen import act as voice_screen_act
 
