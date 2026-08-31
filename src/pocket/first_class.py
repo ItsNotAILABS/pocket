@@ -248,6 +248,9 @@ def pillars() -> List[Dict[str, Any]]:
     items.append(_ok("Imagine Studio", True, "/imagine", tier="class"))
     items.append(_ok("Novae hands", True, "/v1/novae Grok+Codex", tier="class"))
     items.append(_ok("Public signup", True, "/login /signup", tier="edge"))
+    items.append(_ok("Setup flow", True, "/setup · python -m pocket install", tier="edge"))
+    items.append(_ok("PhoneAI landing", True, "/phoneai intro · /phoneai/app kernel", tier="edge"))
+    items.append(_ok("Always-on runtime", True, "GET /v1/runtime · agents runtime_ensure", tier="class"))
     try:
         from pocket.foundations import ready as foundations_ready
 

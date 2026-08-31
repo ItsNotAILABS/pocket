@@ -198,7 +198,7 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
         if wr and wr.get("w", 0) > 80:
             g.update({"ok": True, "target": "window", **wr})
             try:
-                img = _ex.submit(_capture_rect, wr["x"], wr["y"], wr["w"], wr["h"]).result(timeout=1.6)
+                img = _ex.submit(_capture_rect, wr["x"], wr["y"], wr["w"], wr["h"]).result(timeout=0.9)
             except (FutTimeout, Exception):
                 img = None
     if img is None and tlow in ("desktop", "", "primary"):

@@ -747,6 +747,10 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if path in ("/setup", "/setup/", "/onboard", "/onboard/", "/phoneai/setup"):
+            from pocket.setup_flow import setup_html
+
+            return self._html(setup_html())
         # Get / install guide (shareable marketing URL)
         if path in ("/get", "/get/", "/start", "/install", "/install/"):
             from pocket.marketing_landing import get_app_html
@@ -840,10 +844,18 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.agent_network import ship_html
 
             return self._html(ship_html())
-        if path in ("/phoneai", "/phoneai/", "/kernel", "/kernel/os"):
+        if path in ("/phoneai", "/phoneai/", "/phoneai/site", "/phoneai/www"):
+            from pocket.phoneai_landing import landing_html as phoneai_landing_html
+
+            return self._html(phoneai_landing_html())
+        if path in ("/phoneai/app", "/phoneai/os", "/phoneai/home", "/kernel", "/kernel/os"):
             from pocket.phoneai_os_ui import phoneai_os_html
 
             return self._html(phoneai_os_html())
+        if path in ("/phoneai/runtime", "/runtime"):
+            from pocket.phoneai_landing import runtime_html as phoneai_runtime_html
+
+            return self._html(phoneai_runtime_html())
         if path in ("/tech", "/tech/", "/atlas", "/technology"):
             from pocket.tech_atlas import tech_html
 
@@ -886,7 +898,7 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "name": "PhoneAI",
                     "short_name": "PhoneAI",
-                    "start_url": "/phoneai",
+                    "start_url": "/phoneai/app",
                     "display": "standalone",
                     "background_color": "#05060a",
                     "theme_color": "#05060a",
@@ -925,6 +937,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_portal_html
 
             return self._html(phoneai_portal_html())
+        if path in ("/phoneai/glasses", "/glasses", "/phoneai/hud"):
+            from pocket.phoneai_os_ui import phoneai_glasses_html
+
+            return self._html(phoneai_glasses_html())
+        if path in ("/phoneai/web", "/phoneai/live-web", "/live-web"):
+            from pocket.phoneai_os_ui import phoneai_web_html
+
+            return self._html(phoneai_web_html())
         if path in ("/v1/phoneai/portal", "/api/phoneai/portal"):
             from pocket.phoneai_portal import snapshot as portal_snap
 
@@ -1336,6 +1356,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "roots": allowed_roots(), "post": "POST command,cwd"})
         if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
             return self._json(200, {"ok": True, "product": "POCKET work harness", "post": "POST goal,shell,cwd,engine"})
+        if path in ("/v1/phoneai/voice-screen", "/api/phoneai/voice-screen", "/v1/voice-screen"):
+            return self._json(200, {"ok": True, "product": "voice to screen", "post": "POST text,which"})
         if path in ("/v1/claims", "/v1/invention", "/claims"):
             from pathlib import Path
 
@@ -1477,6 +1499,14 @@ class Handler(BaseHTTPRequestHandler):
                     ),
                 },
             )
+        if path in ("/v1/runtime", "/api/runtime", "/v1/host", "/v1/runtime/status"):
+            from pocket.host_runtime import status as runtime_status
+
+            return self._json(200, runtime_status())
+        if path in ("/v1/setup", "/api/setup"):
+            from pocket.host_runtime import setup_snapshot
+
+            return self._json(200, setup_snapshot())
         if path in ("/v1/runtime/heartbeat", "/v1/heartbeat"):
             # module-level Path/time only — local pathlib import shadows Path for all of do_GET
             hf = Path.home() / ".pocket" / "runtime_heartbeat.json"
@@ -4010,6 +4040,34 @@ class Handler(BaseHTTPRequestHandler):
                     cwd=str(body.get("cwd") or ""),
                 ),
             )
+        if path in ("/v1/phoneai/voice-screen", "/api/phoneai/voice-screen", "/v1/voice-screen"):
+            from pocket.voice_screen import act as voice_screen_act
+
+            return self._json(
+                200,
+                voice_screen_act(
+                    str(body.get("text") or body.get("prompt") or body.get("say") or ""),
+                    which=str(body.get("which") or "portal"),
+                ),
+            )
+        if path in ("/v1/runtime/ensure", "/api/runtime/ensure", "/v1/host/ensure"):
+            from pocket.auth import is_home_lan_client
+            from pocket.host_runtime import ensure as runtime_ensure
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                who = rbac_principal(self.headers)
+                if not (who.get("user") or who.get("principal") in ("user", "api_key")):
+                    return self._json(401, {"ok": False, "error": "sign in or use LAN to bring the host up"})
+            return self._json(200, runtime_ensure(str(body.get("which") or body.get("id") or "all")))
+        if path in ("/v1/runtime/install", "/api/runtime/install", "/v1/host/install"):
+            from pocket.auth import is_home_lan_client
+            from pocket.host_runtime import install as runtime_install
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                who = rbac_principal(self.headers)
+                if not (who.get("user") or who.get("principal") in ("user", "api_key")):
+                    return self._json(401, {"ok": False, "error": "sign in or use LAN to install always-on"})
+            return self._json(200, runtime_install())
         if path in ("/v1/phoneai/anti/touch", "/api/phoneai/anti/touch"):
             from pocket.antigravity_chat import anti_touch
             from pocket.auth import is_home_lan_client
@@ -8063,6 +8121,9 @@ def main(argv: Optional[list] = None) -> None:
         "runtime-worker",
         help="Keep-alive worker: 873ms heartbeat + auto-restart serve (use with Electron)",
     )
+    e = sub.add_parser("ensure", help="Bring POCKET host + watchdog up (agents call this)")
+    e.add_argument("which", nargs="?", default="all")
+    sub.add_parser("install", help="Whole always-on install (logon task + Startup + ensure)")
     sub.add_parser("doctor", help="Product readiness report")
     sub.add_parser("desktop", help="POCKET Desktop app (native window + local host)")
     sub.add_parser("channels", help="Print product channels (Desktop vs API)")
@@ -8085,6 +8146,18 @@ def main(argv: Optional[list] = None) -> None:
         from pocket.runtime import main as runtime_main
 
         runtime_main(["--once"] if getattr(args, "once", False) else [])
+        return
+    if args.cmd == "ensure":
+        from pocket.host_runtime import ensure as runtime_ensure
+        import json as _json
+
+        print(_json.dumps(runtime_ensure(getattr(args, "which", "all") or "all"), indent=2, default=str))
+        return
+    if args.cmd == "install":
+        from pocket.host_runtime import install as runtime_install
+        import json as _json
+
+        print(_json.dumps(runtime_install(), indent=2, default=str))
         return
     if args.cmd == "doctor":
         from pocket.product import doctor

@@ -45,6 +45,7 @@ SURFACES = (
     "antigravity",
     "portal",
     "engines",
+    "runtime",
 )
 
 LIVE = {"live", "running", "listening", "primary", "ready", "online", "ok"}

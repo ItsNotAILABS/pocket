@@ -82,9 +82,12 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Code desk</span></a>
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
+    <a class="app" href="/phoneai/glasses"><div class="icon">👓</div><span>Glasses</span></a>
+    <a class="app" href="/phoneai/web"><div class="icon">🌐</div><span>Web live</span></a>
+    <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
-  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. <a href="/login">Seat</a></p>
+  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
 </section>
 
 <section class="view" id="v-chat">
@@ -215,9 +218,18 @@ async function settings(){
       +(t.optional?'<div class="form" style="border:0;padding:8px 0"><button class="go" type="button" data-cli="'+esc(t.id)+'" data-on="'+(t.enabled?0:1)+'">'+(t.enabled?'On':'Off')+'</button>'
         +(t.available?'':'<button class="go" type="button" data-inst="'+esc(t.id)+'" style="background:#222;color:#fff">Install</button>')+'</div>':'')
       +'</div>';
-  }).join('')+'<p class="more">'+esc(j.note||'')+'</p>';
+  }).join('')+'<p class="more">'+esc(j.note||'')+'</p>'
+    +'<div class="item"><b>Always-on host</b><small>Agents can bring :8787 up</small>'
+    +'<div class="form" style="border:0;padding:8px 0"><button class="go" type="button" id="rt-up">Bring up</button>'
+    +'<a class="go" href="/phoneai/runtime" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Runtime</a>'
+    +'<a class="go" href="/setup" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Setup</a></div></div>';
 }
 document.getElementById('srows').addEventListener('click', async e=>{
+  if(e.target && e.target.id==='rt-up'){
+    await fetch('/v1/runtime/ensure',{method:'POST',headers:{'Content-Type':'application/json'},body:'{"which":"all"}'});
+    settings();
+    return;
+  }
   const b=e.target.closest('[data-cli],[data-inst]'); if(!b) return;
   const id=b.getAttribute('data-cli')||b.getAttribute('data-inst');
   const body=b.hasAttribute('data-inst')?{id,install:true}:{id,enabled:b.getAttribute('data-on')==='1'};
@@ -568,9 +580,19 @@ document.getElementById('mode').onclick=e=>{
   [...document.getElementById('mode').children].forEach(x=>x.classList.toggle('on',x===b));
   hint.textContent=mode==='touch'?'Touch is on. Tap and drag — you are the mouse.':'Watch only. Use the phone, not this same screen.';
 };
-function start(ev){ if(mode!=='touch') return; ev.preventDefault(); down=true; const p=norm(ev); showDot(p.cx,p.cy); send('down', p.nx, p.ny); }
-function move(ev){ if(!down||mode!=='touch') return; ev.preventDefault(); const now=Date.now(); if(now-lastDrag<50) return; lastDrag=now; const p=norm(ev); showDot(p.cx,p.cy); send('drag', p.nx, p.ny); }
-function end(ev){ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev); send('up', p.nx, p.ny); down=false; setTimeout(()=>dot.style.display='none', 250); }
+let longTimer=null, didLong=false;
+function start(ev){ if(mode!=='touch') return; ev.preventDefault(); down=true; didLong=false; const p=norm(ev); showDot(p.cx,p.cy);
+  if(ev.touches && ev.touches.length>=2){ send('scroll', p.nx, p.ny, {dy:0.2}); return; }
+  longTimer=setTimeout(()=>{ didLong=true; send('right', p.nx, p.ny); hint.textContent='Right-click'; }, 480);
+  send('down', p.nx, p.ny);
+}
+function move(ev){ if(!down||mode!=='touch') return; ev.preventDefault();
+  if(ev.touches && ev.touches.length>=2){ const p=norm(ev); send('scroll', p.nx, p.ny, {dy:0.15}); return; }
+  const now=Date.now(); if(now-lastDrag<50) return; lastDrag=now; const p=norm(ev); showDot(p.cx,p.cy); if(!didLong) send('drag', p.nx, p.ny);
+}
+function end(ev){ if(mode!=='touch') return; ev.preventDefault(); if(longTimer) clearTimeout(longTimer);
+  const p=norm(ev); if(!didLong) send('up', p.nx, p.ny); down=false; didLong=false; setTimeout(()=>dot.style.display='none', 250);
+}
 img.addEventListener('pointerdown', start, {passive:false});
 img.addEventListener('pointermove', move, {passive:false});
 img.addEventListener('pointerup', end, {passive:false});
@@ -590,6 +612,96 @@ def phoneai_portal_html() -> str:
     return PHONEAI_PORTAL_HTML
 
 
+PHONEAI_GLASSES_HTML = r"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#05060a"/>
+<title>PhoneAI Glasses</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#f4f4f5;font-family:ui-sans-serif,system-ui}
+body{display:flex;flex-direction:column}
+.top{padding:8px 12px;display:flex;gap:10px;align-items:center}
+.top a{color:#8b8b98;text-decoration:none}
+img{width:100%;flex:1;object-fit:contain;background:#000;max-height:62vh}
+.bar{display:flex;gap:8px;padding:10px}
+input,button{min-height:44px;border-radius:12px;border:0;font:inherit}
+input{flex:1;background:#14141c;color:#fff;padding:10px}
+button{background:#00ff86;color:#042;font-weight:800;padding:0 14px}
+.note{padding:0 12px 12px;color:#8b8b98;font-size:12px}
+</style></head>
+<body>
+<div class="top"><a href="/phoneai">Home</a><b>Glasses HUD</b><a href="/phoneai/portal">Portal</a></div>
+<img id="f" alt="stream" src="/v1/phoneai/portal/frame?t=1"/>
+<form class="bar" id="v"><input id="t" placeholder="Voice → screen: click File, scroll down, open github.com…"/><button>Go</button></form>
+<p class="note">Meta glasses / any HUD: open this URL in the glasses browser. Same Wi-Fi as the PC. Stream is one primary screen. Voice uses fusion + eyes.</p>
+<script>
+const img=document.getElementById('f'); let busy=false;
+function tick(){ if(document.hidden||busy){ setTimeout(tick,600); return;} busy=true; img.onload=()=>{busy=false;setTimeout(tick,900)}; img.onerror=()=>{busy=false;setTimeout(tick,1200)}; img.src='/v1/phoneai/portal/frame?t='+Date.now(); }
+tick();
+document.getElementById('v').onsubmit=async ev=>{
+  ev.preventDefault(); const t=document.getElementById('t'); const text=t.value.trim(); if(!text) return;
+  await fetch('/v1/phoneai/voice-screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  t.value='';
+};
+</script>
+</body></html>
+"""
+
+
+PHONEAI_WEB_HTML = r"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Live web · PhoneAI</title>
+<style>
+html,body{margin:0;height:100%;background:#05060a;color:#f4f4f5;font-family:ui-sans-serif,system-ui;display:flex;flex-direction:column}
+.top{padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.top a{color:#8b8b98;text-decoration:none}
+form{display:flex;gap:8px;padding:0 12px 8px}
+input,button{min-height:40px;border-radius:10px;border:0;font:inherit}
+input{flex:1;background:#14141c;color:#fff;padding:8px}
+button{background:#00ff86;color:#042;font-weight:800;padding:0 12px}
+iframe{flex:1;border:0;background:#fff;margin:0 12px 12px;border-radius:12px;min-height:50vh}
+.chips{display:flex;gap:8px;overflow:auto;padding:0 12px 8px}
+.chips button{background:#14141c;color:#fff;flex:0 0 auto}
+</style></head>
+<body>
+<div class="top"><a href="/phoneai">Home</a><b>Live web</b><a href="/phoneai/work">Desk</a></div>
+<form id="f"><input id="u" placeholder="https://… or project preview id"/><button>Show</button><button type="button" id="pc">Open on PC</button></form>
+<div class="chips" id="chips"></div>
+<iframe id="v" title="live" src="about:blank"></iframe>
+<script>
+const v=document.getElementById('v');
+function show(url){ v.src=url; }
+document.getElementById('f').onsubmit=ev=>{
+  ev.preventDefault(); let u=document.getElementById('u').value.trim(); if(!u) return;
+  if(!u.startsWith('http') && !u.startsWith('/')) u='/v1/preview/'+u;
+  show(u);
+};
+document.getElementById('pc').onclick=async()=>{
+  const u=document.getElementById('u').value.trim(); if(!u) return;
+  await fetch('/v1/phoneai/voice-screen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'open '+u})});
+};
+fetch('/v1/preview').then(r=>r.json()).then(j=>{
+  const items=j.previews||j.items||j.ids||[];
+  const chips=document.getElementById('chips');
+  chips.innerHTML=(Array.isArray(items)?items:[]).slice(0,12).map(p=>{
+    const id=p.id||p; return '<button type="button" data-id="'+id+'">'+(p.title||id)+'</button>';
+  }).join('') || '<span style="color:#8b8b98">No agent previews yet. Agents POST /v1/preview.</span>';
+  chips.onclick=e=>{ const b=e.target.closest('[data-id]'); if(!b) return; show('/v1/preview/'+b.getAttribute('data-id')); };
+}).catch(()=>{});
+</script>
+</body></html>
+"""
+
+
+def phoneai_glasses_html() -> str:
+    return PHONEAI_GLASSES_HTML
+
+
+def phoneai_web_html() -> str:
+    return PHONEAI_WEB_HTML
+
+
 def kernel_manifest() -> dict:
     from pocket.live_companion import status as live_status
     from pocket.phoneai_space import ensure_user_seat
@@ -600,6 +712,8 @@ def kernel_manifest() -> dict:
         "ok": True,
         "os": "PhoneAI Kernel",
         "version": "1.0.0",
+        "landing": "/phoneai",
+        "app": "/phoneai/app",
         "pocket": "http://127.0.0.1:8787",
         "seat": {"user": "phoneai", "ok": seat.get("ok"), "explorer": seat.get("explorer")},
         "companion": live_status(),
@@ -609,6 +723,7 @@ def kernel_manifest() -> dict:
             "Typed capabilities + NEXUS receipts",
             "POCKET Live (Gemini + atlas)",
             "Grok chat · camera · maps · notes · code desk · Antigravity",
+            "Always-on runtime — agents bring the host up",
             "MCP · Agent Mail · Novae",
         ],
     }

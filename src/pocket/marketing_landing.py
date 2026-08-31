@@ -56,6 +56,7 @@ h1{{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;margin:0 0 12px;color:v
     <h2>1 · Open in the browser</h2>
     <p>Sign in, then start a chat. This is the fastest way to try POCKET on a machine that already has it running.</p>
     <a class="btn btn-primary" href="/desk">Open the app</a>
+    <a class="btn btn-ghost" href="/signup">Create a seat</a>
     <a class="btn btn-ghost" href="/">Back to home</a>
   </div>
 
@@ -70,6 +71,13 @@ h1{{font-size:clamp(28px,4vw,40px);letter-spacing:-.04em;margin:0 0 12px;color:v
     <p>For a packaged desktop install — same workspace, same sign-in.</p>
     <a class="btn btn-primary" href="/download">Download</a>
     <a class="btn btn-ghost" href="{GITHUB}/releases" target="_blank" rel="noopener">Releases</a>
+  </div>
+
+  <div class="step" id="always">
+    <h2>4 · Keep it always on</h2>
+    <p>Install the runtime watchdog so Pocket and PhoneAI stay up. Agents can bring the host back with <code>python -m pocket ensure</code>.</p>
+    <a class="btn btn-primary" href="/setup">Full setup</a>
+    <a class="btn btn-ghost" href="/phoneai">PhoneAI website</a>
   </div>
 
   <div class="step" id="team">
@@ -329,7 +337,8 @@ a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--acce
     <p class="lead">Chat with coding agents, plan projects, and keep team workspaces on your machine — not in a black-box cloud.</p>
     <div class="cta-row">
       <a class="btn btn-primary" href="/join">Create my seat</a>
-      <a class="btn btn-ghost" href="/billing">See plans</a>
+      <a class="btn btn-ghost" href="/setup">Setup</a>
+      <a class="btn btn-ghost" href="/phoneai">PhoneAI</a>
       <a class="btn btn-ghost" href="/desk">Sign in</a>
       <a class="btn btn-ghost" href="/download">Download for Windows</a>
     </div>

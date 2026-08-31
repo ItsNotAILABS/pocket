@@ -58,6 +58,8 @@ Those six are claimed below as a system and as independent methods.
 
 **Claim 12. Agent eyes.** A method comprising: exposing the Portal primary-screen frame and the Antigravity window frame as invocable agent tools (`eyes_see`, `eyes_touch`) on the same host catalog (HTTP, WebMCP, MCP) so coding agents receive visual state and may tap without a human Screen column.
 
+**Claim 13. Voice-to-screen, glasses HUD, live web.** A method comprising: parsing a spoken or typed utterance into a screen act (named fusion click, right-click, scroll, or open-URL); serving a glasses-oriented HUD that streams the primary screen and accepts that utterance; and serving a live web view of agent HTML previews and project pages on the same host.
+
 ---
 
 ## Dependent claims (selected)

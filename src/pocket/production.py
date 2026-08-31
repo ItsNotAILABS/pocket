@@ -116,7 +116,7 @@ def checklist() -> Dict[str, Any]:
         "PA",
         "PhoneAI Portal stream",
         True,
-        "Watch+Touch · LAN touch · /phoneai/portal",
+        "Landing /phoneai · kernel /phoneai/app · Watch+Touch · LAN touch",
         "P0",
     )
     add(

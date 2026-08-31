@@ -63,6 +63,9 @@ TOOLS: List[Dict[str, Any]] = [
     {"id": "shell_exec", "name": "Shell", "category": "System", "icon": "terminal", "description": "Bounded PowerShell in Pocket/PhoneAI/sovereign workspaces.", "risk": "write", "danger": True, "confirmation_required": True, "params": [{"key": "command", "label": "Command", "type": "text", "placeholder": "python -m pytest -q"}, {"key": "cwd", "label": "Cwd", "type": "text", "placeholder": ""}]},
     {"id": "harness_run", "name": "Work harness", "category": "Agents", "icon": "git-network", "description": "Think → shell → one engine → receipt.", "risk": "write", "params": [{"key": "goal", "label": "Goal", "type": "textarea"}, {"key": "shell", "label": "Shell (optional)", "type": "text"}]},
     {"id": "eyes_see", "name": "Eyes", "category": "Vision", "icon": "eye", "description": "See Portal or Antigravity frame.", "risk": "read", "params": [{"key": "which", "label": "portal or anti", "type": "text"}]},
+    {"id": "runtime_status", "name": "Runtime status", "category": "System", "icon": "pulse", "description": "Are POCKET host and watchdog up?", "risk": "read", "params": []},
+    {"id": "runtime_ensure", "name": "Bring host up", "category": "System", "icon": "play", "description": "Start POCKET + watchdog so PhoneAI stays up.", "risk": "write", "params": [{"key": "which", "label": "all / pocket / watchdog", "type": "text"}]},
+    {"id": "runtime_install", "name": "Install always-on", "category": "System", "icon": "download", "description": "Logon task + Startup so the host comes back after login.", "risk": "write", "params": []},
 ]
 
 
@@ -315,6 +318,21 @@ def execute_local(tool_id: str, params: Dict[str, Any]) -> Tuple[str, List[str],
             engine=str(params.get("engine") or "auto"),
         )
         return ("succeeded" if data.get("ok") else "failed"), [data.get("reply") or ""], data
+    if tool_id == "runtime_status":
+        from pocket.host_runtime import status as runtime_status
+
+        data = runtime_status()
+        return "succeeded", ["up" if data.get("up") else "down"], data
+    if tool_id == "runtime_ensure":
+        from pocket.host_runtime import ensure as runtime_ensure
+
+        data = runtime_ensure(str(params.get("which") or params.get("prompt") or "all"))
+        return ("succeeded" if data.get("ok") else "failed"), ["host " + ("up" if data.get("up") else "starting")], data
+    if tool_id == "runtime_install":
+        from pocket.host_runtime import install as runtime_install
+
+        data = runtime_install()
+        return ("succeeded" if data.get("ok") else "failed"), [data.get("launcher") or ""], data
     if tool_id == "github_sync":
         from pocket.phoneai_github import push as gh_push
 

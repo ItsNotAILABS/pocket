@@ -72,7 +72,9 @@ Read [`docs/POCKET_PRODUCT_CHANNELS_V3.md`](docs/POCKET_PRODUCT_CHANNELS_V3.md).
 | Surface | Path |
 |---|---|
 | Desk | `/desk` |
-| PhoneAI | `/phoneai` · `/v1/phoneai/sessions` |
+| PhoneAI website | `/phoneai` |
+| PhoneAI kernel | `/phoneai/app` |
+| Setup / always-on | `/setup` · `python -m pocket install` |
 | Phone | `/phone` |
 | Voice Studio | `/studio/voice` |
 | Docs | `/docs` |

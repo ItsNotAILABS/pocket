@@ -296,7 +296,15 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Agent eyes portal", "eyes_see_portal", "GET /v1/eyes?which=portal", "Give agents a JPEG of the primary screen."),
         ("Agent eyes Antigravity", "eyes_see_anti", "GET /v1/eyes?which=anti", "Give agents a JPEG of the Antigravity window."),
         ("Agent eyes touch", "eyes_touch", "POST /v1/eyes/touch", "Tap/drag/type on portal or Antigravity from an agent."),
+        ("Voice to screen", "voice_screen", "POST /v1/phoneai/voice-screen", "Say click File / scroll / open URL — fusion + eyes."),
+        ("Glasses HUD", "glasses_hud", "GET /phoneai/glasses", "Meta glasses / HUD live stream + voice."),
+        ("Live web view", "live_web", "GET /phoneai/web", "Show agent previews and project pages."),
         ("Agent talk", "agent_talk", "POST /v1/phoneai/talk", "Agent mail + encrypted mesh so agents talk to each other."),
+        ("Runtime status", "runtime_status", "GET /v1/runtime", "Servers inside Pocket and PhoneAI."),
+        ("Bring host up", "runtime_ensure", "POST /v1/runtime/ensure", "Agents start pocket + watchdog themselves."),
+        ("Install always-on", "runtime_install", "POST /v1/runtime/install", "Logon task + Startup + ensure."),
+        ("PhoneAI landing", "phoneai_landing", "GET /phoneai", "Professional intro before the kernel OS."),
+        ("Setup flow", "setup_open", "GET /setup", "Account · host · always-on · open products."),
     ]
     out = []
     for name, inv, how, blurb in tools:
@@ -476,6 +484,20 @@ def use_action(name: str, *, prompt: str = "") -> Dict[str, Any]:
             from pocket.agent_runtime import create_phoneai_session
 
             return {"ok": True, "used": a, "result": create_phoneai_session(persona_id=(prompt or "researcher").split()[0], kind="both")}
+        if inv == "voice_screen":
+            from pocket.voice_screen import act as voice_screen_act
+
+            return {"ok": True, "used": a, "result": voice_screen_act(prompt or name)}
+        if inv in ("phoneai_landing", "setup_open", "glasses_hud", "live_web"):
+            return {"ok": True, "used": a, "open": a.get("url") or {"phoneai_landing": "/phoneai", "setup_open": "/setup", "glasses_hud": "/phoneai/glasses", "live_web": "/phoneai/web"}.get(inv, "/phoneai")}
+        if inv in ("runtime_status", "runtime_ensure", "runtime_install"):
+            from pocket import host_runtime as hr
+
+            if inv == "runtime_status":
+                return {"ok": True, "used": a, "result": hr.status()}
+            if inv == "runtime_install":
+                return {"ok": True, "used": a, "result": hr.install()}
+            return {"ok": True, "used": a, "result": hr.ensure(prompt or "all")}
         if inv == "agent_talk":
             from pocket.agent_runtime import talk
 

@@ -103,6 +103,13 @@ def slices_json(host_base: str = "") -> Dict[str, Any]:
                 "one_liner_sh": "curl -fsSL https://raw.githubusercontent.com/ItsNotAILABS/pocket-agent/main/install/mail.sh | sh",
                 "one_liner_ps1": "irm https://raw.githubusercontent.com/ItsNotAILABS/pocket-agent/main/install/mail.ps1 | iex",
             },
+            {
+                "id": "host",
+                "name": "Always-on host + PhoneAI",
+                "one_liner_sh": "python -m pocket install",
+                "one_liner_ps1": "python -m pocket install",
+                "for": "Watchdog, logon task, Setup /phoneai landing",
+            },
         ],
         "note": "Full slices live in pocket-agent/install when checked out beside pocket-os",
     }

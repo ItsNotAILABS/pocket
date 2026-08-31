@@ -1,4 +1,30 @@
-# How-to: One-line install slices
+# How-to: Whole installation
+
+## Always-on host (this PC)
+
+Setup UI: **http://127.0.0.1:8787/setup**  
+PhoneAI intro (tunnel this): **http://127.0.0.1:8787/phoneai**  
+Kernel: **http://127.0.0.1:8787/phoneai/app**  
+Public (named tunnel): **https://pocket.medinatechlabs.net/phoneai**
+
+```powershell
+cd OneDrive\pocket-os
+$env:PYTHONPATH = "src"
+python -m pocket install    # logon task + Startup + bring host up
+python -m pocket ensure     # agents also call this
+```
+
+Agents inside Pocket and PhoneAI:
+
+- tool `runtime_status` / `GET /v1/runtime`
+- tool `runtime_ensure` / `POST /v1/runtime/ensure`
+- tool `runtime_install` / `POST /v1/runtime/install`
+
+The HTTP product is one listener on `:8787`. PhoneAI is a surface on that host. The watchdog (`python -m pocket runtime`) restarts serve when it dies.
+
+Keep the PC awake. Sleep kills the host.
+
+## One-line install slices
 
 Hub UI: **http://127.0.0.1:8787/install**  
 Catalog: `GET /v1/install/slices` (or slices embedded in hub HTML)
