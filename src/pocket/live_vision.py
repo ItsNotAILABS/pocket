@@ -48,7 +48,7 @@ def _loop(interval: float) -> None:
 
             # Prefer full desktop so vision sees apps besides the POCKET window
             try:
-                img = ImageGrab.grab(all_screens=True)
+                img = ImageGrab.grab()
             except Exception:
                 img = ImageGrab.grab(all_screens=False)
             # scale for bandwidth

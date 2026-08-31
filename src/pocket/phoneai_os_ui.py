@@ -423,9 +423,11 @@ textarea{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
 <div class="top"><a href="/phoneai">Home</a><b style="flex:1">Antigravity</b><a href="/phoneai/portal">Portal</a></div>
 <div class="now" id="now"><b>Antigravity desktop app</b>Named threads, send, continue. The PC stream is Portal — a separate first-class surface.</div>
 <div class="chips" id="chips"></div>
-<div class="view"><img id="frame" alt="Antigravity" src="/v1/phoneai/anti/frame?t=1"/></div>
+<div class="view" id="win" style="min-height:120px;margin:0 12px 8px;padding:12px;border-radius:14px;border:1px solid var(--line);background:#0c0c0e;color:#a1a1aa;font-size:13px">Antigravity is a desktop app on this PC. Named threads load below. Live window is optional — tap Watch window after the app is open.</div>
+<img id="frame" alt="" style="display:none;width:calc(100% - 24px);margin:0 12px 8px;border-radius:14px;background:#000"/>
 <div class="row">
   <button type="button" id="o">Open app</button>
+  <button type="button" id="w">Watch window</button>
   <button type="button" id="n">New chat</button>
   <button type="button" id="c" class="g">Continue</button>
 </div>
@@ -447,17 +449,18 @@ function paint(j){
   chips.innerHTML=th.map(t=>'<button type="button" data-id="'+t.id+'">'+(t.title||t.app||t.id).slice(0,42)+'</button>').join('');
 }
 fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{ now.innerHTML='<b>Host unreachable</b>'; });
-let antiBusy=false;
+let watching=false, antiBusy=false;
 function antiFrame(){
-  if(document.hidden || antiBusy){ setTimeout(antiFrame, 800); return; }
+  if(!watching || document.hidden || antiBusy){ if(watching) setTimeout(antiFrame, 1200); return; }
   antiBusy=true;
-  frame.onload=()=>{ antiBusy=false; setTimeout(antiFrame, 1600); };
-  frame.onerror=()=>{ antiBusy=false; setTimeout(antiFrame, 2000); };
+  frame.style.display='block';
+  frame.onload=()=>{ antiBusy=false; setTimeout(antiFrame, 1800); };
+  frame.onerror=()=>{ antiBusy=false; watching=false; document.getElementById('win').textContent='Window not visible. Open Antigravity on the PC, then Watch window.'; setTimeout(antiFrame, 4000); };
   frame.src='/v1/phoneai/anti/frame?t='+Date.now();
 }
-antiFrame();
 setInterval(()=>{ if(!document.hidden) fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{}); }, 12000);
 document.getElementById('o').onclick=()=>anti('open','');
+document.getElementById('w').onclick=()=>{ watching=true; antiFrame(); };
 document.getElementById('n').onclick=async()=>{ paint(await anti('new','')); };
 document.getElementById('c').onclick=async()=>{ paint(await anti('continue','')); };
 document.getElementById('f').onsubmit=async ev=>{

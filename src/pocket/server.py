@@ -960,7 +960,14 @@ class Handler(BaseHTTPRequestHandler):
 
             data = live_frame_jpeg()
             if not data:
-                return self._json(503, {"ok": False, "error": "Antigravity window not visible — open it on this PC"})
+                # Tiny JPEG so the page does not look "down" when the desktop app is closed.
+                data = bytes(
+                    b"\xff\xd8\xff\xdb\x00C\x00"
+                    + b"\x08" * 64
+                    + b"\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00"
+                    + b"\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08"
+                    + b"\xff\xda\x00\x08\x01\x01\x00\x00?\x00T\xff\xd9"
+                )
             self.send_response(200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Content-Length", str(len(data)))

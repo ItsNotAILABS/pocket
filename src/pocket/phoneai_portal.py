@@ -5,10 +5,12 @@ from __future__ import annotations
 import io
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutTimeout
 from typing import Any, Dict, Optional, Tuple
 
 _grab_lock = threading.Lock()
 _last_jpeg: Dict[str, Any] = {"t": 0.0, "key": "", "data": b"", "meta": {}}
+_ex = ThreadPoolExecutor(max_workers=1, thread_name_prefix="portal-grab")
 
 # SM_XVIRTUALSCREEN … SM_CYVIRTUALSCREEN
 _SM_X = 76
@@ -71,34 +73,73 @@ def geom(target: str = "desktop") -> Dict[str, Any]:
     return {"ok": True, "target": "desktop", "hwnd": 0, "title": "desktop", **vs}
 
 
-def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
-    """One grab at a time. Reuse a frame for 300ms so clients cannot flood the host."""
+def _placeholder(msg: str = "Portal") -> bytes:
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGB", (960, 540), (8, 10, 18))
+    d = ImageDraw.Draw(img)
+    d.rectangle([40, 40, 920, 500], outline=(0, 255, 134), width=2)
+    d.text((60, 240), msg[:80], fill=(244, 244, 245))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=70)
+    return buf.getvalue()
+
+
+def _capture_primary():
     from PIL import ImageGrab
 
+    return ImageGrab.grab()
+
+
+def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
+    """Primary-monitor JPEG. Never block the host on all-screens grab."""
     key = f"{target}:{max_w}"
     now = time.time()
     with _grab_lock:
-        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.3 and _last_jpeg.get("data"):
+        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.35 and _last_jpeg.get("data"):
             return _last_jpeg["data"], _last_jpeg["meta"]
-        g = geom(target)
-        x, y, w, h = int(g["x"]), int(g["y"]), int(g["w"]), int(g["h"])
-        if w < 40 or h < 40:
-            vs = virtual_screen()
-            x, y, w, h = vs["x"], vs["y"], vs["w"], vs["h"]
-            g = {"ok": True, "target": "desktop", **vs}
-        img = ImageGrab.grab(bbox=(x, y, x + w, y + h), all_screens=True)
-        img = img.convert("RGB")
-        if img.width > max_w:
-            ratio = max_w / float(img.width)
-            img = img.resize((max_w, max(1, int(img.height * ratio))))
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=48)
-        g["frame_w"] = img.width
-        g["frame_h"] = img.height
-        g["bytes"] = buf.tell()
-        data = buf.getvalue()
+    g = {"ok": True, "target": "desktop"}
+    try:
+        vs = virtual_screen()
+        g.update(vs)
+    except Exception:
+        g.update({"x": 0, "y": 0, "w": 1920, "h": 1080})
+    img = None
+    try:
+        from pocket.live_vision import FRAME_PATH, ensure_vision
+
+        ensure_vision(interval=0.9)
+        if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
+            data = FRAME_PATH.read_bytes()
+            if len(data) > 800:
+                meta = {**g, "via": "live_vision", "bytes": len(data)}
+                with _grab_lock:
+                    _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
+                return data, meta
+    except Exception:
+        pass
+    try:
+        img = _ex.submit(_capture_primary).result(timeout=1.6)
+    except (FutTimeout, Exception):
+        img = None
+    if img is None:
+        data = _last_jpeg.get("data") or _placeholder("Waiting for desktop frame…")
+        meta = {**g, "via": "placeholder", "bytes": len(data)}
+        return data, meta
+    img = img.convert("RGB")
+    if img.width > max_w:
+        ratio = max_w / float(img.width)
+        img = img.resize((max_w, max(1, int(img.height * ratio))))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=55)
+    data = buf.getvalue()
+    g["frame_w"] = img.width
+    g["frame_h"] = img.height
+    g["bytes"] = len(data)
+    g["via"] = "primary"
+    with _grab_lock:
         _last_jpeg.update({"t": now, "key": key, "data": data, "meta": g})
-        return data, g
+    return data, g
 
 
 def map_touch(nx: float, ny: float, *, target: str = "desktop") -> Dict[str, int]:

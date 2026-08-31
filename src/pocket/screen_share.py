@@ -369,11 +369,11 @@ def _grab_window_image(hwnd: int = 0, title_substr: str = ""):
         return None, hwnd
     try:
         # all_screens=True required for multi-monitor window coords
-        img = ImageGrab.grab(bbox=(x0, y0, x1, y1), all_screens=True)
+        img = ImageGrab.grab(bbox=(x0, y0, x1, y1))
         return img, hwnd
     except Exception:
         try:
-            img = ImageGrab.grab(bbox=(x0, y0, x1, y1))
+            img = ImageGrab.grab(bbox=(x0, y0, x1, y1), all_screens=True)
             return img, hwnd
         except Exception:
             return None, hwnd
