@@ -31,15 +31,28 @@ def see(*, which: str = "portal") -> Dict[str, Any]:
     }
 
 
-def act(kind: str = "tap", *, which: str = "portal", nx: float = 0.5, ny: float = 0.5, text: str = "") -> Dict[str, Any]:
+def act(
+    kind: str = "tap",
+    *,
+    which: str = "portal",
+    nx: float = 0.5,
+    ny: float = 0.5,
+    text: str = "",
+    dx: float = 0.0,
+    dy: float = 0.0,
+    button: str = "left",
+    vk: int = 0,
+    n: int = 1,
+) -> Dict[str, Any]:
     w = (which or "portal").lower()
+    kwargs = dict(nx=nx, ny=ny, text=text, dx=dx, dy=dy, button=button, vk=vk, n=n)
     if w in ("anti", "antigravity", "agy"):
         from pocket.antigravity_chat import anti_touch
 
-        return anti_touch(kind, nx=nx, ny=ny, text=text)
+        return anti_touch(kind, **kwargs)
     from pocket.phoneai_portal import touch as portal_touch
 
-    return portal_touch(kind, nx=nx, ny=ny, text=text, target="desktop")
+    return portal_touch(kind, target="desktop", **kwargs)
 
 
 def catalog() -> Dict[str, Any]:

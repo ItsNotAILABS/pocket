@@ -4086,7 +4086,11 @@ class Handler(BaseHTTPRequestHandler):
                     nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
                     ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
                     dy=float(body.get("dy") or 0),
+                    dx=float(body.get("dx") or 0),
                     text=str(body.get("text") or ""),
+                    button=str(body.get("button") or "left"),
+                    vk=int(body.get("vk") or 0),
+                    n=int(body.get("n") or 1),
                 ),
             )
         if path in ("/v1/eyes/touch", "/api/eyes/touch"):
@@ -4123,8 +4127,12 @@ class Handler(BaseHTTPRequestHandler):
                     nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
                     ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
                     dy=float(body.get("dy") or 0),
+                    dx=float(body.get("dx") or 0),
                     text=str(body.get("text") or ""),
                     target="desktop",
+                    button=str(body.get("button") or "left"),
+                    vk=int(body.get("vk") or 0),
+                    n=int(body.get("n") or 1),
                 ),
             )
 

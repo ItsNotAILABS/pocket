@@ -200,14 +200,36 @@ def live_frame_jpeg() -> bytes:
     return data or b""
 
 
-def anti_touch(kind: str = "tap", *, nx: float = 0.5, ny: float = 0.5, dy: float = 0.0, text: str = "") -> Dict[str, Any]:
+def anti_touch(
+    kind: str = "tap",
+    *,
+    nx: float = 0.5,
+    ny: float = 0.5,
+    dy: float = 0.0,
+    dx: float = 0.0,
+    text: str = "",
+    button: str = "left",
+    vk: int = 0,
+    n: int = 1,
+) -> Dict[str, Any]:
     """Touch maps onto the Antigravity window rectangle."""
     from pocket.phoneai_portal import touch as portal_touch
     from pocket.ui_maneuver import focus_window_title
 
-    if kind in ("tap", "down", "click", "type"):
+    if kind in ("tap", "down", "click", "type", "key", "left", "right"):
         focus_window_title("Antigravity")
-    return portal_touch(kind, nx=nx, ny=ny, dy=dy, text=text, target="antigravity")
+    return portal_touch(
+        kind,
+        nx=nx,
+        ny=ny,
+        dy=dy,
+        dx=dx,
+        text=text,
+        target="antigravity",
+        button=button,
+        vk=vk,
+        n=n,
+    )
 
 
 def handle(action: str, text: str = "", *, cwd: str = "") -> Dict[str, Any]:

@@ -16,7 +16,7 @@ LIMITS = {
     "register": (600, 10),    # 10 register / 10 min / IP
     "api": (60, 120),         # 120 API calls / min / key-or-ip
     "api_heavy": (60, 20),    # 20 heavy agent runs / min
-    "portal_touch": (1, 40),  # 40 touches / second / IP (drag)
+    "portal_touch": (1, 80),  # 80 / sec — drag, joystick, live keys
     "portal_frame": (1, 8),   # 8 unique grabs / second / IP (cache still coalesces)
 }
 

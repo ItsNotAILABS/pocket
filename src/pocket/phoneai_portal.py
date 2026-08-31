@@ -255,6 +255,26 @@ def map_touch(nx: float, ny: float, *, target: str = "desktop") -> Dict[str, int
     return {"x": x, "y": y, "target": g.get("target") or target, "hwnd": int(g.get("hwnd") or 0)}
 
 
+_held = {"left": False, "right": False}
+
+MOUSEEVENTF_MOVE = 0x0001
+MOUSEEVENTF_LEFTDOWN = 0x0002
+MOUSEEVENTF_LEFTUP = 0x0004
+MOUSEEVENTF_RIGHTDOWN = 0x0008
+MOUSEEVENTF_RIGHTUP = 0x0010
+MOUSEEVENTF_WHEEL = 0x0800
+VK_BACK = 0x08
+VK_TAB = 0x09
+VK_RETURN = 0x0D
+VK_SHIFT = 0x10
+VK_ESCAPE = 0x1B
+VK_LEFT = 0x25
+VK_UP = 0x26
+VK_RIGHT = 0x27
+VK_DOWN = 0x28
+VK_DELETE = 0x2E
+
+
 def _mouse(flags: int, dx: int = 0, dy: int = 0, data: int = 0) -> None:
     _user32().mouse_event(int(flags), int(dx), int(dy), int(data), 0)
 
@@ -263,65 +283,170 @@ def _move(x: int, y: int) -> None:
     _user32().SetCursorPos(int(x), int(y))
 
 
+def _cursor() -> Tuple[int, int]:
+    import ctypes
+    from ctypes import wintypes
+
+    pt = wintypes.POINT()
+    _user32().GetCursorPos(ctypes.byref(pt))
+    return int(pt.x), int(pt.y)
+
+
+def _btn(side: str, down: bool) -> None:
+    right = (side or "left").lower() in ("right", "r", "2")
+    key = "right" if right else "left"
+    if down and not _held[key]:
+        _mouse(MOUSEEVENTF_RIGHTDOWN if right else MOUSEEVENTF_LEFTDOWN)
+        _held[key] = True
+    elif (not down) and _held[key]:
+        _mouse(MOUSEEVENTF_RIGHTUP if right else MOUSEEVENTF_LEFTUP)
+        _held[key] = False
+
+
+def _click(side: str = "left") -> None:
+    right = (side or "left").lower() in ("right", "r", "2")
+    if right:
+        _mouse(MOUSEEVENTF_RIGHTDOWN)
+        time.sleep(0.03)
+        _mouse(MOUSEEVENTF_RIGHTUP)
+        _held["right"] = False
+    else:
+        _mouse(MOUSEEVENTF_LEFTDOWN)
+        time.sleep(0.03)
+        _mouse(MOUSEEVENTF_LEFTUP)
+        _held["left"] = False
+
+
+def _vk(code: int, *, times: int = 1) -> None:
+    u = _user32()
+    n = max(1, min(int(times or 1), 40))
+    for _ in range(n):
+        u.keybd_event(int(code) & 0xFF, 0, 0, 0)
+        u.keybd_event(int(code) & 0xFF, 0, 2, 0)
+
+
+def _type_live(text: str) -> None:
+    """Type onto the focused PC window. No clipboard — phone and PC stay entangled."""
+    import ctypes
+    from ctypes import wintypes
+
+    u = _user32()
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = (
+            ("wVk", wintypes.WORD),
+            ("wScan", wintypes.WORD),
+            ("dwFlags", wintypes.DWORD),
+            ("time", wintypes.DWORD),
+            ("dwExtraInfo", ctypes.c_void_p),
+        )
+
+    class MOUSEINPUT(ctypes.Structure):
+        _fields_ = (
+            ("dx", wintypes.LONG),
+            ("dy", wintypes.LONG),
+            ("mouseData", wintypes.DWORD),
+            ("dwFlags", wintypes.DWORD),
+            ("time", wintypes.DWORD),
+            ("dwExtraInfo", ctypes.c_void_p),
+        )
+
+    class _INPUTunion(ctypes.Union):
+        _fields_ = (("mi", MOUSEINPUT), ("ki", KEYBDINPUT))
+
+    class INPUT(ctypes.Structure):
+        _fields_ = (("type", wintypes.DWORD), ("union", _INPUTunion))
+
+    KEYEVENTF_UNICODE = 0x0004
+    KEYEVENTF_KEYUP = 0x0002
+    for ch in (text or "")[:80]:
+        if ch in ("\n", "\r"):
+            _vk(VK_RETURN)
+            continue
+        if ch == "\b":
+            _vk(VK_BACK)
+            continue
+        if ch == "\t":
+            _vk(VK_TAB)
+            continue
+        code = ord(ch)
+        down = INPUT()
+        down.type = 1
+        down.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE, 0, None)
+        up = INPUT()
+        up.type = 1
+        up.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, None)
+        arr = (INPUT * 2)(down, up)
+        u.SendInput(2, ctypes.byref(arr), ctypes.sizeof(INPUT))
+
+
 def touch(
     kind: str = "tap",
     *,
     nx: float = 0.5,
     ny: float = 0.5,
     dy: float = 0.0,
+    dx: float = 0.0,
     text: str = "",
     target: str = "desktop",
+    button: str = "left",
+    vk: int = 0,
+    n: int = 1,
 ) -> Dict[str, Any]:
-    """Phone touch → real mouse/keyboard on this PC."""
+    """Phone touch → real mouse/keyboard on this PC.
+
+    Phone zoom is view-only (CSS on the handset). These events always hit
+    the unzoomed desktop at nx,ny in 0..1 of the primary screen / window.
+    """
     kind = (kind or "tap").lower().strip()
+    side = (button or "left").lower()
     pt = map_touch(nx, ny, target=target)
     x, y = pt["x"], pt["y"]
     t0 = time.time()
     try:
-        if kind in ("move", "hover"):
+        if kind in ("joy", "nudge", "stick"):
+            cx, cy = _cursor()
+            _move(cx + int(dx), cy + int(dy))
+        elif kind in ("move", "hover"):
             _move(x, y)
         elif kind in ("down", "pen_down"):
             _move(x, y)
-            _mouse(0x0002)
+            _btn(side, True)
         elif kind in ("up", "pen_up"):
             _move(x, y)
-            _mouse(0x0004)
+            _btn(side, False)
         elif kind in ("drag",):
             _move(x, y)
-        elif kind in ("tap", "click"):
+            if not _held["left"] and not _held["right"]:
+                _btn(side, True)
+        elif kind in ("tap", "click", "left"):
             _move(x, y)
-            _mouse(0x0002)
-            time.sleep(0.03)
-            _mouse(0x0004)
+            _click("left")
         elif kind in ("dbl", "double"):
             _move(x, y)
-            for _ in range(2):
-                _mouse(0x0002)
-                time.sleep(0.03)
-                _mouse(0x0004)
-                time.sleep(0.05)
+            _click("left")
+            time.sleep(0.05)
+            _click("left")
         elif kind in ("right", "rclick"):
             _move(x, y)
-            _mouse(0x0008)
-            time.sleep(0.03)
-            _mouse(0x0010)
+            _click("right")
         elif kind in ("scroll", "wheel"):
             _move(x, y)
             delta = int(-120 if dy >= 0 else 120)
             if abs(dy) > 0.08:
                 delta = int(-120 * max(-4, min(4, round(dy * 6))))
-            _mouse(0x0800, 0, 0, delta)
+            _mouse(MOUSEEVENTF_WHEEL, 0, 0, delta)
+        elif kind in ("key", "keys"):
+            code = int(vk or 0)
+            if code:
+                _vk(code, times=n)
+            elif text:
+                _type_live(text)
         elif kind in ("type", "text") and text:
-            from pocket.ui_maneuver import type_text
-
-            _move(x, y)
-            type_text(text[:400])
+            _type_live(text[:400])
         else:
             _move(x, y)
-            _mouse(0x0002)
-            time.sleep(0.03)
-            _mouse(0x0004)
-        return {"ok": True, "kind": kind, **pt, "ms": int((time.time() - t0) * 1000)}
+            _click("left")
+        return {"ok": True, "kind": kind, "held": dict(_held), **pt, "ms": int((time.time() - t0) * 1000)}
     except Exception as e:
         return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
 
@@ -336,6 +461,8 @@ def snapshot() -> Dict[str, Any]:
         "first_class": True,
         "separate_from": "antigravity",
         "modes": ["watch", "touch"],
+        "phone_zoom": "view-only — PC zoom never changes",
+        "controls": ["tap", "right", "drag", "joystick", "live-type"],
         "targets": ["desktop"],
         "geom": {"ok": True, "target": "desktop", **vs},
         "watch": "/phoneai/portal",
