@@ -1315,6 +1315,12 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.engines import catalog as engines_catalog
 
             return self._json(200, engines_catalog())
+        if path in ("/v1/phoneai/shell", "/api/phoneai/shell", "/v1/shell"):
+            from pocket.shell_exec import allowed_roots
+
+            return self._json(200, {"ok": True, "roots": allowed_roots(), "post": "POST command,cwd"})
+        if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
+            return self._json(200, {"ok": True, "product": "POCKET work harness", "post": "POST goal,shell,cwd,engine"})
         if path in ("/v1/claims", "/v1/invention", "/claims"):
             from pathlib import Path
 
@@ -3955,6 +3961,40 @@ class Handler(BaseHTTPRequestHandler):
             if str(body.get("action") or "") in ("status", "snap", ""):
                 return self._json(200, gh_snap())
             return self._json(200, gh_push(message=str(body.get("message") or "phoneai")))
+        if path in ("/v1/phoneai/shell", "/api/phoneai/shell", "/v1/shell"):
+            from pocket.ratelimit import hit as rl_hit
+            from pocket.shell_exec import run as sh_run
+
+            ip = self._client_ip()
+            ok_rl, reason = rl_hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            return self._json(
+                200,
+                sh_run(
+                    str(body.get("command") or body.get("cmd") or body.get("shell") or ""),
+                    cwd=str(body.get("cwd") or ""),
+                    timeout=float(body.get("timeout") or 25),
+                    allow_destructive=bool(body.get("allow_destructive")),
+                ),
+            )
+        if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
+            from pocket.ratelimit import hit as rl_hit
+            from pocket.work_harness import run as harness_run
+
+            ip = self._client_ip()
+            ok_rl, reason = rl_hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            return self._json(
+                200,
+                harness_run(
+                    str(body.get("goal") or body.get("text") or body.get("prompt") or ""),
+                    engine=str(body.get("engine") or "auto"),
+                    shell=str(body.get("shell") or body.get("command") or ""),
+                    cwd=str(body.get("cwd") or ""),
+                ),
+            )
         if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
             from pocket.auth import is_home_lan_client
             from pocket.phoneai_portal import touch as portal_touch

@@ -291,6 +291,8 @@ def _from_work() -> List[Dict[str, Any]]:
         ("New PhoneAI session", "session_new", "POST /v1/phoneai/sessions", "Mint a Pocket or PhoneAI session from a persona."),
         ("Engine catalog", "engines_list", "GET /v1/engines", "Live CLIs + internal models on this PC."),
         ("Portal stream", "portal_open", "GET /phoneai/portal", "First-class Watch/Touch of the real desktop."),
+        ("Bounded shell", "shell_exec", "POST /v1/phoneai/shell", "PowerShell in Pocket/PhoneAI/sovereign workspaces."),
+        ("Work harness", "harness_run", "POST /v1/phoneai/harness", "Think → shell → one engine → receipt."),
         ("Agent talk", "agent_talk", "POST /v1/phoneai/talk", "Agent mail + encrypted mesh so agents talk to each other."),
     ]
     out = []

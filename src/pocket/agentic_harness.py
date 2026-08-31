@@ -31,7 +31,8 @@ _pool = ThreadPoolExecutor(max_workers=6, thread_name_prefix="pocket-sub")
 # hardware → local → browser → cloud → preview (see work_surface.hierarchy)
 AUTO_RULES: List[Tuple[re.Pattern, List[str]]] = [
     # Local code
-    (re.compile(r"\b(test|pytest|unit test|coverage)\b", re.I), ["FORGE_HEADLESS"]),
+    (re.compile(r"\b(test|pytest|unit test|coverage|shell|powershell)\b", re.I), ["FORGE_HEADLESS"]),
+    (re.compile(r"\b(sovereign|forge os|sovereign_forge)\b", re.I), ["FORGE_HEADLESS", "SHIP_HEADLESS"]),
     (re.compile(r"\b(security|auth|owasp|xss|csrf|threat)\b", re.I), ["SENTINEL_HEADLESS"]),
     (re.compile(r"\b(research|benchmark|compare|paper)\b", re.I), ["RESEARCH_HEADLESS"]),
     (re.compile(r"\b(ship|release|demo|launch|beta)\b", re.I), ["SHIP_HEADLESS"]),

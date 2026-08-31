@@ -60,6 +60,8 @@ TOOLS: List[Dict[str, Any]] = [
     {"id": "webmcp_list", "name": "WebMCP list", "category": "WebMCP", "icon": "list", "description": "Read the action catalog.", "risk": "read", "params": [{"key": "q", "label": "Filter", "type": "text"}]},
     {"id": "github_sync", "name": "GitHub sync", "category": "VCS", "icon": "cloud-upload", "description": "Commit PhoneAI vault and push to GitHub like Pocket.", "risk": "write", "params": [{"key": "message", "label": "Message", "type": "text", "placeholder": "phoneai"}]},
     {"id": "github_status", "name": "GitHub status", "category": "VCS", "icon": "logo-github", "description": "Where PhoneAI writes on GitHub.", "risk": "read", "params": []},
+    {"id": "shell_exec", "name": "Shell", "category": "System", "icon": "terminal", "description": "Bounded PowerShell in Pocket/PhoneAI/sovereign workspaces.", "risk": "write", "danger": True, "confirmation_required": True, "params": [{"key": "command", "label": "Command", "type": "text", "placeholder": "python -m pytest -q"}, {"key": "cwd", "label": "Cwd", "type": "text", "placeholder": ""}]},
+    {"id": "harness_run", "name": "Work harness", "category": "Agents", "icon": "git-network", "description": "Think → shell → one engine → receipt.", "risk": "write", "params": [{"key": "goal", "label": "Goal", "type": "textarea"}, {"key": "shell", "label": "Shell (optional)", "type": "text"}]},
 ]
 
 
@@ -291,6 +293,21 @@ def execute_local(tool_id: str, params: Dict[str, Any]) -> Tuple[str, List[str],
 
         data = gh_snap()
         return "succeeded", [data.get("url") or ""], data
+    if tool_id == "shell_exec":
+        from pocket.shell_exec import run as sh_run
+
+        data = sh_run(str(params.get("command") or params.get("prompt") or ""), cwd=str(params.get("cwd") or ""))
+        return ("succeeded" if data.get("ok") else "failed"), [(data.get("stdout") or data.get("error") or "")[:200]], data
+    if tool_id == "harness_run":
+        from pocket.work_harness import run as harness_run
+
+        data = harness_run(
+            str(params.get("goal") or params.get("prompt") or ""),
+            shell=str(params.get("shell") or ""),
+            cwd=str(params.get("cwd") or ""),
+            engine=str(params.get("engine") or "auto"),
+        )
+        return ("succeeded" if data.get("ok") else "failed"), [data.get("reply") or ""], data
     if tool_id == "github_sync":
         from pocket.phoneai_github import push as gh_push
 

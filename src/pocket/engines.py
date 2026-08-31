@@ -47,7 +47,22 @@ def catalog() -> Dict[str, Any]:
         {"id": "antigravity", "label": "Antigravity app", "kind": "surface", "available": True, "path": "/phoneai/anti"},
         {"id": "imagine", "label": "Imagine", "kind": "surface", "available": True, "path": "/imagine"},
         {"id": "life", "label": "Phone life", "kind": "surface", "available": True, "path": "/phoneai"},
+        {"id": "harness", "label": "Work harness", "kind": "surface", "available": True, "path": "/v1/phoneai/harness"},
+        {"id": "shell", "label": "Bounded shell", "kind": "surface", "available": True, "path": "/v1/phoneai/shell"},
     ]
+    from pathlib import Path
+
+    forge = Path.home() / "OneDrive" / "sovereign_forge_os"
+    if forge.is_dir():
+        surfaces.append(
+            {
+                "id": "sovereign_forge",
+                "label": "Sovereign Forge OS",
+                "kind": "repo",
+                "available": True,
+                "path": str(forge),
+            }
+        )
 
     ready = [c["id"] for c in clis if c.get("available")] + [i["id"] for i in internals if i.get("available")]
     return {

@@ -275,6 +275,10 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
   <textarea id="t" placeholder="Work from the phone…" rows="1"></textarea>
   <button type="submit">Send</button>
 </form>
+<form class="form" id="sh" style="border-top:0">
+  <input id="sc" placeholder="Shell (pytest, python, git)…" style="flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit"/>
+  <button type="submit" style="background:#222;color:#fff">Harness</button>
+</form>
 <script>
 let engine='grok';
 let threadId='';
@@ -325,6 +329,20 @@ function add(who, text, eng){
   log.appendChild(d); log.scrollTop=log.scrollHeight;
   return d;
 }
+document.getElementById('sh').onsubmit=async ev=>{
+  ev.preventDefault();
+  const cmd=document.getElementById('sc').value.trim();
+  const text=(document.getElementById('t').value||'').trim();
+  if(!cmd && !text) return;
+  add('me', (cmd?('$ '+cmd+'\n'):'')+text, 'harness');
+  add('bot','Harness…', 'harness');
+  try{
+    const j=await fetch('/v1/phoneai/harness',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:text||cmd,shell:cmd,engine})}).then(r=>r.json());
+    log.lastChild.remove();
+    const out=(j.reply||(j.shell&&j.shell.stdout)||j.error||'done');
+    add('bot', out, (j.engine&&j.engine.engine)||'harness');
+  }catch(e){ log.lastChild.remove(); add('bot','Harness unreachable','err'); }
+};
 document.getElementById('f').onsubmit=async ev=>{
   ev.preventDefault();
   const t=document.getElementById('t');
