@@ -538,8 +538,8 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden;touch-action:none}
-body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);touch-action:manipulation}
 .top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#05060a;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .top a{color:var(--muted);text-decoration:none;font-size:13px}
 .top b{flex:1}
@@ -547,31 +547,27 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
 .seg button.on{background:var(--g);color:#042}
 .stage{flex:1;position:relative;background:#000;min-height:0;overflow:hidden;touch-action:none}
-.view{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:0 0;will-change:transform}
+.view{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:0 0}
 .view img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none;-webkit-user-drag:none}
-.dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4}
-.joy{position:absolute;left:10px;bottom:10px;width:92px;height:92px;border-radius:50%;border:1px solid var(--line);background:rgba(8,10,18,.62);z-index:6;touch-action:none}
-.knob{position:absolute;left:50%;top:50%;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;background:var(--g);pointer-events:none}
-.btns{position:absolute;right:10px;bottom:10px;display:flex;flex-direction:column;gap:8px;z-index:6}
-.btns button{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(20,20,28,.85);color:#fff;font-weight:800}
-.btns button.held{background:var(--g);color:#042}
-.bar{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
-.bar input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
+.dot{position:absolute;width:28px;height:28px;border-radius:50%;border:3px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 6px rgba(0,255,134,.18)}
+.bar,.ctrl{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
+.ctrl{display:grid;grid-template-columns:repeat(4,1fr)}
+.ctrl button{min-height:52px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:15px}
+.ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
+.bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
-.hint{position:absolute;left:108px;right:68px;bottom:12px;font-size:11px;color:#a1a1aa;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:8px;pointer-events:none;z-index:5}
+.hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.6);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
 .tabs,.apps{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
-.tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:7px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
-.apps button{background:#101018}
-.btns button.sc{font-size:16px;line-height:1}
 </style></head>
 <body>
 <div class="top">
   <a href="/phoneai/app">Home</a>
   <b>Portal</b>
   <div class="seg" id="mode">
-    <button type="button" data-m="watch" class="on">Watch</button>
-    <button type="button" data-m="touch">Touch</button>
+    <button type="button" data-m="watch">Watch</button>
+    <button type="button" data-m="touch" class="on">Touch</button>
   </div>
 </div>
 <div class="tabs" id="tabs"></div>
@@ -581,23 +577,22 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
     <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
   </div>
   <div class="dot" id="dot"></div>
-  <div class="joy" id="joy"><div class="knob" id="knob"></div></div>
-  <div class="btns">
-    <button type="button" id="lmb">L</button>
-    <button type="button" id="rmb">R</button>
-    <button type="button" class="sc" id="sup">▲</button>
-    <button type="button" class="sc" id="sdn">▼</button>
-  </div>
-  <div class="hint" id="hint">Two-finger scroll moves the PC. Tabs = live windows. App buttons open desktop apps.</div>
+  <div class="hint" id="hint">Press a spot on the screen, then use L · R · ▲ · ▼. Double-press or hold to arm that spot for scroll.</div>
+</div>
+<div class="ctrl">
+  <button type="button" id="lmb">L click</button>
+  <button type="button" id="rmb">R click</button>
+  <button type="button" id="sup">Scroll ▲</button>
+  <button type="button" id="sdn">Scroll ▼</button>
 </div>
 <form class="bar" id="kb">
-  <input id="keys" placeholder="Tap a field, then type here — live on the PC" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter"/>
+  <input id="keys" placeholder="Tap a field on the PC, then type here" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text"/>
   <button>Enter</button>
 </form>
 <script>
-let mode='watch', target='desktop', busy=false;
+let mode='touch', target='desktop', busy=false;
 let zoom=1, panX=0, panY=0;
-let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='';
+let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0;
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -620,13 +615,17 @@ function ptFrom(src){
   return {nx, ny, cx:src.clientX, cy:src.clientY};
 }
 function showDot(cx,cy){ const s=stage.getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
+function aim(p, why){
+  armed=true; lastNx=p.nx; lastNy=p.ny; showDot(p.cx||p.x, p.cy||p.y);
+  hint.textContent=(why||'Armed')+' — L / R / Scroll act here';
+}
 function send(kind, nx, ny, extra){
-  if(mode!=='touch' && kind!=='type' && kind!=='key' && kind!=='focus' && kind!=='open') return;
-  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))})
+  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra||{}))})
     .then(r=>r.json()).then(j=>{
       if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
       if(kind==='focus' || (j && j.focus && j.focus.main)) loadWins();
-    }).catch(()=>{});
+      if(j && j.ok===false && j.error) hint.textContent=j.error;
+    }).catch(()=>{ hint.textContent='Touch failed — same Wi-Fi? Touch mode on?'; });
 }
 function loadWins(){
   fetch('/v1/phoneai/portal/windows').then(r=>r.json()).then(j=>{
@@ -639,7 +638,7 @@ function loadWins(){
     }).join('') || '<button type="button" disabled>No windows</button>';
   }).catch(()=>{});
 }
-loadWins(); setInterval(loadWins, 1200);
+loadWins(); setInterval(loadWins, 3000);
 document.getElementById('tabs').onclick=e=>{
   const b=e.target.closest('[data-hwnd]'); if(!b) return;
   e.preventDefault(); e.stopPropagation();
@@ -666,10 +665,10 @@ document.getElementById('apps').onclick=e=>{
   setTimeout(loadWins, 800);
 };
 function tick(){
-  if(document.hidden || busy){ setTimeout(tick, 400); return; }
+  if(document.hidden || busy){ setTimeout(tick, 500); return; }
   busy=true;
-  const done=()=>{ busy=false; setTimeout(tick, 280); };
-  img.onload=done; img.onerror=done;
+  const done=()=>{ busy=false; setTimeout(tick, 420); };
+  img.onload=done; img.onerror=()=>{ busy=false; setTimeout(tick, 900); };
   img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&t='+Date.now();
 }
 tick();
@@ -677,16 +676,14 @@ document.getElementById('mode').onclick=e=>{
   const b=e.target.closest('button'); if(!b) return;
   mode=b.getAttribute('data-m');
   [...document.getElementById('mode').children].forEach(x=>x.classList.toggle('on',x===b));
-  hint.textContent=mode==='touch'?'Touch on. Pinch=phone zoom (PC stays 1:1). Hold L + stick = drag.':'Watch. Open on the phone so it does not film itself.';
-  if(mode==='touch') setTimeout(()=>keys.focus(), 50);
+  hint.textContent=mode==='touch'?'Touch on. Press a spot, then L / R / Scroll.':'Watch only.';
 };
 const fingers=new Map();
 let gest=null, longTimer=null, pinch=null, startAt=null;
 function clearLong(){ if(longTimer){ clearTimeout(longTimer); longTimer=null; } }
 stage.addEventListener('pointerdown', ev=>{
-  if(ev.target.closest('.joy,.btns,.bar')) return;
   ev.preventDefault();
-  stage.setPointerCapture(ev.pointerId);
+  try{ stage.setPointerCapture(ev.pointerId); }catch(_){}
   fingers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
   if(fingers.size>=2){
     clearLong(); gest='pinch';
@@ -696,11 +693,12 @@ stage.addEventListener('pointerdown', ev=>{
   }
   if(mode!=='touch') return;
   const p=ptFrom(ev); showDot(p.cx,p.cy);
-  startAt={x:ev.clientX, y:ev.clientY, nx:p.nx, ny:p.ny};
+  startAt={x:ev.clientX, y:ev.clientY, nx:p.nx, ny:p.ny, t:Date.now(), pressure: ev.pressure||0};
   gest='pending';
+  const holdMs=(ev.pressure&&ev.pressure>0.45)?180:320;
   longTimer=setTimeout(()=>{
-    if(gest==='pending'){ gest='right'; send('right', startAt.nx, startAt.ny); hint.textContent='Right-click'; }
-  }, 480);
+    if(gest==='pending'){ gest='armed'; aim(startAt, 'Hold'); }
+  }, holdMs);
 }, {passive:false});
 stage.addEventListener('pointermove', ev=>{
   if(!fingers.has(ev.pointerId)) return;
@@ -710,26 +708,14 @@ stage.addEventListener('pointermove', ev=>{
     const pts=[...fingers.values()];
     const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1;
     const mx=(pts[0].x+pts[1].x)/2, my=(pts[0].y+pts[1].y)/2;
-    const scaleChange=Math.abs(d/pinch.d - 1);
-    const midY=my-pinch.my, midX=mx-pinch.mx;
-    if(mode==='touch' && zoom<=1.05 && scaleChange<0.12 && Math.abs(midY)+Math.abs(midX)>10){
-      const now=Date.now();
-      if(now-lastDrag>36){
-        lastDrag=now;
-        send('scroll', lastNx, lastNy, {dy: midY/70, dx: midX/90});
-        pinch.mx=mx; pinch.my=my;
-        hint.textContent='Scrolling the PC';
-      }
-      return;
-    }
     const nz=clamp(pinch.z*(d/pinch.d), 1, 5);
     const cx=(pinch.mx-pinch.px)/pinch.z, cy=(pinch.my-pinch.py)/pinch.z;
     zoom=nz; panX=mx-cx*nz; panY=my-cy*nz; applyView();
     return;
   }
-  if(mode!=='touch') return;
+  if(mode!=='touch' || !startAt) return;
   const p=ptFrom(ev); showDot(p.cx,p.cy);
-  if(gest==='pending' && startAt && Math.hypot(ev.clientX-startAt.x, ev.clientY-startAt.y)>14){
+  if(gest==='pending' && Math.hypot(ev.clientX-startAt.x, ev.clientY-startAt.y)>16){
     clearLong(); gest='drag';
     send('down', startAt.nx, startAt.ny, {button:'left'});
     send('drag', p.nx, p.ny);
@@ -744,79 +730,54 @@ function endPtr(ev){
   if(mode!=='touch'){ if(!fingers.size) gest=null; return; }
   const p=ptFrom(ev);
   clearLong();
-  if(gest==='pending'){ send('tap', p.nx, p.ny); setTimeout(()=>keys.focus(), 20); }
-  else if(gest==='drag') send('up', p.nx, p.ny, {button:'left'});
-  if(!fingers.size){ gest=null; startAt=null; setTimeout(()=>dot.style.display='none', 220); }
+  const now=Date.now();
+  if(gest==='pending'){
+    if(now-lastTap<340){
+      lastTap=0; gest='armed'; aim(p, 'Double-press');
+    } else {
+      lastTap=now;
+      aim(p, 'Tap');
+      send('tap', p.nx, p.ny);
+      setTimeout(()=>{ try{ keys.focus(); }catch(_){} }, 40);
+    }
+  } else if(gest==='armed'){
+    aim(p, 'Armed');
+  } else if(gest==='drag') send('up', p.nx, p.ny, {button:'left'});
+  if(!fingers.size){ gest=null; startAt=null; }
 }
 stage.addEventListener('pointerup', endPtr);
 stage.addEventListener('pointercancel', endPtr);
-stage.addEventListener('contextmenu', ev=>{ ev.preventDefault(); if(mode!=='touch') return; const p=ptFrom(ev); send('right', p.nx, p.ny); });
-stage.addEventListener('wheel', ev=>{
-  ev.preventDefault();
-  if(ev.ctrlKey || ev.metaKey){
-    const z0=zoom, nz=clamp(zoom*(ev.deltaY<0?1.12:0.9),1,5);
-    const s=stage.getBoundingClientRect();
-    const cx=ev.clientX-s.left, cy=ev.clientY-s.top;
-    const ox=(cx-panX)/z0, oy=(cy-panY)/z0;
-    zoom=nz; panX=cx-ox*nz; panY=cy-oy*nz; applyView();
-    return;
-  }
-  if(mode==='touch'){ const p=ptFrom(ev); send('scroll', p.nx, p.ny, {dy: ev.deltaY/400}); }
-}, {passive:false});
-img.addEventListener('dblclick', ev=>{
-  ev.preventDefault();
-  if(zoom>1.2){ zoom=1; panX=0; panY=0; }
-  else { const s=stage.getBoundingClientRect(); const cx=ev.clientX-s.left, cy=ev.clientY-s.top; zoom=2.4; panX=cx-cx*zoom; panY=cy-cy*zoom; }
-  applyView();
-});
-
-const joy=document.getElementById('joy'), knob=document.getElementById('knob');
-let joyOn=false, joyDx=0, joyDy=0, joyLast=0;
-function joyLoop(){
-  if(!joyOn) return;
-  const now=Date.now();
-  if(now-joyLast>28 && (Math.abs(joyDx)>1 || Math.abs(joyDy)>1)){
-    joyLast=now; send('joy', lastNx, lastNy, {dx:joyDx, dy:joyDy});
-  }
-  requestAnimationFrame(joyLoop);
-}
-joy.addEventListener('pointerdown', ev=>{
-  if(mode!=='touch') return;
-  ev.preventDefault(); ev.stopPropagation(); joy.setPointerCapture(ev.pointerId); joyOn=true; joyLoop();
-}, {passive:false});
-joy.addEventListener('pointermove', ev=>{
-  if(!joyOn) return;
-  ev.preventDefault();
-  const r=joy.getBoundingClientRect();
-  const x=clamp(ev.clientX-r.left-r.width/2, -36, 36);
-  const y=clamp(ev.clientY-r.top-r.height/2, -36, 36);
-  knob.style.transform='translate('+x+'px,'+y+'px)';
-  joyDx=x*0.55; joyDy=y*0.55;
-}, {passive:false});
-function joyEnd(){ joyOn=false; joyDx=0; joyDy=0; knob.style.transform=''; }
-joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
+stage.addEventListener('contextmenu', ev=>ev.preventDefault());
 
 const lmb=document.getElementById('lmb'), rmb=document.getElementById('rmb');
 lmb.addEventListener('pointerdown', ev=>{
-  if(mode!=='touch') return; ev.preventDefault(); ev.stopPropagation();
-  lmb.classList.add('held'); send('down', lastNx, lastNy, {button:'left'});
+  ev.preventDefault(); ev.stopPropagation(); lmb.classList.add('held');
+  send('tap', lastNx, lastNy);
 }, {passive:false});
-lmb.addEventListener('pointerup', ev=>{ lmb.classList.remove('held'); send('up', lastNx, lastNy, {button:'left'}); });
+lmb.addEventListener('pointerup', ev=>{ lmb.classList.remove('held'); });
 rmb.addEventListener('pointerdown', ev=>{
-  if(mode!=='touch') return; ev.preventDefault(); ev.stopPropagation();
-  rmb.classList.add('held'); send('down', lastNx, lastNy, {button:'right'});
+  ev.preventDefault(); ev.stopPropagation(); rmb.classList.add('held');
+  send('right', lastNx, lastNy);
 }, {passive:false});
-rmb.addEventListener('pointerup', ev=>{ rmb.classList.remove('held'); send('up', lastNx, lastNy, {button:'right'}); });
-rmb.addEventListener('click', ev=>{ ev.preventDefault(); });
-document.getElementById('sup').onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); send('scroll', lastNx, lastNy, {dy:-0.45}); };
-document.getElementById('sdn').onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); send('scroll', lastNx, lastNy, {dy:0.45}); };
+rmb.addEventListener('pointerup', ev=>{ rmb.classList.remove('held'); });
+let scrollHold=null;
+function holdScroll(dy){
+  send('scroll', lastNx, lastNy, {dy:dy});
+  scrollHold=setInterval(()=>send('scroll', lastNx, lastNy, {dy:dy}), 140);
+}
+function endScroll(){ if(scrollHold){ clearInterval(scrollHold); scrollHold=null; } }
+document.getElementById('sup').addEventListener('pointerdown', ev=>{ ev.preventDefault(); ev.stopPropagation(); document.getElementById('sup').classList.add('held'); holdScroll(-0.45); });
+document.getElementById('sdn').addEventListener('pointerdown', ev=>{ ev.preventDefault(); ev.stopPropagation(); document.getElementById('sdn').classList.add('held'); holdScroll(0.45); });
+document.getElementById('sup').addEventListener('pointerup', ev=>{ document.getElementById('sup').classList.remove('held'); endScroll(); });
+document.getElementById('sdn').addEventListener('pointerup', ev=>{ document.getElementById('sdn').classList.remove('held'); endScroll(); });
+document.getElementById('sup').addEventListener('pointercancel', endScroll);
+document.getElementById('sdn').addEventListener('pointercancel', endScroll);
 
 keys.addEventListener('input', ()=>{
   const v=keys.value; let i=0;
   while(i<v.length && i<lastTyped.length && v[i]===lastTyped[i]) i++;
   const back=lastTyped.length-i, add=v.slice(i);
   lastTyped=v;
-  if(mode!=='touch') return;
   if(back) send('key', lastNx, lastNy, {vk:8, n:back});
   if(add) send('key', lastNx, lastNy, {text:add});
 });

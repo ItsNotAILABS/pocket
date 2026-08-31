@@ -15,11 +15,10 @@ def test_map_touch_clamps_and_orders():
 def test_portal_html_phone_zoom_and_controls():
     html = phoneai_portal_html()
     assert "scale(" in html
-    assert 'id="joy"' in html
     assert 'id="lmb"' in html and 'id="rmb"' in html
-    assert "kind==='drag'" in html or "gest==='drag'" in html
+    assert 'id="sup"' in html and 'id="sdn"' in html
+    assert "L click" in html
     assert "vk:8" in html
-    assert "phone zoom" in html.lower() or "Pinch" in html
     assert "/v1/phoneai/portal/touch" in html
 
 
@@ -33,7 +32,6 @@ def test_anti_html_has_working_gestures():
 def test_snapshot_documents_phone_zoom():
     s = snapshot()
     assert s["phone_zoom"].startswith("view-only")
-    assert "joystick" in s["controls"]
     assert "window-focus" in s["controls"]
     assert "scroll" in s["controls"]
     assert "open-app" in s["controls"]

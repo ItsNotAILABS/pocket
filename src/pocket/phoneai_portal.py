@@ -194,58 +194,59 @@ def window_at(x: int, y: int) -> Optional[Dict[str, Any]]:
     return rec
 
 
+_WIN_CACHE: Dict[str, Any] = {"t": 0.0, "data": None}
+
+
 def windows(*, limit: int = 40) -> Dict[str, Any]:
-    """Open + minimized windows as phone tabs. Focused one is the live main window."""
-    import ctypes
-    from ctypes import wintypes
+    """Open windows as phone tabs. Cached so the live JPEG is never starved."""
+    now = time.time()
+    hit = _WIN_CACHE.get("data")
+    if isinstance(hit, dict) and now - float(_WIN_CACHE.get("t") or 0) < 1.8:
+        return hit
+    try:
+        from pocket.screen_share import list_windows
 
-    u = _bind_user32()
-    fg = int(u.GetForegroundWindow() or 0)
-    rows: list = []
-    seen = set()
-
-    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
-    def _cb(hwnd, _lp):
-        if not u.IsWindow(hwnd):
-            return True
-        iconic = bool(u.IsIconic(hwnd))
-        vis = bool(u.IsWindowVisible(hwnd))
-        if not vis and not iconic:
-            return True
-        title = _title_of(int(hwnd))
-        if len(title) < 2:
-            return True
-        if any(s in title.lower() for s in _SKIP_FOCUS):
-            return True
-        if title.lower() in ("program manager", "windows input experience"):
-            return True
-        hid = int(hwnd)
-        if hid in seen:
-            return True
-        seen.add(hid)
-        r = _rect_of(hid)
-        rows.append(
-            {
-                "hwnd": hid,
-                "title": title[:80],
-                "focused": hid == fg,
-                "main": hid == fg,
-                "minimized": iconic,
-                **r,
-            }
-        )
-        return len(rows) < max(int(limit), 8) * 2
-
-    u.EnumWindows(_cb, 0)
-    rows.sort(key=lambda w: (0 if w.get("focused") else 1, 1 if w.get("minimized") else 0))
-    rows = rows[:limit]
-    return {
-        "ok": True,
-        "focused": fg,
-        "title": _title_of(fg)[:80] if fg else "",
-        "windows": rows,
-        "count": len(rows),
-    }
+        u = _bind_user32()
+        fg = int(u.GetForegroundWindow() or 0)
+        rows: list = []
+        for w in list_windows(limit=max(int(limit), 8) * 2):
+            hwnd = int(w.get("hwnd") or 0)
+            title = (w.get("title") or "").strip()
+            if hwnd <= 0 or len(title) < 2:
+                continue
+            if any(s in title.lower() for s in _SKIP_FOCUS):
+                continue
+            iconic = False
+            try:
+                iconic = bool(u.IsIconic(hwnd))
+            except Exception:
+                pass
+            r = _rect_of(hwnd)
+            rows.append(
+                {
+                    "hwnd": hwnd,
+                    "title": title[:80],
+                    "focused": hwnd == fg,
+                    "main": hwnd == fg,
+                    "minimized": iconic,
+                    **r,
+                }
+            )
+            if len(rows) >= limit:
+                break
+        rows.sort(key=lambda x: (0 if x.get("focused") else 1, 1 if x.get("minimized") else 0))
+        data = {
+            "ok": True,
+            "focused": fg,
+            "title": _title_of(fg)[:80] if fg else "",
+            "windows": rows,
+            "count": len(rows),
+        }
+    except Exception as e:
+        data = {"ok": False, "windows": [], "count": 0, "error": str(e)[:200]}
+    _WIN_CACHE["t"] = now
+    _WIN_CACHE["data"] = data
+    return data
 
 
 def focus_hwnd(hwnd: int, *, make_main: bool = True) -> Dict[str, Any]:
@@ -524,57 +525,70 @@ def _vk(code: int, *, times: int = 1) -> None:
 
 
 def _type_live(text: str) -> None:
-    """Type onto the focused PC window. No clipboard — phone and PC stay entangled."""
-    import ctypes
-    from ctypes import wintypes
+    """Type onto the focused PC window."""
+    raw = text or ""
+    if not raw:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
 
-    u = _user32()
-    class KEYBDINPUT(ctypes.Structure):
-        _fields_ = (
-            ("wVk", wintypes.WORD),
-            ("wScan", wintypes.WORD),
-            ("dwFlags", wintypes.DWORD),
-            ("time", wintypes.DWORD),
-            ("dwExtraInfo", ctypes.c_void_p),
-        )
+        u = _user32()
 
-    class MOUSEINPUT(ctypes.Structure):
-        _fields_ = (
-            ("dx", wintypes.LONG),
-            ("dy", wintypes.LONG),
-            ("mouseData", wintypes.DWORD),
-            ("dwFlags", wintypes.DWORD),
-            ("time", wintypes.DWORD),
-            ("dwExtraInfo", ctypes.c_void_p),
-        )
+        class KEYBDINPUT(ctypes.Structure):
+            _fields_ = (
+                ("wVk", wintypes.WORD),
+                ("wScan", wintypes.WORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.c_void_p),
+            )
 
-    class _INPUTunion(ctypes.Union):
-        _fields_ = (("mi", MOUSEINPUT), ("ki", KEYBDINPUT))
+        class MOUSEINPUT(ctypes.Structure):
+            _fields_ = (
+                ("dx", wintypes.LONG),
+                ("dy", wintypes.LONG),
+                ("mouseData", wintypes.DWORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.c_void_p),
+            )
 
-    class INPUT(ctypes.Structure):
-        _fields_ = (("type", wintypes.DWORD), ("union", _INPUTunion))
+        class _INPUTunion(ctypes.Union):
+            _fields_ = (("mi", MOUSEINPUT), ("ki", KEYBDINPUT))
 
-    KEYEVENTF_UNICODE = 0x0004
-    KEYEVENTF_KEYUP = 0x0002
-    for ch in (text or "")[:80]:
-        if ch in ("\n", "\r"):
-            _vk(VK_RETURN)
-            continue
-        if ch == "\b":
-            _vk(VK_BACK)
-            continue
-        if ch == "\t":
-            _vk(VK_TAB)
-            continue
-        code = ord(ch)
-        down = INPUT()
-        down.type = 1
-        down.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE, 0, None)
-        up = INPUT()
-        up.type = 1
-        up.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, None)
-        arr = (INPUT * 2)(down, up)
-        u.SendInput(2, ctypes.byref(arr), ctypes.sizeof(INPUT))
+        class INPUT(ctypes.Structure):
+            _fields_ = (("type", wintypes.DWORD), ("union", _INPUTunion))
+
+        KEYEVENTF_UNICODE = 0x0004
+        KEYEVENTF_KEYUP = 0x0002
+        for ch in raw[:80]:
+            if ch in ("\n", "\r"):
+                _vk(VK_RETURN)
+                continue
+            if ch == "\b":
+                _vk(VK_BACK)
+                continue
+            if ch == "\t":
+                _vk(VK_TAB)
+                continue
+            code = ord(ch)
+            down = INPUT()
+            down.type = 1
+            down.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE, 0, None)
+            up = INPUT()
+            up.type = 1
+            up.union.ki = KEYBDINPUT(0, code, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, 0, None)
+            arr = (INPUT * 2)(down, up)
+            nsent = int(u.SendInput(2, ctypes.byref(arr), ctypes.sizeof(INPUT)) or 0)
+            if nsent < 1:
+                scan = int(u.VkKeyScanW(code) & 0xFF)
+                if scan and scan != 0xFF:
+                    _vk(scan)
+    except Exception:
+        from pocket.ui_maneuver import type_text
+
+        type_text(raw, use_clipboard=len(raw) > 2)
 
 
 def touch(
@@ -611,7 +625,10 @@ def touch(
                 focused = focus_at(x, y)
             return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "ms": int((time.time() - t0) * 1000)}
         if kind in ("tap", "click", "left", "down", "pen_down", "dbl", "double"):
-            focused = focus_at(x, y) if int(hwnd or 0) <= 0 else focus_hwnd(int(hwnd), make_main=True)
+            try:
+                focused = focus_at(x, y) if int(hwnd or 0) <= 0 else focus_hwnd(int(hwnd), make_main=True)
+            except Exception:
+                focused = {}
         if kind in ("joy", "nudge", "stick"):
             cx, cy = _cursor()
             _move(cx + int(dx), cy + int(dy))
