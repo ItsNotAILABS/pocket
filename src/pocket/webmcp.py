@@ -289,6 +289,8 @@ def _from_work() -> List[Dict[str, Any]]:
         ("WebMCP scan", "webmcp_scan", "POST /v1/webmcp/scan", "Refresh the action catalog including fusion."),
         ("PhoneAI work", "phoneai_work", "POST /v1/phoneai/work", "Continue Grok/Codex/Anti from the same work loop."),
         ("New PhoneAI session", "session_new", "POST /v1/phoneai/sessions", "Mint a Pocket or PhoneAI session from a persona."),
+        ("Engine catalog", "engines_list", "GET /v1/engines", "Live CLIs + internal models on this PC."),
+        ("Portal stream", "portal_open", "GET /phoneai/portal", "First-class Watch/Touch of the real desktop."),
         ("Agent talk", "agent_talk", "POST /v1/phoneai/talk", "Agent mail + encrypted mesh so agents talk to each other."),
     ]
     out = []

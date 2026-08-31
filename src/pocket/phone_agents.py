@@ -268,7 +268,7 @@ def claude_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
     b = _bin(["claude"])
     if not b:
         return {"ok": False, "engine": "claude", "error": "Claude Code CLI missing"}
-    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=90)
+    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=20)
     return {"engine": "claude", **r}
 
 
@@ -276,7 +276,7 @@ def gemini_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
     b = _bin(["gemini"])
     if not b:
         return {"ok": False, "engine": "gemini", "error": "Gemini CLI missing"}
-    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=90)
+    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=20)
     return {"engine": "gemini", **r}
 
 
@@ -284,7 +284,7 @@ def qwen_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
     q = _bin(["qwen"], extra=[Path(os.environ.get("APPDATA") or "") / "npm" / "qwen.cmd"])
     if not q:
         return {"ok": False, "engine": "qwen", "error": "Qwen CLI missing"}
-    r = _run([q, str(text)[:4000]], cwd=cwd, timeout=60)
+    r = _run([q, str(text)[:4000]], cwd=cwd, timeout=20)
     return {"engine": "qwen", **r}
 
 
@@ -292,7 +292,7 @@ def opencode_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
     b = _bin(["opencode"])
     if not b:
         return {"ok": False, "engine": "opencode", "error": "OpenCode CLI missing — npm i -g opencode-ai"}
-    r = _run([b, "run", (text or "")[:6000]], cwd=cwd, timeout=120)
+    r = _run([b, "run", (text or "")[:6000]], cwd=cwd, timeout=20)
     return {"engine": "opencode", **r}
 
 
@@ -326,7 +326,7 @@ def copilot_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
     b = _bin(["copilot"])
     if not b:
         return {"ok": False, "engine": "copilot", "error": "GitHub Copilot CLI missing — npm i -g @github/copilot"}
-    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=90)
+    r = _run([b, "-p", (text or "")[:6000]], cwd=cwd, timeout=20)
     return {"engine": "copilot", **r}
 
 
@@ -458,6 +458,14 @@ def generate_image(prompt: str) -> Dict[str, Any]:
     }
 
 
+def pocket_agent_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
+    b = _bin(["pocket-agent"])
+    if not b:
+        return {"ok": False, "engine": "pocket-agent", "error": "pocket-agent CLI missing"}
+    r = _run([b, str(text)[:4000]], cwd=cwd, timeout=20)
+    return {"engine": "pocket-agent", **r}
+
+
 DISPATCH = {
     "spark": spark_ask,
     "glimmer": spark_ask,
@@ -470,6 +478,7 @@ DISPATCH = {
     "cursor": cursor_ask,
     "aider": aider_ask,
     "copilot": copilot_ask,
+    "pocket-agent": pocket_agent_ask,
     "spectral": lambda text, cwd="": spectral_ask(text),
     "physics": lambda text, cwd="": physics_ask(text),
     "agi": lambda text, cwd="": agi_ask(text),

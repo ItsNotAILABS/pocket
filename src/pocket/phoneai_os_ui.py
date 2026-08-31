@@ -278,13 +278,14 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
 <script>
 let engine='grok';
 let threadId='';
-const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti'};
-fetch('/v1/phoneai/settings').then(r=>r.json()).then(s=>{
-  engine=s.chat||'grok';
-  const ids=['auto','grok',...(s.enabled||[]),'antigravity'];
+const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti',auro:'Auro',ghost:'Ghost',logic:'Logic',portal:'Portal'};
+fetch('/v1/engines').then(r=>r.json()).then(cat=>{
+  const desk=cat.desk||[];
+  const fast=cat.phone_fast||[];
+  const ids=['auto',...desk.filter(x=>x!=='spark'),...fast.slice(0,4),'antigravity','portal'];
   const uniq=[...new Set(ids)];
   document.getElementById('eng').innerHTML=uniq.map(i=>'<button type="button" data-e="'+i+'"'+(i===engine?' class="on"':'')+'>'+(LABELS[i]||i)+'</button>').join('');
-}).catch(()=>{ document.getElementById('eng').innerHTML='<button type="button" data-e="grok" class="on">Grok</button><button type="button" data-e="codex">Codex</button><button type="button" data-e="antigravity">Anti</button>'; });
+}).catch(()=>{ document.getElementById('eng').innerHTML='<button type="button" data-e="auto" class="on">Auto</button><button type="button" data-e="codex">Codex</button><button type="button" data-e="claude">Claude</button><button type="button" data-e="antigravity">Anti</button>'; });
 fetch('/v1/phoneai/sessions').then(r=>r.json()).then(s=>{
   const per=document.getElementById('per');
   per.innerHTML=(s.personas||[]).map(p=>'<option value="'+p.id+'">'+p.id+' · '+(p.blurb||p.mode)+'</option>').join('');

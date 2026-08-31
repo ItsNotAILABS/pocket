@@ -73,16 +73,20 @@ def snapshot() -> Dict[str, Any]:
                 "now": "ready" if det.get("available") else ("installable" if can_now else "later"),
             }
         )
+    from pocket.engines import catalog as eng_cat
+
     return {
         "ok": True,
         "chat": data.get("chat") or "grok",
         "enabled": enabled_ids(),
         "tools": tools,
         "note": (
-            "Ready now: Grok, Codex, Claude, Gemini, Qwen, OpenCode, Copilot. "
-            "Install now from Settings: Aider (pip), Cursor Agent. "
-            "Glimmer weights: ollama pull muse-glimmer (~18GB). Main chat is Grok."
+            "On this PC now: Grok, Codex, Claude, Gemini, Qwen, OpenCode, Copilot, Pocket Agent. "
+            "Local internals (always): Auro, Ghost, Logic, Pattern. "
+            "Portal is the PC stream; Antigravity is its own desktop app. "
+            "Cursor Agent / Aider can be installed from Settings."
         ),
+        "engines": eng_cat(),
     }
 
 

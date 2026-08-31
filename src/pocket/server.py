@@ -1311,6 +1311,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.voice_studio_ui import voice_studio_html
 
             return self._html(voice_studio_html())
+        if path in ("/v1/engines", "/api/engines"):
+            from pocket.engines import catalog as engines_catalog
+
+            return self._json(200, engines_catalog())
         if path in ("/v1/claims", "/v1/invention", "/claims"):
             from pathlib import Path
 

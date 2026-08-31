@@ -37,3 +37,5 @@ def test_route_think_does_not_overuse_tools():
     assert r3["tool"] == "twin_mint"
     r4 = route_think("new pocket session")
     assert r4["tool"] == "session_new"
+    r5 = route_think("prove this theorem with the logic prover")
+    assert r5["engine"] == "logic"

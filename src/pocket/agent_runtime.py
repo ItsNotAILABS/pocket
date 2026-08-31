@@ -26,6 +26,10 @@ PERSONAS: List[Dict[str, Any]] = [
     {"id": "anti", "mode": "antigravity", "engine": "antigravity", "long_term": True, "blurb": "Live Antigravity thread"},
     {"id": "spectral", "mode": "grok", "engine": "spectral-agi", "long_term": False, "blurb": "Spectral AGI lane"},
     {"id": "twin", "mode": "grok", "engine": "grok", "long_term": True, "blurb": "Workspace CLI agent in the minted twin"},
+    {"id": "claude", "mode": "claude", "engine": "claude", "long_term": False, "blurb": "Claude Code on this PC"},
+    {"id": "gemini", "mode": "gemini", "engine": "gemini", "long_term": False, "blurb": "Gemini CLI on this PC"},
+    {"id": "auro", "mode": "grok", "engine": "auro", "long_term": False, "blurb": "Local Auro meaning model"},
+    {"id": "ghost", "mode": "grok", "engine": "ghost", "long_term": False, "blurb": "Local Ghost math"},
 ]
 
 
@@ -47,6 +51,28 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
         return {"engine": "twin", "tool": "twin_mint", "why": "mint asked"}
     if any(w in low for w in ("remind me", "note this", "directions to", "draft a text")):
         return {"engine": "life", "tool": None, "why": "phone life"}
+    if any(w in low for w in ("portal", "touch the pc", "remote desktop", "stream my screen")):
+        return {"engine": "portal", "tool": None, "why": "pc stream"}
+    if any(w in low for w in ("prove ", "theorem", "logic prover", "q.e.d")):
+        return {"engine": "logic", "tool": None, "why": "logic prover"}
+    if any(w in low for w in ("ghost math", "phi ", "hash this", "prime ")):
+        return {"engine": "ghost", "tool": None, "why": "ghost math"}
+    if any(w in low for w in ("pattern forge", "spectral decompose", "z-depth")):
+        return {"engine": "pattern", "tool": None, "why": "pattern forge"}
+    if any(w in low for w in ("meaning", "embed this", "auro ")):
+        return {"engine": "auro", "tool": None, "why": "auro meaning"}
+    if any(w in low for w in ("generate image", "draw ", "imagine ")):
+        return {"engine": "imagine", "tool": None, "why": "imagine"}
+    if "claude" in low:
+        return {"engine": "claude", "tool": None, "why": "claude"}
+    if "gemini" in low:
+        return {"engine": "gemini", "tool": None, "why": "gemini"}
+    if "qwen" in low:
+        return {"engine": "qwen", "tool": None, "why": "qwen"}
+    if "copilot" in low:
+        return {"engine": "copilot", "tool": None, "why": "copilot"}
+    if "opencode" in low:
+        return {"engine": "opencode", "tool": None, "why": "opencode"}
     if any(w in low for w in ("implement", "fix this", "write code", "patch ", "test file")):
         return {"engine": "codex", "tool": None, "why": "code"}
     return {"engine": "grok", "tool": None, "why": "think then grok — no extra tools"}

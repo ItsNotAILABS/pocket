@@ -44,6 +44,7 @@ SURFACES = (
     "network",
     "antigravity",
     "portal",
+    "engines",
 )
 
 LIVE = {"live", "running", "listening", "primary", "ready", "online", "ok"}
@@ -226,6 +227,13 @@ def sync() -> Dict[str, Any]:
         set_surface("antigravity", status="ready" if n else "idle", detail={"threads": n, "url": "/phoneai/anti"})
         set_surface("phoneai", status="ready", url="/phoneai")
         set_surface("portal", status="ready", url="/phoneai/portal", detail={"modes": ["watch", "touch"]})
+        try:
+            from pocket.engines import catalog as eng_cat
+
+            ec = eng_cat()
+            set_surface("engines", status="ready", url="/v1/engines", detail={"ready": (ec.get("ready") or [])[:16]})
+        except Exception as e:
+            set_surface("engines", status="error", detail=str(e)[:120])
     except Exception as e:
         set_surface("antigravity", status="error", detail=str(e)[:120])
 

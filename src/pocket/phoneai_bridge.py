@@ -442,6 +442,13 @@ _KNOWN_ENGINES = (
     "sagi",
     "imagine",
     "life",
+    "auro",
+    "ghost",
+    "logic",
+    "pattern",
+    "heuristic",
+    "portal",
+    "pocket-agent",
 )
 
 
@@ -532,14 +539,23 @@ def _attach_thread(engine: str, thread_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _local_chat(text: str, thought: Dict[str, Any], where: Dict[str, Any]) -> Dict[str, Any]:
-    """Instant reply. Do not spawn Grok/Spark from the host — that freezes PhoneAI."""
-    why = thought.get("why") or "think then reply"
-    return {
-        "ok": True,
-        "engine": "phoneai",
-        "reply": f"PhoneAI is up on this PC ({why}).\n\n{text[:800]}",
-        **where,
-    }
+    """Real internal model (Auro/Ghost/Heuristic) — never nested Grok CLI."""
+    prefer = str(thought.get("engine") or "")
+    try:
+        from pocket.engines import internal_reply
+
+        r = internal_reply(text, prefer=prefer if prefer not in ("grok", "auto", "session", "talk") else "")
+        r.update(where)
+        r.setdefault("why", thought.get("why"))
+        return r
+    except Exception as e:
+        return {
+            "ok": True,
+            "engine": "phoneai",
+            "reply": f"PhoneAI is up ({thought.get('why') or 'ok'}).\n\n{text[:800]}",
+            "error": str(e)[:120],
+            **where,
+        }
 
 
 def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
@@ -619,6 +635,21 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
         r.setdefault("engine", "life")
         r.update(where)
         return r
+    if chosen == "portal":
+        r = {
+            "ok": True,
+            "engine": "portal",
+            "reply": "Open Portal on the phone: /phoneai/portal — Watch the real PC or Touch it.",
+            "open": "/phoneai/portal",
+        }
+        r.update(where)
+        return r
+    if chosen in ("auro", "ghost", "logic", "pattern", "heuristic", "world", "guppy"):
+        from pocket.engines import internal_reply
+
+        r = internal_reply(text, prefer=chosen)
+        r.update(where)
+        return r
     if chosen in (
         "spark",
         "claude",
@@ -634,12 +665,17 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
         "spectral-agi",
         "sagi",
         "imagine",
+        "pocket-agent",
     ):
         from pocket.phone_agents import run_agent
 
         r = run_agent(chosen, text, cwd=cwd)
         r.setdefault("engine", chosen)
         r.update(where)
+        if not r.get("ok") or not (r.get("reply") or r.get("image_url")):
+            fb = _local_chat(text, thought, where)
+            fb["cli"] = {k: r.get(k) for k in ("engine", "error", "ok")}
+            return fb
         return r
     if chosen == "codex":
         from pocket.executor import which_codex, _codex_argv
