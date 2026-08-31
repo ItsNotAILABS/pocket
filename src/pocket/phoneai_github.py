@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 ORG = "ItsNotAILABS"
+FALLBACK_OWNER = "FreddyCreates"
 REPO = "phoneai-desk"
 PRODUCT = "PhoneAI"
 LOCAL = Path.home() / ".pocket" / "tenants" / "phoneai" / "github"
@@ -76,38 +77,48 @@ def ensure_repo() -> Dict[str, Any]:
             encoding="utf-8",
         )
     rem = _run(["git", "remote", "get-url", "origin"], cwd=LOCAL)
-    if not rem.get("ok"):
-        view = _run([_gh(), "repo", "view", f"{ORG}/{REPO}", "--json", "url"], timeout=20)
-        if not view.get("ok"):
-            created = _run(
-                [
-                    _gh(),
-                    "repo",
-                    "create",
-                    f"{ORG}/{REPO}",
-                    "--public",
-                    "--description",
-                    "PhoneAI seat vault — notes, work, sessions from the phone kernel",
-                    "--source",
-                    str(LOCAL),
-                    "--remote",
-                    "origin",
-                    "--push",
-                ],
-                cwd=LOCAL,
-                timeout=90,
-            )
-            if not created.get("ok"):
-                created = _run(
-                    [_gh(), "repo", "create", REPO, "--public", "--source", str(LOCAL), "--remote", "origin", "--push"],
-                    cwd=LOCAL,
-                    timeout=90,
-                )
-            url = f"https://github.com/{ORG}/{REPO}"
-            _save_state({"url": url, "created": created})
-            return {"ok": bool(created.get("ok")), "url": url, "create": created}
-        _run(["git", "remote", "add", "origin", f"https://github.com/{ORG}/{REPO}.git"], cwd=LOCAL)
-    return {"ok": True, "url": f"https://github.com/{ORG}/{REPO}", "local": str(LOCAL)}
+    if rem.get("ok") and rem.get("out"):
+        url = rem["out"].strip().replace(".git", "")
+        if url.endswith(".git"):
+            url = url[:-4]
+        _save_state({"url": url})
+        return {"ok": True, "url": url, "local": str(LOCAL)}
+    for spec in (f"{ORG}/{REPO}", f"{FALLBACK_OWNER}/{REPO}"):
+        view = _run([_gh(), "repo", "view", spec, "--json", "url", "-q", ".url"], timeout=20)
+        if view.get("ok") and "github.com" in (view.get("out") or ""):
+            url = view["out"].strip().splitlines()[0]
+            _run(["git", "remote", "remove", "origin"], cwd=LOCAL)
+            _run(["git", "remote", "add", "origin", url if url.endswith(".git") else url + ".git"], cwd=LOCAL)
+            _save_state({"url": url})
+            return {"ok": True, "url": url, "local": str(LOCAL)}
+    created = _run(
+        [
+            _gh(),
+            "repo",
+            "create",
+            f"{ORG}/{REPO}",
+            "--public",
+            "--description",
+            "PhoneAI seat vault — notes, work, sessions from the phone kernel",
+            "--source",
+            str(LOCAL),
+            "--remote",
+            "origin",
+            "--push",
+        ],
+        cwd=LOCAL,
+        timeout=90,
+    )
+    if not created.get("ok"):
+        created = _run(
+            [_gh(), "repo", "create", f"{FALLBACK_OWNER}/{REPO}", "--public", "--source", str(LOCAL), "--remote", "origin", "--push"],
+            cwd=LOCAL,
+            timeout=90,
+        )
+    out = created.get("out") or ""
+    url = next((ln.strip() for ln in out.splitlines() if "github.com/" in ln), f"https://github.com/{FALLBACK_OWNER}/{REPO}")
+    _save_state({"url": url, "created": created})
+    return {"ok": bool(created.get("ok")), "url": url, "create": created, "local": str(LOCAL)}
 
 
 def stage_file(rel: str, content: str) -> Path:
