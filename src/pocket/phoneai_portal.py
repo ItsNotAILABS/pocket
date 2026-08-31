@@ -108,6 +108,182 @@ def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
     return None
 
 
+GA_ROOT = 2
+SW_RESTORE = 9
+HWND_TOP = 0
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0x0002
+SWP_SHOWWINDOW = 0x0040
+_SKIP_FOCUS = ("portal · phoneai", "phoneai portal", "/phoneai/portal")
+
+
+def _bind_user32():
+    import ctypes
+    from ctypes import wintypes
+
+    u = _user32()
+    if getattr(u, "_pocket_bound", False):
+        return u
+    u.WindowFromPoint.argtypes = [wintypes.POINT]
+    u.WindowFromPoint.restype = wintypes.HWND
+    u.GetAncestor.argtypes = [wintypes.HWND, ctypes.c_uint]
+    u.GetAncestor.restype = wintypes.HWND
+    u.GetForegroundWindow.restype = wintypes.HWND
+    u.IsWindow.argtypes = [wintypes.HWND]
+    u.IsWindow.restype = ctypes.c_bool
+    u.IsIconic.argtypes = [wintypes.HWND]
+    u.IsIconic.restype = ctypes.c_bool
+    u.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+    u.SetForegroundWindow.argtypes = [wintypes.HWND]
+    u.BringWindowToTop.argtypes = [wintypes.HWND]
+    u.SetActiveWindow.argtypes = [wintypes.HWND]
+    u.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    u.GetWindowThreadProcessId.restype = wintypes.DWORD
+    u.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, ctypes.c_bool]
+    u._pocket_bound = True  # type: ignore[attr-defined]
+    return u
+
+
+def _title_of(hwnd: int) -> str:
+    import ctypes
+
+    u = _user32()
+    n = int(u.GetWindowTextLengthW(hwnd) or 0)
+    if n < 1:
+        return ""
+    buf = ctypes.create_unicode_buffer(n + 1)
+    u.GetWindowTextW(hwnd, buf, n + 1)
+    return (buf.value or "").strip()
+
+
+def _rect_of(hwnd: int) -> Dict[str, int]:
+    import ctypes
+    from ctypes import wintypes
+
+    rect = wintypes.RECT()
+    if not _user32().GetWindowRect(int(hwnd), ctypes.byref(rect)):
+        return {"x": 0, "y": 0, "w": 0, "h": 0}
+    return {
+        "x": int(rect.left),
+        "y": int(rect.top),
+        "w": int(rect.right - rect.left),
+        "h": int(rect.bottom - rect.top),
+    }
+
+
+def window_at(x: int, y: int) -> Optional[Dict[str, Any]]:
+    """Top-level window under a desktop pixel (z-order, not just bounding boxes)."""
+    import ctypes
+    from ctypes import wintypes
+
+    u = _bind_user32()
+    pt = wintypes.POINT(int(x), int(y))
+    hwnd = u.WindowFromPoint(pt)
+    if not hwnd:
+        return None
+    root = int(u.GetAncestor(hwnd, GA_ROOT) or hwnd)
+    if root <= 0 or not u.IsWindow(root):
+        return None
+    title = _title_of(root)
+    if any(s in title.lower() for s in _SKIP_FOCUS):
+        return None
+    rec = {"hwnd": root, "title": title[:120], **_rect_of(root)}
+    rec["child"] = int(hwnd)
+    return rec
+
+
+def windows(*, limit: int = 24) -> Dict[str, Any]:
+    """Open windows as phone tabs. Focused one is the live main window."""
+    from pocket.screen_share import list_windows
+
+    u = _bind_user32()
+    fg = int(u.GetForegroundWindow() or 0)
+    rows: list = []
+    for w in list_windows(limit=limit * 2):
+        hwnd = int(w.get("hwnd") or 0)
+        title = (w.get("title") or "").strip()
+        if hwnd <= 0 or not title:
+            continue
+        if any(s in title.lower() for s in _SKIP_FOCUS):
+            continue
+        r = _rect_of(hwnd)
+        rows.append(
+            {
+                "hwnd": hwnd,
+                "title": title[:80],
+                "focused": hwnd == fg,
+                "main": hwnd == fg,
+                **r,
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return {
+        "ok": True,
+        "focused": fg,
+        "title": _title_of(fg)[:80] if fg else "",
+        "windows": rows,
+        "count": len(rows),
+    }
+
+
+def focus_hwnd(hwnd: int, *, make_main: bool = True) -> Dict[str, Any]:
+    """Literally make this HWND the foreground / main window on the PC."""
+    import ctypes
+    from ctypes import wintypes
+
+    u = _bind_user32()
+    k32 = ctypes.windll.kernel32
+    hwnd = int(hwnd or 0)
+    if hwnd <= 0 or not u.IsWindow(hwnd):
+        return {"ok": False, "error": "no window"}
+    title = _title_of(hwnd)
+    if any(s in title.lower() for s in _SKIP_FOCUS):
+        return {"ok": False, "error": "skip portal viewer", "title": title}
+    try:
+        u.AllowSetForegroundWindow(-1)
+    except Exception:
+        pass
+    if u.IsIconic(hwnd):
+        u.ShowWindow(hwnd, SW_RESTORE)
+    fg = u.GetForegroundWindow()
+    cur = int(k32.GetCurrentThreadId())
+    pid = wintypes.DWORD(0)
+    fg_tid = int(u.GetWindowThreadProcessId(fg, ctypes.byref(pid)) or 0)
+    tgt_tid = int(u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid)) or 0)
+    attached = []
+    for tid in (fg_tid, tgt_tid):
+        if tid and tid != cur:
+            if u.AttachThreadInput(cur, tid, True):
+                attached.append(tid)
+    u.BringWindowToTop(hwnd)
+    u.SetForegroundWindow(hwnd)
+    try:
+        u.SetActiveWindow(hwnd)
+    except Exception:
+        pass
+    if make_main:
+        u.SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW)
+        u.ShowWindow(hwnd, SW_RESTORE)
+    for tid in attached:
+        u.AttachThreadInput(cur, tid, False)
+    now = int(u.GetForegroundWindow() or 0)
+    return {
+        "ok": now == hwnd or now != 0,
+        "hwnd": hwnd,
+        "focused": now,
+        "title": title[:80],
+        "main": now == hwnd,
+    }
+
+
+def focus_at(x: int, y: int) -> Dict[str, Any]:
+    hit = window_at(x, y)
+    if not hit:
+        return {"ok": False, "error": "no window at point"}
+    return {**focus_hwnd(int(hit["hwnd"])), "hit": hit}
+
+
 def geom(target: str = "desktop") -> Dict[str, Any]:
     t = (target or "desktop").lower()
     if t in ("window", "anti", "antigravity", "app"):
@@ -391,18 +567,29 @@ def touch(
     button: str = "left",
     vk: int = 0,
     n: int = 1,
+    hwnd: int = 0,
 ) -> Dict[str, Any]:
     """Phone touch → real mouse/keyboard on this PC.
 
     Phone zoom is view-only (CSS on the handset). These events always hit
     the unzoomed desktop at nx,ny in 0..1 of the primary screen / window.
+    Tap/focus makes that window the literal foreground (main) window.
     """
     kind = (kind or "tap").lower().strip()
     side = (button or "left").lower()
     pt = map_touch(nx, ny, target=target)
     x, y = pt["x"], pt["y"]
     t0 = time.time()
+    focused: Dict[str, Any] = {}
     try:
+        if kind in ("focus", "main", "foreground", "activate"):
+            if int(hwnd or 0) > 0:
+                focused = focus_hwnd(int(hwnd), make_main=True)
+            else:
+                focused = focus_at(x, y)
+            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "ms": int((time.time() - t0) * 1000)}
+        if kind in ("tap", "click", "left", "down", "pen_down", "dbl", "double"):
+            focused = focus_at(x, y) if int(hwnd or 0) <= 0 else focus_hwnd(int(hwnd), make_main=True)
         if kind in ("joy", "nudge", "stick"):
             cx, cy = _cursor()
             _move(cx + int(dx), cy + int(dy))
@@ -446,7 +633,10 @@ def touch(
         else:
             _move(x, y)
             _click("left")
-        return {"ok": True, "kind": kind, "held": dict(_held), **pt, "ms": int((time.time() - t0) * 1000)}
+        out = {"ok": True, "kind": kind, "held": dict(_held), **pt, "ms": int((time.time() - t0) * 1000)}
+        if focused:
+            out["focus"] = focused
+        return out
     except Exception as e:
         return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
 
@@ -462,7 +652,8 @@ def snapshot() -> Dict[str, Any]:
         "separate_from": "antigravity",
         "modes": ["watch", "touch"],
         "phone_zoom": "view-only — PC zoom never changes",
-        "controls": ["tap", "right", "drag", "joystick", "live-type"],
+        "controls": ["tap", "right", "drag", "joystick", "live-type", "window-focus"],
+        "windows": "/v1/phoneai/portal/windows",
         "targets": ["desktop"],
         "geom": {"ok": True, "target": "desktop", **vs},
         "watch": "/phoneai/portal",

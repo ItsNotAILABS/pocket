@@ -557,6 +557,9 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .bar input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 .hint{position:absolute;left:108px;right:68px;bottom:12px;font-size:11px;color:#a1a1aa;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:8px;pointer-events:none;z-index:5}
+.tabs{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.tabs button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:7px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
 </style></head>
 <body>
 <div class="top">
@@ -567,6 +570,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
     <button type="button" data-m="touch">Touch</button>
   </div>
 </div>
+<div class="tabs" id="tabs"></div>
 <div class="stage" id="stage">
   <div class="view" id="view">
     <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
@@ -577,7 +581,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
     <button type="button" id="lmb">L</button>
     <button type="button" id="rmb">R</button>
   </div>
-  <div class="hint" id="hint">Pinch zooms the phone only. Tap · hold=right · drag=drop. Stick is the mouse.</div>
+  <div class="hint" id="hint">Tap a window to make it the main app. Pinch=phone zoom. L/R · stick · type live.</div>
 </div>
 <form class="bar" id="kb">
   <input id="keys" placeholder="Tap a field, then type here — live on the PC" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter"/>
@@ -610,9 +614,29 @@ function ptFrom(src){
 }
 function showDot(cx,cy){ const s=stage.getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
 function send(kind, nx, ny, extra){
-  if(mode!=='touch' && kind!=='type' && kind!=='key') return;
-  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))}).catch(()=>{});
+  if(mode!=='touch' && kind!=='type' && kind!=='key' && kind!=='focus') return;
+  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))})
+    .then(r=>r.json()).then(j=>{
+      if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
+      if(kind==='focus' || (j && j.focus && j.focus.main)) loadWins();
+    }).catch(()=>{});
 }
+function loadWins(){
+  fetch('/v1/phoneai/portal/windows').then(r=>r.json()).then(j=>{
+    const el=document.getElementById('tabs');
+    const list=j.windows||[];
+    el.innerHTML=list.map(w=>{
+      const t=(w.title||('hwnd '+w.hwnd)).replace(/[<>]/g,'');
+      return '<button type="button" class="'+(w.focused?'on':'')+'" data-hwnd="'+w.hwnd+'">'+t.slice(0,36)+'</button>';
+    }).join('') || '<button type="button" disabled>No windows</button>';
+  }).catch(()=>{});
+}
+loadWins(); setInterval(loadWins, 2500);
+document.getElementById('tabs').onclick=e=>{
+  const b=e.target.closest('[data-hwnd]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  send('focus', lastNx, lastNy, {hwnd: parseInt(b.getAttribute('data-hwnd'),10)});
+};
 function tick(){
   if(document.hidden || busy){ setTimeout(tick, 400); return; }
   busy=true;

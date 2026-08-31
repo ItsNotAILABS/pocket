@@ -19,7 +19,7 @@ def test_portal_html_phone_zoom_and_controls():
     assert 'id="lmb"' in html and 'id="rmb"' in html
     assert "kind==='drag'" in html or "gest==='drag'" in html
     assert "vk:8" in html
-    assert "Pinch zooms the phone only" in html
+    assert "phone zoom" in html.lower() or "Pinch" in html
     assert "/v1/phoneai/portal/touch" in html
 
 
@@ -34,3 +34,16 @@ def test_snapshot_documents_phone_zoom():
     s = snapshot()
     assert s["phone_zoom"].startswith("view-only")
     assert "joystick" in s["controls"]
+    assert "window-focus" in s["controls"]
+
+
+def test_windows_list_and_html_tabs():
+    from pocket.phoneai_portal import windows
+
+    w = windows()
+    assert w["ok"] is True
+    assert "windows" in w
+    html = phoneai_portal_html()
+    assert 'id="tabs"' in html
+    assert "portal/windows" in html
+    assert "kind==='focus'" in html or "focus" in html

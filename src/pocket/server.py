@@ -949,6 +949,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_portal import snapshot as portal_snap
 
             return self._json(200, portal_snap())
+        if path in ("/v1/phoneai/portal/windows", "/api/phoneai/portal/windows"):
+            from pocket.phoneai_portal import windows as portal_windows
+
+            return self._json(200, portal_windows())
         if path in ("/v1/phoneai/portal/frame", "/api/phoneai/portal/frame"):
             from pocket.phoneai_portal import grab_jpeg
 
@@ -4133,6 +4137,7 @@ class Handler(BaseHTTPRequestHandler):
                     button=str(body.get("button") or "left"),
                     vk=int(body.get("vk") or 0),
                     n=int(body.get("n") or 1),
+                    hwnd=int(body.get("hwnd") or 0),
                 ),
             )
 

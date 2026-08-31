@@ -11,7 +11,7 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | PhoneAI kernel | `/phoneai/app` | Phone seat |
 | Setup | `/setup` | Account · host · always-on · open |
 | Runtime | `GET /v1/runtime` · `POST /v1/runtime/ensure` | Servers inside the product; agents bring them up |
-| Portal | `/phoneai/portal` | One-screen Watch + Touch. Phone-only pinch zoom. L/R, drag-drop, joystick, live type |
+| Portal | `/phoneai/portal` | Live PC on the phone. Per-window focus makes that app the main window. Phone-only zoom, L/R, drag, joystick, live type |
 | Antigravity | `/phoneai/anti` | HWND stream of the real Antigravity app + window-local touch |
 | Code desk | `/phoneai/work` | Engines + harness + shell |
 | Agent eyes | `GET /v1/eyes?which=portal\|anti` | Agents see the same frames |
