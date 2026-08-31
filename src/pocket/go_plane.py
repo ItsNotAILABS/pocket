@@ -43,6 +43,7 @@ SURFACES = (
     "webmcp",
     "network",
     "antigravity",
+    "portal",
 )
 
 LIVE = {"live", "running", "listening", "primary", "ready", "online", "ok"}
@@ -222,8 +223,9 @@ def sync() -> Dict[str, Any]:
 
         d = live_desk(limit=4)
         n = len(d.get("antigravity_threads") or [])
-        set_surface("antigravity", status="ready" if n else "idle", detail={"threads": n})
+        set_surface("antigravity", status="ready" if n else "idle", detail={"threads": n, "url": "/phoneai/anti"})
         set_surface("phoneai", status="ready", url="/phoneai")
+        set_surface("portal", status="ready", url="/phoneai/portal", detail={"modes": ["watch", "touch"]})
     except Exception as e:
         set_surface("antigravity", status="error", detail=str(e)[:120])
 

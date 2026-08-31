@@ -942,7 +942,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("X-Pocket-Target", str(meta.get("target") or target))
             self._sec_headers()
             self.end_headers()
-            self.wfile.write(data)
+            try:
+                self.wfile.write(data)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+                self.close_connection = True
             return None
         if path in ("/v1/phoneai/settings", "/api/phoneai/settings"):
             from pocket.phoneai_settings import snapshot as phoneai_settings
@@ -964,7 +967,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self._sec_headers()
             self.end_headers()
-            self.wfile.write(data)
+            try:
+                self.wfile.write(data)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+                self.close_connection = True
             return None
         if path in ("/v1/phoneai/github", "/api/phoneai/github"):
             from pocket.phoneai_github import snapshot as gh_snap

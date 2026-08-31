@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import io
+import threading
 import time
 from typing import Any, Dict, Optional, Tuple
+
+_grab_lock = threading.Lock()
+_last_jpeg: Dict[str, Any] = {"t": 0.0, "key": "", "data": b"", "meta": {}}
 
 # SM_XVIRTUALSCREEN … SM_CYVIRTUALSCREEN
 _SM_X = 76
@@ -68,25 +72,33 @@ def geom(target: str = "desktop") -> Dict[str, Any]:
 
 
 def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
+    """One grab at a time. Reuse a frame for 300ms so clients cannot flood the host."""
     from PIL import ImageGrab
 
-    g = geom(target)
-    x, y, w, h = int(g["x"]), int(g["y"]), int(g["w"]), int(g["h"])
-    if w < 40 or h < 40:
-        vs = virtual_screen()
-        x, y, w, h = vs["x"], vs["y"], vs["w"], vs["h"]
-        g = {"ok": True, "target": "desktop", **vs}
-    img = ImageGrab.grab(bbox=(x, y, x + w, y + h), all_screens=True)
-    img = img.convert("RGB")
-    if img.width > max_w:
-        ratio = max_w / float(img.width)
-        img = img.resize((max_w, max(1, int(img.height * ratio))))
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=52, optimize=True)
-    g["frame_w"] = img.width
-    g["frame_h"] = img.height
-    g["bytes"] = buf.tell()
-    return buf.getvalue(), g
+    key = f"{target}:{max_w}"
+    now = time.time()
+    with _grab_lock:
+        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.3 and _last_jpeg.get("data"):
+            return _last_jpeg["data"], _last_jpeg["meta"]
+        g = geom(target)
+        x, y, w, h = int(g["x"]), int(g["y"]), int(g["w"]), int(g["h"])
+        if w < 40 or h < 40:
+            vs = virtual_screen()
+            x, y, w, h = vs["x"], vs["y"], vs["w"], vs["h"]
+            g = {"ok": True, "target": "desktop", **vs}
+        img = ImageGrab.grab(bbox=(x, y, x + w, y + h), all_screens=True)
+        img = img.convert("RGB")
+        if img.width > max_w:
+            ratio = max_w / float(img.width)
+            img = img.resize((max_w, max(1, int(img.height * ratio))))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=48)
+        g["frame_w"] = img.width
+        g["frame_h"] = img.height
+        g["bytes"] = buf.tell()
+        data = buf.getvalue()
+        _last_jpeg.update({"t": now, "key": key, "data": data, "meta": g})
+        return data, g
 
 
 def map_touch(nx: float, ny: float, *, target: str = "desktop") -> Dict[str, int]:

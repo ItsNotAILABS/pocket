@@ -84,7 +84,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
-  <p class="more">Chat is Grok. Code desk is Grok/Codex/Anti plus CLIs you enable. <a href="/login">Seat</a></p>
+  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. <a href="/login">Seat</a></p>
 </section>
 
 <section class="view" id="v-chat">
@@ -401,8 +401,8 @@ textarea{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
 .form button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 </style></head>
 <body>
-<div class="top"><a href="/phoneai">Home</a><b style="flex:1">Antigravity</b><a href="/phoneai/work">Desk</a></div>
-<div class="now" id="now"><b>Looking for your real app…</b>Direct view of Antigravity on this PC.</div>
+<div class="top"><a href="/phoneai">Home</a><b style="flex:1">Antigravity</b><a href="/phoneai/portal">Portal</a></div>
+<div class="now" id="now"><b>Antigravity desktop app</b>Named threads, send, continue. The PC stream is Portal — a separate first-class surface.</div>
 <div class="chips" id="chips"></div>
 <div class="view"><img id="frame" alt="Antigravity" src="/v1/phoneai/anti/frame?t=1"/></div>
 <div class="row">
@@ -423,13 +423,21 @@ function paint(j){
   const y=j.you_are_building||{};
   const title=y.title||j.title||'Antigravity';
   const cwd=y.cwd||j.cwd||'';
-  now.innerHTML='<b>'+title.replace(/</g,'')+'</b>'+(cwd?cwd:'Direct view of the real Antigravity window.');
+  now.innerHTML='<b>'+title.replace(/</g,'')+'</b>'+(cwd?cwd+' · ':'')+'Antigravity desktop app (not the PC portal).';
   const th=j.threads||[];
   chips.innerHTML=th.map(t=>'<button type="button" data-id="'+t.id+'">'+(t.title||t.app||t.id).slice(0,42)+'</button>').join('');
 }
 fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{ now.innerHTML='<b>Host unreachable</b>'; });
-setInterval(()=>{ frame.src='/v1/phoneai/anti/frame?t='+Date.now(); }, 1800);
-setInterval(()=>fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{}), 8000);
+let antiBusy=false;
+function antiFrame(){
+  if(document.hidden || antiBusy){ setTimeout(antiFrame, 800); return; }
+  antiBusy=true;
+  frame.onload=()=>{ antiBusy=false; setTimeout(antiFrame, 1600); };
+  frame.onerror=()=>{ antiBusy=false; setTimeout(antiFrame, 2000); };
+  frame.src='/v1/phoneai/anti/frame?t='+Date.now();
+}
+antiFrame();
+setInterval(()=>{ if(!document.hidden) fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{}); }, 12000);
 document.getElementById('o').onclick=()=>anti('open','');
 document.getElementById('n').onclick=async()=>{ paint(await anti('new','')); };
 document.getElementById('c').onclick=async()=>{ paint(await anti('continue','')); };
@@ -480,62 +488,60 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
     <button type="button" data-m="watch" class="on">Watch</button>
     <button type="button" data-m="touch">Touch</button>
   </div>
-  <div class="seg" id="tgt">
-    <button type="button" data-t="desktop" class="on">Desktop</button>
-    <button type="button" data-t="window">App</button>
-  </div>
 </div>
 <div class="stage" id="stage">
   <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
   <div class="dot" id="dot"></div>
-  <div class="hint" id="hint">Watch = live view. Touch = your finger is the mouse.</div>
+  <div class="hint" id="hint">First-class PC stream. Watch or Touch. Antigravity is a different app at Home → Anti.</div>
 </div>
 <form class="bar" id="kb">
   <input id="keys" placeholder="Type on the PC…" autocomplete="off"/>
   <button>Send</button>
 </form>
 <script>
-let mode='watch', target='desktop', down=false;
+let mode='watch', target='desktop', down=false, busy=false, lastDrag=0;
 const img=document.getElementById('frame');
 const dot=document.getElementById('dot');
 const hint=document.getElementById('hint');
 function clamp(v){return Math.max(0,Math.min(1,v))}
 function norm(ev){
   const r=img.getBoundingClientRect();
-  const src=ev.touches&&ev.touches[0]?ev.touches[0]:ev;
-  return {nx:clamp((src.clientX-r.left)/r.width), ny:clamp((src.clientY-r.top)/r.height), cx:src.clientX, cy:src.clientY};
+  const src=ev.touches&&ev.touches[0]?ev.touches[0]:(ev.changedTouches&&ev.changedTouches[0]?ev.changedTouches[0]:ev);
+  const w=r.width||1, h=r.height||1;
+  return {nx:clamp((src.clientX-r.left)/w), ny:clamp((src.clientY-r.top)/h), cx:src.clientX, cy:src.clientY};
 }
 function showDot(cx,cy){ dot.style.display='block'; const s=document.getElementById('stage').getBoundingClientRect(); dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
-async function send(kind, nx, ny, extra){
+function send(kind, nx, ny, extra){
   if(mode!=='touch' && kind!=='type') return;
-  await fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))});
+  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))}).catch(()=>{});
 }
+function tick(){
+  if(document.hidden || busy){ setTimeout(tick, 400); return; }
+  busy=true;
+  const done=()=>{ busy=false; setTimeout(tick, 500); };
+  img.onload=done;
+  img.onerror=done;
+  img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&t='+Date.now();
+}
+tick();
 document.getElementById('mode').onclick=e=>{
   const b=e.target.closest('button'); if(!b) return;
   mode=b.getAttribute('data-m');
   [...document.getElementById('mode').children].forEach(x=>x.classList.toggle('on',x===b));
-  hint.textContent=mode==='touch'?'Touch is on. Tap, drag, pinch-scroll.':'Watch only — the PC is live but fingers do not click.';
+  hint.textContent=mode==='touch'?'Touch is on. Tap and drag — you are the mouse.':'Watch only. Use the phone, not this same screen.';
 };
-document.getElementById('tgt').onclick=e=>{
-  const b=e.target.closest('button'); if(!b) return;
-  target=b.getAttribute('data-t');
-  [...document.getElementById('tgt').children].forEach(x=>x.classList.toggle('on',x===b));
-  img.src='/v1/phoneai/portal/frame?target='+target+'&t='+Date.now();
-};
-setInterval(()=>{ img.src='/v1/phoneai/portal/frame?target='+target+'&t='+Date.now(); }, 700);
 function start(ev){ if(mode!=='touch') return; ev.preventDefault(); down=true; const p=norm(ev); showDot(p.cx,p.cy); send('down', p.nx, p.ny); }
-function move(ev){ if(!down||mode!=='touch') return; ev.preventDefault(); const p=norm(ev); showDot(p.cx,p.cy); send('drag', p.nx, p.ny); }
-function end(ev){ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev.changedTouches&&ev.changedTouches[0]?ev.changedTouches[0]:ev); send(down?'up':'tap', p.nx, p.ny); down=false; setTimeout(()=>dot.style.display='none', 250); }
+function move(ev){ if(!down||mode!=='touch') return; ev.preventDefault(); const now=Date.now(); if(now-lastDrag<50) return; lastDrag=now; const p=norm(ev); showDot(p.cx,p.cy); send('drag', p.nx, p.ny); }
+function end(ev){ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev); send('up', p.nx, p.ny); down=false; setTimeout(()=>dot.style.display='none', 250); }
 img.addEventListener('pointerdown', start, {passive:false});
 img.addEventListener('pointermove', move, {passive:false});
 img.addEventListener('pointerup', end, {passive:false});
 img.addEventListener('pointercancel', end, {passive:false});
 img.addEventListener('contextmenu', ev=>{ ev.preventDefault(); if(mode!=='touch') return; const p=norm(ev); send('right', p.nx, p.ny); });
-let lastY=null;
 img.addEventListener('wheel', ev=>{ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev); send('scroll', p.nx, p.ny, {dy: ev.deltaY/400}); }, {passive:false});
 document.getElementById('kb').onsubmit=async ev=>{
   ev.preventDefault(); const t=document.getElementById('keys'); const text=t.value; if(!text) return;
-  await send('type', 0.5, 0.5, {text}); t.value='';
+  send('type', 0.5, 0.5, {text}); t.value='';
 };
 </script>
 </body></html>

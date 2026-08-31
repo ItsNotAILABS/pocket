@@ -54,6 +54,24 @@ def pillars() -> List[Dict[str, Any]]:
                 break
     items.append(_ok("Public URL", pub.startswith("http"), pub or "local-only", tier="edge"))
 
+    items.append(
+        _ok(
+            "PhoneAI Portal stream",
+            True,
+            "Watch + Touch · /phoneai/portal (separate from Antigravity)",
+            tier="class",
+        )
+    )
+    items.append(
+        _ok(
+            "Antigravity desk",
+            (Path.home() / "AppData" / "Local" / "Programs" / "Antigravity").exists()
+            or (Path.home() / ".gemini" / "antigravity").exists(),
+            "Desktop app view · /phoneai/anti",
+            tier="class",
+        )
+    )
+
     # Engines
     codex = bool(shutil.which("codex"))
     grok = bool(shutil.which("grok") or (Path.home() / ".grok" / "bin" / "grok.exe").exists())

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List
+
+_frame_lock = threading.Lock()
+_frame_cache = {"t": 0.0, "data": b""}
 
 from pocket.desktop import open_app
 from pocket.ui_click import click_named_element
@@ -189,30 +193,30 @@ def real_app() -> Dict[str, Any]:
 
 
 def live_frame_jpeg() -> bytes:
-    """JPEG of the real Antigravity window (direct view)."""
+    """JPEG of the real Antigravity window. Cached so the phone cannot flood grabs."""
     import io
 
     from pocket.screen_share import _grab_window_image
 
-    img, hwnd = (None, 0)
-    for needle in ("Antigravity", "anti", "Gemini", "AIEOS", "Terminalis", "Spatium"):
-        img, hwnd = _grab_window_image(0, needle)
-        if img is not None:
-            break
-    if img is None:
-        try:
-            _focus("")
-            time.sleep(0.6)
-            img, hwnd = _grab_window_image(0, "Antigravity")
-        except Exception:
-            img = None
-    if img is None:
-        return b""
-    img = img.convert("RGB")
-    img.thumbnail((1100, 780))
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=58, optimize=True)
-    return buf.getvalue()
+    now = time.time()
+    with _frame_lock:
+        if now - float(_frame_cache.get("t") or 0) < 0.4 and _frame_cache.get("data"):
+            return _frame_cache["data"]
+        img = None
+        for needle in ("Antigravity", "anti"):
+            img, _hwnd = _grab_window_image(0, needle)
+            if img is not None:
+                break
+        if img is None:
+            _frame_cache.update({"t": now, "data": b""})
+            return b""
+        img = img.convert("RGB")
+        img.thumbnail((960, 700))
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=48)
+        data = buf.getvalue()
+        _frame_cache.update({"t": now, "data": data})
+        return data
 
 
 def handle(action: str, text: str = "", *, cwd: str = "") -> Dict[str, Any]:
