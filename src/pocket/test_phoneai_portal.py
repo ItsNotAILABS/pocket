@@ -4,6 +4,9 @@ from pocket.phoneai_portal import geom, map_touch, snapshot, virtual_screen
 def test_portal_snapshot_has_both_modes():
     s = snapshot()
     assert s["ok"] is True
+    assert s.get("first_class") is True
+    assert s.get("grade") == "production"
+    assert s.get("separate_from") == "antigravity"
     assert "watch" in s["modes"] and "touch" in s["modes"]
     assert "desktop" in s["targets"]
 

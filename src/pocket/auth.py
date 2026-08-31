@@ -45,6 +45,8 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/home",
     "/health",
     "/v1/health",
+    "/v1/claims",
+    "/v1/invention",
     "/v1/production",
     "/v1/prod/status",
     "/v1/hardware",

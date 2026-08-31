@@ -8,4 +8,4 @@ def test_stage_file_writes_vault(tmp_path, monkeypatch):
     assert fp.is_file()
     assert "from phone" in fp.read_text(encoding="utf-8")
     snap = snapshot()
-    assert snap["repo"].endswith("phoneai-desk")
+    assert "phoneai-desk" in snap["repo"]

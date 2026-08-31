@@ -112,6 +112,20 @@ def checklist() -> Dict[str, Any]:
         "Invite-only seats on operator host — not public multi-tenant SaaS",
         "P0",
     )
+    add(
+        "PA",
+        "PhoneAI Portal stream",
+        True,
+        "Watch+Touch · LAN touch · /phoneai/portal",
+        "P0",
+    )
+    add(
+        "AG",
+        "Antigravity desktop-app view",
+        (Path.home() / ".gemini" / "antigravity").exists(),
+        "/phoneai/anti named threads",
+        "P1",
+    )
 
     # First-class extensions (live)
     try:

@@ -182,15 +182,24 @@ def touch(
 
 
 def snapshot() -> Dict[str, Any]:
+    vs = virtual_screen()
     return {
         "ok": True,
         "portal": True,
+        "product": "PhoneAI Portal",
+        "grade": "production",
+        "first_class": True,
+        "separate_from": "antigravity",
         "modes": ["watch", "touch"],
-        "targets": ["desktop", "window"],
-        "geom": geom("desktop"),
-        "window": geom("window") if window_rect("Antigravity") else {},
+        "targets": ["desktop"],
+        "geom": {"ok": True, "target": "desktop", **vs},
         "watch": "/phoneai/portal",
         "frame": "/v1/phoneai/portal/frame",
         "touch": "POST /v1/phoneai/portal/touch",
-        "note": "Watch streams the real PC. Touch maps phone taps to the real mouse.",
+        "policy": {
+            "touch": "home LAN / loopback only",
+            "frame_coalesce_ms": 300,
+            "one_grab_at_a_time": True,
+        },
+        "note": "First-class PC stream. Antigravity remains its own desktop-app view at /phoneai/anti.",
     }

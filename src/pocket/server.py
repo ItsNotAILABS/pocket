@@ -1311,6 +1311,20 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.voice_studio_ui import voice_studio_html
 
             return self._html(voice_studio_html())
+        if path in ("/v1/claims", "/v1/invention", "/claims"):
+            from pathlib import Path
+
+            root = Path(__file__).resolve().parents[2]
+            js = root / "docs" / "research" / "invention_claims.v1.json"
+            md = "/docs/research/INVENTION_CLAIMS_2026.md"
+            data = {}
+            if js.is_file():
+                data = json.loads(js.read_text(encoding="utf-8"))
+            data.setdefault("ok", True)
+            data["markdown"] = md
+            data["pdf"] = "/docs/research/INVENTION_CLAIMS_2026.pdf"
+            data["inventor"] = data.get("inventor") or {"name": "Alfredo Medina", "lab": "ItsNotAI Labs"}
+            return self._json(200, data)
         if path in ("/health", "/v1/health"):
             # Pure liveness — no score()/pillars (14s) and no background work.
             # Class grades live on /v1/class and /v1/ready so Edge/desk stay snappy.
@@ -3938,8 +3952,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, gh_snap())
             return self._json(200, gh_push(message=str(body.get("message") or "phoneai")))
         if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
+            from pocket.auth import is_home_lan_client
             from pocket.phoneai_portal import touch as portal_touch
+            from pocket.ratelimit import hit as rl_hit
 
+            ip = self._client_ip()
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "touch is LAN-only — open Portal on the same Wi-Fi as this PC"})
+            ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             return self._json(
                 200,
                 portal_touch(
@@ -3948,7 +3970,7 @@ class Handler(BaseHTTPRequestHandler):
                     ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
                     dy=float(body.get("dy") or 0),
                     text=str(body.get("text") or ""),
-                    target=str(body.get("target") or "desktop"),
+                    target="desktop",
                 ),
             )
 

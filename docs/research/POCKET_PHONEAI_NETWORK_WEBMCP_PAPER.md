@@ -78,6 +78,19 @@ Grok threads come from `~/.grok/sessions/**/summary.json` and resume with `grok 
 
 ## 7. Streaming
 
+Two **first-class** visual products, not one mashed screen:
+
+| Surface | Path | What it is |
+|---------|------|------------|
+| **Portal** | `/phoneai/portal` | Live JPEG of the real virtual desktop. Watch or Touch. Touch is LAN-only. Frames are coalesced. |
+| **Antigravity** | `/phoneai/anti` | The Antigravity *desktop application*: AI-named threads from worktrees, open/new/continue/send. |
+
+Portal must not be opened full-screen on the same monitor it captures (that loops). Open it on the phone.
+
+Legal claims for this embodiment: [INVENTION_CLAIMS_2026.md](INVENTION_CLAIMS_2026.md) (inventor Alfredo Medina, ItsNotAI Labs).
+
+## 7. Streaming (work)
+
 - Job log tails (`stream_util`) for Codex/Grok on the desk  
 - SSE `/v1/phoneai/work/stream` for the phone twin  
 - Antigravity thread poll (`anti_read`)  

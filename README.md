@@ -19,6 +19,11 @@ Sign in without the Edge password box:
 
 `GET /v1/phoneai/sessions` mints a Pocket or PhoneAI session. Agents think first (`route_think`) and use at most one tool.
 
+**Invention claims (Alfredo Medina, ItsNotAI Labs, 31 Aug 2026):** [docs/research/INVENTION_CLAIMS_2026.md](docs/research/INVENTION_CLAIMS_2026.md) — Portal stream, Antigravity desktop-app view, twin mint, WebMCP work functions. Defensive publication.
+
+**Portal** (first-class PC stream): [http://127.0.0.1:8787/phoneai/portal](http://127.0.0.1:8787/phoneai/portal)  
+**Antigravity** (desktop app, separate): [http://127.0.0.1:8787/phoneai/anti](http://127.0.0.1:8787/phoneai/anti)
+
 ## What POCKET is
 
 POCKET is the user/team/policy envelope for the wider ItsNotAI Labs runtime. It gives people one place to use local agents, voice, models, tools and devices while keeping identity, tenancy, policy, approvals, audit and product routing in one control plane.

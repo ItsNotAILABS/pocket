@@ -1,0 +1,36 @@
+{
+  "schema": "inl.invention_claims.v1",
+  "id": "INL-2026-CLAIMS.PORTAL.PHONEAI.001",
+  "effective": "2026-08-31",
+  "kind": "defensive_publication",
+  "inventor": {
+    "name": "Alfredo Medina",
+    "lab": "ItsNotAI Labs",
+    "company": "Medina Tech Labs",
+    "org": "ItsNotAILABS"
+  },
+  "deposits": [
+    "https://github.com/ItsNotAILABS/pocket",
+    "https://github.com/ItsNotAILABS/PhoneAI",
+    "https://github.com/ItsNotAILABS/phoneai-desk"
+  ],
+  "embodiment": {
+    "host": "POCKET :8787",
+    "version": "3.8+",
+    "portal": "/phoneai/portal",
+    "antigravity": "/phoneai/anti",
+    "kernel": "/phoneai"
+  },
+  "claims": [
+    {"n": 1, "title": "Phone kernel seat", "independent": true},
+    {"n": 2, "title": "Twin mint on the operator machine", "independent": true},
+    {"n": 3, "title": "Think-first routing", "independent": true},
+    {"n": 4, "title": "WebMCP work functions not extra screens", "independent": true},
+    {"n": 5, "title": "First-class visual Portal with touch-to-desktop", "independent": true},
+    {"n": 6, "title": "LAN-bounded Portal touch", "independent": true},
+    {"n": 7, "title": "Antigravity as a separate desktop-app surface", "independent": true},
+    {"n": 8, "title": "Nested-session exclusion", "independent": true},
+    {"n": 9, "title": "Dual write explorer + git + GitHub", "independent": true},
+    {"n": 10, "title": "Combined first-class system", "independent": true}
+  ]
+}
