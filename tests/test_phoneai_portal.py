@@ -35,6 +35,8 @@ def test_snapshot_documents_phone_zoom():
     assert s["phone_zoom"].startswith("view-only")
     assert "joystick" in s["controls"]
     assert "window-focus" in s["controls"]
+    assert "scroll" in s["controls"]
+    assert "open-app" in s["controls"]
 
 
 def test_windows_list_and_html_tabs():
@@ -45,5 +47,9 @@ def test_windows_list_and_html_tabs():
     assert "windows" in w
     html = phoneai_portal_html()
     assert 'id="tabs"' in html
+    assert 'id="apps"' in html
+    assert 'id="sup"' in html and 'id="sdn"' in html
     assert "portal/windows" in html
+    assert "portal/apps" in html
     assert "kind==='focus'" in html or "focus" in html
+    assert "kind==='open'" in html or "send('open'" in html

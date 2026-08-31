@@ -558,9 +558,11 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .bar input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 .hint{position:absolute;left:108px;right:68px;bottom:12px;font-size:11px;color:#a1a1aa;background:rgba(0,0,0,.55);padding:6px 8px;border-radius:8px;pointer-events:none;z-index:5}
-.tabs{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
-.tabs button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:7px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs,.apps{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:7px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
+.apps button{background:#101018}
+.btns button.sc{font-size:16px;line-height:1}
 </style></head>
 <body>
 <div class="top">
@@ -572,6 +574,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   </div>
 </div>
 <div class="tabs" id="tabs"></div>
+<div class="apps" id="apps"></div>
 <div class="stage" id="stage">
   <div class="view" id="view">
     <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
@@ -581,8 +584,10 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   <div class="btns">
     <button type="button" id="lmb">L</button>
     <button type="button" id="rmb">R</button>
+    <button type="button" class="sc" id="sup">▲</button>
+    <button type="button" class="sc" id="sdn">▼</button>
   </div>
-  <div class="hint" id="hint">Tap a window to make it the main app. Pinch=phone zoom. L/R · stick · type live.</div>
+  <div class="hint" id="hint">Two-finger scroll moves the PC. Tabs = live windows. App buttons open desktop apps.</div>
 </div>
 <form class="bar" id="kb">
   <input id="keys" placeholder="Tap a field, then type here — live on the PC" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter"/>
@@ -615,7 +620,7 @@ function ptFrom(src){
 }
 function showDot(cx,cy){ const s=stage.getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
 function send(kind, nx, ny, extra){
-  if(mode!=='touch' && kind!=='type' && kind!=='key' && kind!=='focus') return;
+  if(mode!=='touch' && kind!=='type' && kind!=='key' && kind!=='focus' && kind!=='open') return;
   fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target}, extra||{}))})
     .then(r=>r.json()).then(j=>{
       if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
@@ -628,15 +633,36 @@ function loadWins(){
     const list=j.windows||[];
     el.innerHTML=list.map(w=>{
       const t=(w.title||('hwnd '+w.hwnd)).replace(/[<>]/g,'');
-      return '<button type="button" class="'+(w.focused?'on':'')+'" data-hwnd="'+w.hwnd+'">'+t.slice(0,36)+'</button>';
+      const mark=w.minimized?'· ':'';
+      return '<button type="button" class="'+(w.focused?'on':'')+'" data-hwnd="'+w.hwnd+'">'+mark+t.slice(0,36)+'</button>';
     }).join('') || '<button type="button" disabled>No windows</button>';
   }).catch(()=>{});
 }
-loadWins(); setInterval(loadWins, 2500);
+loadWins(); setInterval(loadWins, 1200);
 document.getElementById('tabs').onclick=e=>{
   const b=e.target.closest('[data-hwnd]'); if(!b) return;
   e.preventDefault(); e.stopPropagation();
   send('focus', lastNx, lastNy, {hwnd: parseInt(b.getAttribute('data-hwnd'),10)});
+};
+const PIN=['edge','explorer','code','cursor','wt','notepad','calc','settings','chrome','antigravity','discord','github','powershell','grok_app'];
+function loadApps(){
+  fetch('/v1/phoneai/portal/apps').then(r=>r.json()).then(j=>{
+    const all=j.apps||[];
+    const by={}; all.forEach(a=>by[a.id]=a);
+    const ordered=[...PIN.filter(id=>by[id]), ...all.map(a=>a.id).filter(id=>PIN.indexOf(id)<0)].slice(0,28);
+    document.getElementById('apps').innerHTML=ordered.map(id=>{
+      const a=by[id]; if(!a) return '';
+      return '<button type="button" data-app="'+a.id+'">'+(a.label||a.id)+'</button>';
+    }).join('');
+  }).catch(()=>{});
+}
+loadApps();
+document.getElementById('apps').onclick=e=>{
+  const b=e.target.closest('[data-app]'); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  send('open', lastNx, lastNy, {text: b.getAttribute('data-app'), app: b.getAttribute('data-app')});
+  hint.textContent='Opening '+b.textContent+'…';
+  setTimeout(loadWins, 800);
 };
 function tick(){
   if(document.hidden || busy){ setTimeout(tick, 400); return; }
@@ -683,6 +709,18 @@ stage.addEventListener('pointermove', ev=>{
     const pts=[...fingers.values()];
     const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1;
     const mx=(pts[0].x+pts[1].x)/2, my=(pts[0].y+pts[1].y)/2;
+    const scaleChange=Math.abs(d/pinch.d - 1);
+    const midY=my-pinch.my, midX=mx-pinch.mx;
+    if(mode==='touch' && zoom<=1.05 && scaleChange<0.12 && Math.abs(midY)+Math.abs(midX)>10){
+      const now=Date.now();
+      if(now-lastDrag>36){
+        lastDrag=now;
+        send('scroll', lastNx, lastNy, {dy: midY/70, dx: midX/90});
+        pinch.mx=mx; pinch.my=my;
+        hint.textContent='Scrolling the PC';
+      }
+      return;
+    }
     const nz=clamp(pinch.z*(d/pinch.d), 1, 5);
     const cx=(pinch.mx-pinch.px)/pinch.z, cy=(pinch.my-pinch.py)/pinch.z;
     zoom=nz; panX=mx-cx*nz; panY=my-cy*nz; applyView();
@@ -769,6 +807,8 @@ rmb.addEventListener('pointerdown', ev=>{
 }, {passive:false});
 rmb.addEventListener('pointerup', ev=>{ rmb.classList.remove('held'); send('up', lastNx, lastNy, {button:'right'}); });
 rmb.addEventListener('click', ev=>{ ev.preventDefault(); });
+document.getElementById('sup').onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); send('scroll', lastNx, lastNy, {dy:-0.45}); };
+document.getElementById('sdn').onclick=ev=>{ ev.preventDefault(); ev.stopPropagation(); send('scroll', lastNx, lastNy, {dy:0.45}); };
 
 keys.addEventListener('input', ()=>{
   const v=keys.value; let i=0;

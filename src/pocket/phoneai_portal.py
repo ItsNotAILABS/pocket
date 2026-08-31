@@ -140,6 +140,8 @@ def _bind_user32():
     u.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
     u.GetWindowThreadProcessId.restype = wintypes.DWORD
     u.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, ctypes.c_bool]
+    u.IsWindowVisible.argtypes = [wintypes.HWND]
+    u.IsWindowVisible.restype = ctypes.c_bool
     u._pocket_bound = True  # type: ignore[attr-defined]
     return u
 
@@ -192,32 +194,51 @@ def window_at(x: int, y: int) -> Optional[Dict[str, Any]]:
     return rec
 
 
-def windows(*, limit: int = 24) -> Dict[str, Any]:
-    """Open windows as phone tabs. Focused one is the live main window."""
-    from pocket.screen_share import list_windows
+def windows(*, limit: int = 40) -> Dict[str, Any]:
+    """Open + minimized windows as phone tabs. Focused one is the live main window."""
+    import ctypes
+    from ctypes import wintypes
 
     u = _bind_user32()
     fg = int(u.GetForegroundWindow() or 0)
     rows: list = []
-    for w in list_windows(limit=limit * 2):
-        hwnd = int(w.get("hwnd") or 0)
-        title = (w.get("title") or "").strip()
-        if hwnd <= 0 or not title:
-            continue
+    seen = set()
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def _cb(hwnd, _lp):
+        if not u.IsWindow(hwnd):
+            return True
+        iconic = bool(u.IsIconic(hwnd))
+        vis = bool(u.IsWindowVisible(hwnd))
+        if not vis and not iconic:
+            return True
+        title = _title_of(int(hwnd))
+        if len(title) < 2:
+            return True
         if any(s in title.lower() for s in _SKIP_FOCUS):
-            continue
-        r = _rect_of(hwnd)
+            return True
+        if title.lower() in ("program manager", "windows input experience"):
+            return True
+        hid = int(hwnd)
+        if hid in seen:
+            return True
+        seen.add(hid)
+        r = _rect_of(hid)
         rows.append(
             {
-                "hwnd": hwnd,
+                "hwnd": hid,
                 "title": title[:80],
-                "focused": hwnd == fg,
-                "main": hwnd == fg,
+                "focused": hid == fg,
+                "main": hid == fg,
+                "minimized": iconic,
                 **r,
             }
         )
-        if len(rows) >= limit:
-            break
+        return len(rows) < max(int(limit), 8) * 2
+
+    u.EnumWindows(_cb, 0)
+    rows.sort(key=lambda w: (0 if w.get("focused") else 1, 1 if w.get("minimized") else 0))
+    rows = rows[:limit]
     return {
         "ok": True,
         "focused": fg,
@@ -439,6 +460,7 @@ MOUSEEVENTF_LEFTUP = 0x0004
 MOUSEEVENTF_RIGHTDOWN = 0x0008
 MOUSEEVENTF_RIGHTUP = 0x0010
 MOUSEEVENTF_WHEEL = 0x0800
+MOUSEEVENTF_HWHEEL = 0x1000
 VK_BACK = 0x08
 VK_TAB = 0x09
 VK_RETURN = 0x0D
@@ -618,10 +640,39 @@ def touch(
             _click("right")
         elif kind in ("scroll", "wheel"):
             _move(x, y)
-            delta = int(-120 if dy >= 0 else 120)
-            if abs(dy) > 0.08:
-                delta = int(-120 * max(-4, min(4, round(dy * 6))))
-            _mouse(MOUSEEVENTF_WHEEL, 0, 0, delta)
+            times = max(1, min(int(n or 1), 8))
+            for _ in range(times):
+                if abs(float(dx) or 0) > 0.02:
+                    hticks = int(round(float(dx) * 8)) or (1 if float(dx) > 0 else -1)
+                    hticks = max(-8, min(8, hticks))
+                    _mouse(MOUSEEVENTF_HWHEEL, 0, 0, int(-120 * hticks))
+                ticks = int(round(float(dy) * 8))
+                if ticks == 0:
+                    ticks = 1 if float(dy) >= 0 else -1
+                ticks = max(-8, min(8, ticks))
+                _mouse(MOUSEEVENTF_WHEEL, 0, 0, int(-120 * ticks))
+        elif kind in ("open", "launch", "app"):
+            from pocket.desktop import open_app
+
+            aid = (text or "").strip() or (button if button not in ("left", "right") else "")
+            launched = open_app(aid)
+            time.sleep(0.35)
+            focused = {}
+            try:
+                from pocket.ui_maneuver import focus_window_title
+
+                focused = focus_window_title(str(launched.get("label") or aid)[:40])
+            except Exception:
+                pass
+            return {
+                "ok": bool(launched.get("ok")),
+                "kind": kind,
+                "app": aid,
+                "launched": launched,
+                "focus": focused,
+                **pt,
+                "ms": int((time.time() - t0) * 1000),
+            }
         elif kind in ("key", "keys"):
             code = int(vk or 0)
             if code:
@@ -652,8 +703,9 @@ def snapshot() -> Dict[str, Any]:
         "separate_from": "antigravity",
         "modes": ["watch", "touch"],
         "phone_zoom": "view-only — PC zoom never changes",
-        "controls": ["tap", "right", "drag", "joystick", "live-type", "window-focus"],
+        "controls": ["tap", "right", "drag", "joystick", "live-type", "window-focus", "scroll", "open-app"],
         "windows": "/v1/phoneai/portal/windows",
+        "apps": "/v1/phoneai/portal/apps",
         "targets": ["desktop"],
         "geom": {"ok": True, "target": "desktop", **vs},
         "watch": "/phoneai/portal",

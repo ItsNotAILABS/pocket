@@ -957,6 +957,11 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_portal import windows as portal_windows
 
             return self._json(200, portal_windows())
+        if path in ("/v1/phoneai/portal/apps", "/api/phoneai/portal/apps"):
+            from pocket.desktop import list_apps
+
+            apps = [a for a in list_apps() if a.get("available")]
+            return self._json(200, {"ok": True, "apps": apps, "count": len(apps)})
         if path in ("/v1/phoneai/portal/frame", "/api/phoneai/portal/frame"):
             from pocket.phoneai_portal import grab_jpeg
 
@@ -4136,7 +4141,7 @@ class Handler(BaseHTTPRequestHandler):
                     ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
                     dy=float(body.get("dy") or 0),
                     dx=float(body.get("dx") or 0),
-                    text=str(body.get("text") or ""),
+                    text=str(body.get("text") or body.get("app") or ""),
                     target="desktop",
                     button=str(body.get("button") or "left"),
                     vk=int(body.get("vk") or 0),
