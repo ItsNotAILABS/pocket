@@ -87,8 +87,12 @@ def ensure_repo() -> Dict[str, Any]:
         view = _run([_gh(), "repo", "view", spec, "--json", "url", "-q", ".url"], timeout=20)
         if view.get("ok") and "github.com" in (view.get("out") or ""):
             url = view["out"].strip().splitlines()[0]
+            if url.startswith("git@"):
+                # gh may print ssh; HTTPS works with gh credentials on this PC
+                url = "https://github.com/" + url.split(":", 1)[-1]
+            url = url.replace(".git", "")
             _run(["git", "remote", "remove", "origin"], cwd=LOCAL)
-            _run(["git", "remote", "add", "origin", url if url.endswith(".git") else url + ".git"], cwd=LOCAL)
+            _run(["git", "remote", "add", "origin", url + ".git"], cwd=LOCAL)
             _save_state({"url": url})
             return {"ok": True, "url": url, "local": str(LOCAL)}
     created = _run(
