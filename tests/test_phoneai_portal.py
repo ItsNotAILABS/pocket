@@ -20,6 +20,9 @@ def test_portal_html_phone_zoom_and_controls():
     assert "L click" in html
     assert "vk:8" in html
     assert "/v1/phoneai/portal/touch" in html
+    assert "touchstart" in html
+    assert "credentials:'include'" in html or 'credentials:"include"' in html
+    assert "emitScroll" in html or "kind:'scroll'" in html or 'kind,"scroll"' in html or "send('scroll'" in html
 
 
 def test_anti_html_has_working_gestures():
@@ -35,6 +38,13 @@ def test_snapshot_documents_phone_zoom():
     assert "window-focus" in s["controls"]
     assert "scroll" in s["controls"]
     assert "open-app" in s["controls"]
+
+
+def test_touch_allowed_on_named_tunnel():
+    from pocket.phoneai_portal import touch_allowed
+
+    assert touch_allowed({"Host": "pocket.medinatechlabs.net", "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is True
+    assert touch_allowed({}, ("127.0.0.1", 1)) is True
 
 
 def test_windows_list_and_html_tabs():

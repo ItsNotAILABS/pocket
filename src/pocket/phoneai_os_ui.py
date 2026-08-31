@@ -577,7 +577,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
     <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
   </div>
   <div class="dot" id="dot"></div>
-  <div class="hint" id="hint">Press a spot on the screen, then use L · R · ▲ · ▼. Double-press or hold to arm that spot for scroll.</div>
+  <div class="hint" id="hint">Swipe on the screen to scroll the PC. Tap to click. Hold then swipe to scroll that window. ▲ ▼ also scroll.</div>
 </div>
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
@@ -607,12 +607,18 @@ function applyView(){
   panY=clamp(panY, s.height*(1-zoom), 0);
   view.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
 }
-function ptFrom(src){
+function finger(ev){
+  if(ev.touches && ev.touches[0]) return ev.touches[0];
+  if(ev.changedTouches && ev.changedTouches[0]) return ev.changedTouches[0];
+  return ev;
+}
+function ptFrom(ev){
+  const src=finger(ev);
   const r=img.getBoundingClientRect();
-  const w=r.width||1, h=r.height||1;
+  const w=Math.max(1,r.width), h=Math.max(1,r.height);
   const nx=clamp((src.clientX-r.left)/w,0,1), ny=clamp((src.clientY-r.top)/h,0,1);
   lastNx=nx; lastNy=ny;
-  return {nx, ny, cx:src.clientX, cy:src.clientY};
+  return {nx, ny, cx:src.clientX, cy:src.clientY, id: ev.pointerId||src.identifier||0};
 }
 function showDot(cx,cy){ const s=stage.getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
 function aim(p, why){
@@ -620,12 +626,20 @@ function aim(p, why){
   hint.textContent=(why||'Armed')+' — L / R / Scroll act here';
 }
 function send(kind, nx, ny, extra){
-  fetch('/v1/phoneai/portal/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra||{}))})
-    .then(r=>r.json()).then(j=>{
-      if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
-      if(kind==='focus' || (j && j.focus && j.focus.main)) loadWins();
-      if(j && j.ok===false && j.error) hint.textContent=j.error;
-    }).catch(()=>{ hint.textContent='Touch failed — same Wi-Fi? Touch mode on?'; });
+  return fetch('/v1/phoneai/portal/touch',{
+    method:'POST',
+    credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra||{}))
+  }).then(async r=>{
+    let j={};
+    try{ j=await r.json(); }catch(_){ j={ok:false,error:'HTTP '+r.status}; }
+    if(!r.ok){ hint.textContent=j.error||('Touch HTTP '+r.status); return j; }
+    if(j && j.focus && j.focus.title) hint.textContent='Main: '+j.focus.title;
+    if(kind==='focus' || (j && j.focus && j.focus.main)) loadWins();
+    if(j && j.ok===false && j.error) hint.textContent=j.error;
+    return j;
+  }).catch(()=>{ hint.textContent='Touch failed — check host / tunnel'; });
 }
 function loadWins(){
   fetch('/v1/phoneai/portal/windows').then(r=>r.json()).then(j=>{
@@ -678,100 +692,139 @@ document.getElementById('mode').onclick=e=>{
   [...document.getElementById('mode').children].forEach(x=>x.classList.toggle('on',x===b));
   hint.textContent=mode==='touch'?'Touch on. Press a spot, then L / R / Scroll.':'Watch only.';
 };
+const ios=/iP(hone|ad|od)|Android/i.test(navigator.userAgent||'');
 const fingers=new Map();
-let gest=null, longTimer=null, pinch=null, startAt=null;
+let gest=null, longTimer=null, pinch=null, startAt=null, usingTouch=false;
 function clearLong(){ if(longTimer){ clearTimeout(longTimer); longTimer=null; } }
-stage.addEventListener('pointerdown', ev=>{
-  ev.preventDefault();
-  try{ stage.setPointerCapture(ev.pointerId); }catch(_){}
-  fingers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
-  if(fingers.size>=2){
-    clearLong(); gest='pinch';
+function fid(ev){ return ev.pointerId!=null?ev.pointerId:(finger(ev).identifier||0); }
+function syncFingers(ev){
+  if(ev.touches && ev.touches.length){
+    fingers.clear();
+    for(let i=0;i<ev.touches.length;i++){
+      const t=ev.touches[i];
+      fingers.set(t.identifier, {x:t.clientX, y:t.clientY});
+    }
+    return fingers.size;
+  }
+  const p=ptFrom(ev);
+  if(ev.type==='pointerup'||ev.type==='pointercancel'||ev.type==='mouseup'){
+    fingers.delete(fid(ev));
+  } else {
+    fingers.set(fid(ev), {x:p.cx, y:p.cy});
+  }
+  return fingers.size;
+}
+function emitScroll(nx, ny, dx, dy){
+  const now=Date.now();
+  if(now-lastDrag<40) return;
+  lastDrag=now;
+  send('scroll', nx, ny, {dy: dy, dx: dx});
+  hint.textContent='Scrolling the PC';
+}
+function onDown(ev){
+  if(mode!=='touch') return;
+  const n=syncFingers(ev);
+  const p=ptFrom(ev); showDot(p.cx,p.cy);
+  if(n>=2){
+    clearLong(); gest='twoscroll';
     const pts=[...fingers.values()];
     pinch={d:Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1, z:zoom, px:panX, py:panY, mx:(pts[0].x+pts[1].x)/2, my:(pts[0].y+pts[1].y)/2};
     return;
   }
-  if(mode!=='touch') return;
-  const p=ptFrom(ev); showDot(p.cx,p.cy);
-  startAt={x:ev.clientX, y:ev.clientY, nx:p.nx, ny:p.ny, t:Date.now(), pressure: ev.pressure||0};
+  startAt={x:p.cx, y:p.cy, nx:p.nx, ny:p.ny, cx:p.cx, cy:p.cy, lastX:p.cx, lastY:p.cy};
   gest='pending';
-  const holdMs=(ev.pressure&&ev.pressure>0.45)?180:320;
-  longTimer=setTimeout(()=>{
-    if(gest==='pending'){ gest='armed'; aim(startAt, 'Hold'); }
-  }, holdMs);
-}, {passive:false});
-stage.addEventListener('pointermove', ev=>{
-  if(!fingers.has(ev.pointerId)) return;
-  ev.preventDefault();
-  fingers.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
-  if(fingers.size>=2 && pinch){
+  const holdMs=(ev.pressure&&ev.pressure>0.45)?180:300;
+  longTimer=setTimeout(()=>{ if(gest==='pending'){ gest='armed'; aim(startAt, 'Hold — swipe to scroll'); } }, holdMs);
+}
+function onMove(ev){
+  const n=syncFingers(ev);
+  const p=ptFrom(ev);
+  if(n>=2){
     const pts=[...fingers.values()];
     const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1;
     const mx=(pts[0].x+pts[1].x)/2, my=(pts[0].y+pts[1].y)/2;
-    const nz=clamp(pinch.z*(d/pinch.d), 1, 5);
-    const cx=(pinch.mx-pinch.px)/pinch.z, cy=(pinch.my-pinch.py)/pinch.z;
-    zoom=nz; panX=mx-cx*nz; panY=my-cy*nz; applyView();
+    if(!pinch){
+      pinch={d:d, z:zoom, px:panX, py:panY, mx:mx, my:my};
+    }
+    const scaleChange=Math.abs(d/(pinch.d||1)-1);
+    if(scaleChange<0.16){
+      gest='twoscroll';
+      emitScroll(lastNx, lastNy, (mx-pinch.mx)/70, (my-pinch.my)/50);
+      pinch.mx=mx; pinch.my=my;
+    } else {
+      const nz=clamp(pinch.z*(d/pinch.d), 1, 5);
+      const cx=(pinch.mx-pinch.px)/pinch.z, cy=(pinch.my-pinch.py)/pinch.z;
+      zoom=nz; panX=mx-cx*nz; panY=my-cy*nz; applyView();
+    }
     return;
   }
   if(mode!=='touch' || !startAt) return;
-  const p=ptFrom(ev); showDot(p.cx,p.cy);
-  if(gest==='pending' && Math.hypot(ev.clientX-startAt.x, ev.clientY-startAt.y)>16){
-    clearLong(); gest='drag';
-    send('down', startAt.nx, startAt.ny, {button:'left'});
-    send('drag', p.nx, p.ny);
-  } else if(gest==='drag'){
-    const now=Date.now(); if(now-lastDrag<32) return; lastDrag=now;
-    send('drag', p.nx, p.ny);
+  showDot(p.cx,p.cy);
+  const dist=Math.hypot(p.cx-startAt.x, p.cy-startAt.y);
+  if((gest==='pending' || gest==='armed') && dist>16){
+    clearLong(); gest='scroll';
   }
-}, {passive:false});
-function endPtr(ev){
-  fingers.delete(ev.pointerId);
-  if(fingers.size<2) pinch=null;
+  if(gest==='scroll'){
+    const dy=(p.cy-startAt.lastY)/48;
+    const dx=(p.cx-startAt.lastX)/64;
+    startAt.lastY=p.cy; startAt.lastX=p.cx;
+    emitScroll(startAt.nx, startAt.ny, dx, dy);
+  }
+}
+function onUp(ev){
+  const n=syncFingers(ev);
+  if(ev.touches) { /* remaining */ }
+  else { fingers.delete(fid(ev)); }
+  if((ev.touches?ev.touches.length:fingers.size)<2) pinch=null;
   if(mode!=='touch'){ if(!fingers.size) gest=null; return; }
   const p=ptFrom(ev);
   clearLong();
   const now=Date.now();
   if(gest==='pending'){
-    if(now-lastTap<340){
-      lastTap=0; gest='armed'; aim(p, 'Double-press');
-    } else {
-      lastTap=now;
-      aim(p, 'Tap');
-      send('tap', p.nx, p.ny);
-      setTimeout(()=>{ try{ keys.focus(); }catch(_){} }, 40);
-    }
-  } else if(gest==='armed'){
-    aim(p, 'Armed');
-  } else if(gest==='drag') send('up', p.nx, p.ny, {button:'left'});
-  if(!fingers.size){ gest=null; startAt=null; }
+    if(now-lastTap<340){ lastTap=0; gest='armed'; aim(p, 'Double-press — swipe to scroll'); }
+    else { lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny); }
+  } else if(gest==='armed'){ aim(p, 'Armed — swipe or tap Scroll'); }
+  if((ev.touches?ev.touches.length:0)===0){ gest=null; startAt=null; fingers.clear(); }
 }
-stage.addEventListener('pointerup', endPtr);
-stage.addEventListener('pointercancel', endPtr);
+stage.addEventListener('touchstart', ev=>{ usingTouch=true; ev.preventDefault(); onDown(ev); }, {passive:false});
+stage.addEventListener('touchmove', ev=>{ ev.preventDefault(); onMove(ev); }, {passive:false});
+stage.addEventListener('touchend', ev=>{ ev.preventDefault(); onUp(ev); }, {passive:false});
+stage.addEventListener('touchcancel', ev=>{ onUp(ev); }, {passive:false});
+stage.addEventListener('pointerdown', ev=>{
+  if(usingTouch || ev.pointerType==='touch') return;
+  ev.preventDefault();
+  if(!ios){ try{ stage.setPointerCapture(ev.pointerId); }catch(_){} }
+  onDown(ev);
+}, {passive:false});
+stage.addEventListener('pointermove', ev=>{
+  if(usingTouch || ev.pointerType==='touch') return;
+  onMove(ev);
+}, {passive:false});
+stage.addEventListener('pointerup', ev=>{ if(usingTouch || ev.pointerType==='touch') return; onUp(ev); });
+stage.addEventListener('pointercancel', ev=>{ if(usingTouch || ev.pointerType==='touch') return; onUp(ev); });
 stage.addEventListener('contextmenu', ev=>ev.preventDefault());
 
-const lmb=document.getElementById('lmb'), rmb=document.getElementById('rmb');
-lmb.addEventListener('pointerdown', ev=>{
-  ev.preventDefault(); ev.stopPropagation(); lmb.classList.add('held');
-  send('tap', lastNx, lastNy);
-}, {passive:false});
-lmb.addEventListener('pointerup', ev=>{ lmb.classList.remove('held'); });
-rmb.addEventListener('pointerdown', ev=>{
-  ev.preventDefault(); ev.stopPropagation(); rmb.classList.add('held');
-  send('right', lastNx, lastNy);
-}, {passive:false});
-rmb.addEventListener('pointerup', ev=>{ rmb.classList.remove('held'); });
+function bindPress(el, down, up){
+  let on=false;
+  const s=ev=>{ ev.preventDefault(); ev.stopPropagation(); if(on) return; on=true; el.classList.add('held'); down(); };
+  const e=ev=>{ if(!on) return; on=false; el.classList.remove('held'); if(up) up(); };
+  el.addEventListener('touchstart', s, {passive:false});
+  el.addEventListener('touchend', e);
+  el.addEventListener('touchcancel', e);
+  el.addEventListener('mousedown', s);
+  el.addEventListener('mouseup', e);
+  el.addEventListener('mouseleave', e);
+}
+bindPress(document.getElementById('lmb'), ()=>send('tap', lastNx, lastNy));
+bindPress(document.getElementById('rmb'), ()=>send('right', lastNx, lastNy));
 let scrollHold=null;
 function holdScroll(dy){
   send('scroll', lastNx, lastNy, {dy:dy});
-  scrollHold=setInterval(()=>send('scroll', lastNx, lastNy, {dy:dy}), 140);
+  scrollHold=setInterval(()=>send('scroll', lastNx, lastNy, {dy:dy}), 160);
 }
 function endScroll(){ if(scrollHold){ clearInterval(scrollHold); scrollHold=null; } }
-document.getElementById('sup').addEventListener('pointerdown', ev=>{ ev.preventDefault(); ev.stopPropagation(); document.getElementById('sup').classList.add('held'); holdScroll(-0.45); });
-document.getElementById('sdn').addEventListener('pointerdown', ev=>{ ev.preventDefault(); ev.stopPropagation(); document.getElementById('sdn').classList.add('held'); holdScroll(0.45); });
-document.getElementById('sup').addEventListener('pointerup', ev=>{ document.getElementById('sup').classList.remove('held'); endScroll(); });
-document.getElementById('sdn').addEventListener('pointerup', ev=>{ document.getElementById('sdn').classList.remove('held'); endScroll(); });
-document.getElementById('sup').addEventListener('pointercancel', endScroll);
-document.getElementById('sdn').addEventListener('pointercancel', endScroll);
+bindPress(document.getElementById('sup'), ()=>holdScroll(-0.5), endScroll);
+bindPress(document.getElementById('sdn'), ()=>holdScroll(0.5), endScroll);
 
 keys.addEventListener('input', ()=>{
   const v=keys.value; let i=0;

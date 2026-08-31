@@ -4091,12 +4091,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, runtime_install())
         if path in ("/v1/phoneai/anti/touch", "/api/phoneai/anti/touch"):
             from pocket.antigravity_chat import anti_touch
-            from pocket.auth import is_home_lan_client
+            from pocket.phoneai_portal import touch_allowed
             from pocket.ratelimit import hit as rl_hit
 
             ip = self._client_ip()
-            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
-                return self._json(403, {"ok": False, "error": "touch is LAN-only"})
+            if not touch_allowed(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "sign in, use LAN, or open the PhoneAI tunnel URL"})
             ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
@@ -4116,10 +4116,10 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path in ("/v1/eyes/touch", "/api/eyes/touch"):
             from pocket.agent_eyes import act as eyes_act
-            from pocket.auth import is_home_lan_client
+            from pocket.phoneai_portal import touch_allowed
 
-            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
-                return self._json(403, {"ok": False, "error": "touch is LAN-only"})
+            if not touch_allowed(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "sign in, use LAN, or open the PhoneAI tunnel URL"})
             return self._json(
                 200,
                 eyes_act(
@@ -4131,13 +4131,16 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
-            from pocket.auth import is_home_lan_client
             from pocket.phoneai_portal import touch as portal_touch
+            from pocket.phoneai_portal import touch_allowed
             from pocket.ratelimit import hit as rl_hit
 
             ip = self._client_ip()
-            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
-                return self._json(403, {"ok": False, "error": "touch is LAN-only — open Portal on the same Wi-Fi as this PC"})
+            if not touch_allowed(self.headers, getattr(self, "client_address", None)):
+                return self._json(
+                    403,
+                    {"ok": False, "error": "Touch blocked. Sign in, same Wi-Fi, or use https://pocket.medinatechlabs.net/phoneai/portal"},
+                )
             ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})

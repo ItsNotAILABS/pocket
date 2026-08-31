@@ -709,6 +709,30 @@ def touch(
         return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
 
 
+def touch_allowed(headers=None, client_address=None) -> bool:
+    """LAN, signed-in seat, or this host's named tunnel (the phone)."""
+    import os
+    from urllib.parse import urlparse
+
+    from pocket.auth import current_user, is_home_lan_client
+
+    if is_home_lan_client(headers, client_address):
+        return True
+    try:
+        if current_user(headers or {}):
+            return True
+    except Exception:
+        pass
+    host = str((headers or {}).get("Host") or (headers or {}).get("host") or "").split(":")[0].lower()
+    pub = os.environ.get("POCKET_PUBLIC_URL") or "https://pocket.medinatechlabs.net"
+    pub_host = (urlparse(pub).hostname or "").lower()
+    if pub_host and host == pub_host:
+        return True
+    if host.endswith(".medinatechlabs.net") or host.endswith(".trycloudflare.com"):
+        return True
+    return False
+
+
 def snapshot() -> Dict[str, Any]:
     vs = virtual_screen()
     return {
