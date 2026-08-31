@@ -35,6 +35,17 @@ def virtual_screen() -> Dict[str, int]:
     }
 
 
+def primary_screen() -> Dict[str, int]:
+    """The one screen we stream — not the virtual desktop, not a mirror of Portal."""
+    u = _user32()
+    return {
+        "x": 0,
+        "y": 0,
+        "w": int(u.GetSystemMetrics(0) or 1920),
+        "h": int(u.GetSystemMetrics(1) or 1080),
+    }
+
+
 def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
     from pocket.screen_share import list_windows
 
@@ -69,8 +80,8 @@ def geom(target: str = "desktop") -> Dict[str, Any]:
         wr = window_rect("Antigravity") or window_rect("anti")
         if wr:
             return {"ok": True, "target": "window", **wr}
-    vs = virtual_screen()
-    return {"ok": True, "target": "desktop", "hwnd": 0, "title": "desktop", **vs}
+    ps = primary_screen()
+    return {"ok": True, "target": "desktop", "hwnd": 0, "title": "primary", **ps}
 
 
 def _placeholder(msg: str = "Portal") -> bytes:
@@ -88,7 +99,44 @@ def _placeholder(msg: str = "Portal") -> bytes:
 def _capture_primary():
     from PIL import ImageGrab
 
-    return ImageGrab.grab()
+    ps = primary_screen()
+    return ImageGrab.grab(bbox=(0, 0, ps["w"], ps["h"]))
+
+
+_SKIP_TITLES = ("portal · phoneai", "phoneai portal", "/phoneai/portal")
+
+
+def _blackout_self(img) -> None:
+    """Paint over the Portal viewer so the stream cannot contain itself."""
+    try:
+        from PIL import ImageDraw
+        from pocket.screen_share import list_windows
+
+        draw = ImageDraw.Draw(img)
+        pw, ph = img.size
+        ps = primary_screen()
+        sx = pw / float(ps["w"] or pw)
+        sy = ph / float(ps["h"] or ph)
+        for w in list_windows(limit=40):
+            title = (w.get("title") or "").lower()
+            if not any(s in title for s in _SKIP_TITLES):
+                continue
+            hwnd = int(w.get("hwnd") or 0)
+            if hwnd <= 0:
+                continue
+            import ctypes
+            from ctypes import wintypes
+
+            rect = wintypes.RECT()
+            if not _user32().GetWindowRect(hwnd, ctypes.byref(rect)):
+                continue
+            x0 = int((rect.left - ps["x"]) * sx)
+            y0 = int((rect.top - ps["y"]) * sy)
+            x1 = int((rect.right - ps["x"]) * sx)
+            y1 = int((rect.bottom - ps["y"]) * sy)
+            draw.rectangle([x0, y0, x1, y1], fill=(8, 10, 18))
+    except Exception:
+        pass
 
 
 def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
@@ -100,8 +148,7 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
             return _last_jpeg["data"], _last_jpeg["meta"]
     g = {"ok": True, "target": "desktop"}
     try:
-        vs = virtual_screen()
-        g.update(vs)
+        g.update(primary_screen())
     except Exception:
         g.update({"x": 0, "y": 0, "w": 1920, "h": 1080})
     img = None
@@ -127,6 +174,7 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
         meta = {**g, "via": "placeholder", "bytes": len(data)}
         return data, meta
     img = img.convert("RGB")
+    _blackout_self(img)
     if img.width > max_w:
         ratio = max_w / float(img.width)
         img = img.resize((max_w, max(1, int(img.height * ratio))))

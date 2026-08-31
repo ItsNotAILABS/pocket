@@ -514,7 +514,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 <div class="stage" id="stage">
   <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
   <div class="dot" id="dot"></div>
-  <div class="hint" id="hint">First-class PC stream. Watch or Touch. Antigravity is a different app at Home → Anti.</div>
+  <div class="hint" id="hint">One screen only (primary). Open this on the phone so it does not film itself.</div>
 </div>
 <form class="bar" id="kb">
   <input id="keys" placeholder="Type on the PC…" autocomplete="off"/>
@@ -540,7 +540,7 @@ function send(kind, nx, ny, extra){
 function tick(){
   if(document.hidden || busy){ setTimeout(tick, 400); return; }
   busy=true;
-  const done=()=>{ busy=false; setTimeout(tick, 500); };
+  const done=()=>{ busy=false; setTimeout(tick, 900); };
   img.onload=done;
   img.onerror=done;
   img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&t='+Date.now();
