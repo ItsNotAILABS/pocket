@@ -1,0 +1,56 @@
+{
+  "schema": "pocket.family.manifest.v1",
+  "family_protocol": "pocket.family.v1",
+  "host": {
+    "repo": "ItsNotAILABS/pocket",
+    "role": "host-control-and-execution-envelope-plane",
+    "capabilities": [
+      "host.route",
+      "host.account",
+      "host.receipts",
+      "host.catalog",
+      "host.device-pairing",
+      "voice.reality.compile",
+      "voice.reality.confirm",
+      "voice.reality.dispatch",
+      "voice.reality.seal",
+      "model.mesh.route",
+      "model.cli.invoke",
+      "agent.constellation.route"
+    ]
+  },
+  "voice": {
+    "repo": "ItsNotAILABS/pocket-voice-to-text",
+    "role": "voice-conversation-and-work-control-plane",
+    "capabilities": [
+      "voice.turn",
+      "voice.turn.decide",
+      "voice.session",
+      "voice.snap",
+      "voice.studio",
+      "voice.reality.compile",
+      "voice.reality.speak_state",
+      "voice.work.submit"
+    ]
+  },
+  "agent": {
+    "repo": "ItsNotAILABS/pocket-agent",
+    "role": "long-running-execution-plane",
+    "capabilities": ["agent.run", "agent.attach", "agent.schedule", "agent.capsule", "agent.evaluate", "agent.recover"]
+  },
+  "contracts": {
+    "context_snap": "pocket.context-snap.v1",
+    "studio": "pocket.studio.v1",
+    "voice_reality": "pocket.voice-reality-envelope.v1",
+    "voice_reality_receipt": "pocket.voice-reality-receipt.v1"
+  },
+  "control_runtimes": ["python", "go"],
+  "rules": {
+    "provider_neutral_family_protocol": true,
+    "preserve_request_id_across_hops": true,
+    "private_reasoning_not_in_receipts": true,
+    "version_contracts_before_dependency": true,
+    "high_risk_voice_actions_require_confirmation": true,
+    "spoken_completion_requires_execution_state": true
+  }
+}

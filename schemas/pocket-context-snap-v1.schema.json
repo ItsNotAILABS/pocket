@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itsnotailabs.dev/schemas/pocket-context-snap-v1.schema.json",
+  "title": "POCKET Context Snap v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "content", "captured_at"],
+  "properties": {
+    "schema": {"const": "pocket.context-snap.v1"},
+    "kind": {"enum": ["code", "text", "selection", "document", "diagnostic"]},
+    "content": {"type": "string", "maxLength": 262144},
+    "language": {"type": ["string", "null"], "maxLength": 64},
+    "file_name": {"type": ["string", "null"], "maxLength": 512},
+    "selection": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "start_line": {"type": "integer", "minimum": 1},
+        "start_column": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "end_column": {"type": "integer", "minimum": 1}
+      }
+    },
+    "session_id": {"type": ["string", "null"], "maxLength": 128},
+    "request_id": {"type": ["string", "null"], "maxLength": 128},
+    "captured_at": {"type": "string", "format": "date-time"},
+    "metadata": {"type": "object", "additionalProperties": true}
+  }
+}

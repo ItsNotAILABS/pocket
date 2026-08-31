@@ -1,128 +1,115 @@
-"""How POCKET is sold and used — Desktop (host) vs Cloud API.
+"""Canonical POCKET product channels.
 
-This is the product packaging for *you* (founder) and for users.
-Research papers specify engines. Channels specify how humans buy and open them.
+Research papers specify the architecture. This module describes how people buy,
+open, and operate its three product bodies without conflating a local server, a
+Cloudflare account, and a browser shell.
 """
-
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from pocket import __version__, PRODUCT, LAB
+from pocket import LAB, PRODUCT, __version__
+from pocket.corpus_architecture import product_contract, validate_contract
 
 
 def channels() -> Dict[str, Any]:
-    """Canonical product channels — single source of truth."""
+    contract = product_contract()
+    errors = validate_contract(contract)
     return {
-        "ok": True,
+        "ok": not errors,
         "product": PRODUCT,
         "version": __version__,
         "lab": LAB,
+        "schema": "pocket.product-channels.v3",
+        "corpus_contract": "medina.corpus-architectura.v2@2.1.0",
+        "validation_errors": errors,
+        "architecture": contract,
         "decision": {
-            "for_you_now": "Desktop is primary (Fusion Sense needs the host). Cloud API is the sellable remote surface.",
+            "for_you_now": "Install POCKET Desktop once. Open POCKET, POCKET Local, POCKET Edge, or POCKET Cloud from ordinary Windows shortcuts.",
             "for_users": [
-                "Desktop app on the operator PC — sees screen, clicks, records, remakes",
-                "Cloud/API — Grok, Codex, Claude, phone, integrations hit the same host via tunnel + keys",
+                "POCKET Cloud account for organizations, seats, entitlements, downloads, durable tasks, and paired devices",
+                "POCKET Desktop for a bundled local execution engine, files, models, agents, and private computation",
+                "POCKET Edge for an app-style Microsoft Edge surface over the local runtime or cloud account",
             ],
-            "not": "A research landing page is not the product. The desk + API + desktop window are.",
+            "not": "The product must not depend on a developer terminal, a manually started source checkout, or one laptop remaining online.",
         },
+        "bodies": contract["triform_product"]["bodies"],
         "channels": [
             {
+                "id": "cloud_account",
+                "body_id": "cloud-account",
+                "name": "POCKET Cloud",
+                "who": "Organizations, teams, account holders, and paired devices",
+                "what": "Independent Cloudflare account plane for identity, organizations, entitlements, releases, durable queues, and device coordination.",
+                "how_start": ["Create or join an organization", "Sign in from any device", "Download an entitled desktop release", "Optionally pair a local computer with a one-time code"],
+                "url_hint": "https://app.pocket.medinatechlabs.net",
+                "availability": "independent of local desktop uptime",
+                "status": "source-implemented; production deployment receipt required",
+                "claim_boundary": "Cloud source and D1/R2 schemas do not prove a live production route.",
+            },
+            {
                 "id": "desktop",
+                "body_id": "desktop-runtime",
                 "name": "POCKET Desktop",
-                "who": "You (operator) and power users on a Windows host",
-                "what": "Electron / native window over local runtime. Full Fusion Sense, RFE, record, studio, agents, NEXUS.",
-                "how_start": [
-                    "Download Windows .exe from /download (portable or NSIS installer)",
-                    "Start-POCKET-Desktop.ps1",
-                    "python -m pocket desktop",
-                    "Desktop shortcut: POCKET Desktop",
-                ],
-                "url": "http://127.0.0.1:8787/",
-                "download": {
-                    "page": "/download",
-                    "windows": "/download/desktop",
-                    "catalog": "/v1/desktop/releases",
-                },
-                "engines": [
-                    "perception / page_renderer",
-                    "rfe_kernel",
-                    "virtual_computer",
-                    "missions",
-                    "device_remake / video_studio",
-                    "orchestrator + agents",
-                    "nexus_bridge",
-                ],
-                "status": "shipping",
+                "who": "Owners, operators, and users who install POCKET on Windows",
+                "what": "Electron application with a bundled loopback POCKET engine, tray mode, start-at-login, private local files, models, agents, and runtime cells.",
+                "how_start": ["Install POCKET-Setup for x64 or ARM64", "Open the POCKET shortcut", "Use POCKET Local for the bundled local body", "Use POCKET Cloud for the independent account body"],
+                "url_local": "http://127.0.0.1:8787/desk",
+                "download": {"account_page": "/get", "release_api": "/api/releases", "legacy_host_page": "/download"},
+                "lifecycle": "reuse healthy engine; start when absent; never kill an unknown listener",
+                "status": "packaging-and-source-verified; signed public release evidence required",
             },
             {
                 "id": "web_edge",
-                "name": "POCKET Web edge desk",
-                "who": "Anyone with browser access to the host or tunnel",
-                "what": "Most stable product surface — same desk UI the Electron shell packages. Prefer this when packaging is unavailable.",
-                "how_start": [
-                    "Open http://127.0.0.1:8787/desk",
-                    "Public: https://pocket.medinatechlabs.net/desk (tunnel when up)",
-                ],
-                "url": "http://127.0.0.1:8787/desk",
-                "url_public_hint": "https://pocket.medinatechlabs.net/desk",
-                "status": "shipping",
+                "body_id": "edge-app",
+                "name": "POCKET Edge",
+                "who": "Windows users who prefer Microsoft Edge app mode",
+                "what": "Dedicated app-style Edge window. It starts or reuses the bundled local engine, or opens the Cloud account; it is not a separate product brain.",
+                "how_start": ["Open the POCKET Edge desktop or Start-menu shortcut", "The launcher verifies or starts the local body", "Microsoft Edge opens with --app against the selected trusted origin"],
+                "url_local": "http://127.0.0.1:8787/desk",
+                "url_cloud_hint": "https://app.pocket.medinatechlabs.net/desk",
+                "status": "installer-contract-implemented; clean-install evidence required",
             },
             {
                 "id": "api",
-                "name": "POCKET Cloud API",
-                "who": "Grok Build, Codex, Claude, phone, external apps",
-                "what": "Same host engines via HTTP. Auth keys. Cloudflare tunnel optional for public URL.",
-                "how_start": [
-                    "Runtime always-on (Start-POCKET.ps1 / AlwaysOn)",
-                    "GET /v1/api catalog",
-                    "Bearer sk_pocket_… or Basic / X-Pocket-Access",
-                    "scripts/pocket-api.ps1",
-                ],
+                "name": "POCKET API and Device Relay",
+                "who": "Applications, automations, approved agents, and paired computers",
+                "what": "Versioned HTTP capabilities with tenant-aware sessions, scoped API keys, quotas, durable task references, and receipts.",
+                "how_start": ["Use a user session, scoped API key, or restricted device credential", "Discover capabilities before invoking them", "Use the cloud relay for queued paired-device work"],
                 "url_local": "http://127.0.0.1:8787/v1/api",
-                "url_public_hint": "https://pocket.medinatechlabs.net/ (tunnel when configured)",
-                "docs": ["docs/AI_API.md", "docs/PLATFORM_V8.md"],
-                "status": "shipping",
+                "status": "source-implemented; route-specific deployment and integration evidence required",
             },
             {
                 "id": "phone",
-                "name": "POCKET Phone (remote desk)",
-                "who": "You on mobile, same Wi‑Fi or public tunnel",
-                "what": "Responsive desk UI against the host API — not a separate product brain",
-                "how_start": ["Open public URL or LAN :8787", "Sign in with ACCESS.txt"],
-                "status": "shipping",
+                "name": "POCKET Phone",
+                "who": "Mobile users and phone-native clients",
+                "what": "Responsive account and task surface. Local device execution remains a separately authorized body.",
+                "how_start": ["Open the Cloud account or an authorized local/LAN body", "Sign in with your own account"],
+                "status": "product-surface; native mobile capability evidence is separate",
             },
         ],
         "presentation_for_users": {
-            "primary": "Web edge desk (stable) + downloadable Windows Electron .exe from /download",
-            "secondary": "API keys for other AIs and automation",
-            "avoid": "Leading with research journals or manifesto landing pages as the app",
-            "demo_path": "Web desk → Download .exe → open local shell → Fusion Sense workflow",
+            "primary": "Account -> entitlement -> installer -> POCKET / POCKET Local / POCKET Edge / POCKET Cloud shortcuts",
+            "secondary": "Scoped API keys and paired-device work for integrations",
+            "avoid": "Leading with a research journal, a localhost command, or a tunnel that dies with the operator machine",
+            "demo_path": "Create account -> download installer -> open POCKET Edge -> complete a local task -> inspect its receipt from the Cloud account",
         },
         "api": {
-            "channels": "GET /v1/product/channels",
+            "channels_and_architecture": "GET /v1/product/channels",
             "catalog": "GET /v1/api",
             "health": "GET /health",
             "desktop_releases": "GET /v1/desktop/releases",
-            "download_page": "GET /download",
-            "download_windows": "GET /download/desktop",
+            "cloud_releases": "GET /api/releases",
         },
     }
 
 
 def user_home_brief() -> Dict[str, Any]:
-    """Short home card for the desk UI / desktop shell."""
-    ch = channels()
+    value = channels()
     return {
-        "ok": True,
-        "headline": "POCKET Desktop + API",
-        "for_you": ch["decision"]["for_you_now"],
-        "open": {
-            "desk": "/",
-            "studio": "/studio",
-            "api": "/v1/api",
-            "channels": "/v1/product/channels",
-        },
-        "engines_ok": True,
+        "ok": value["ok"],
+        "headline": "POCKET Cloud + Desktop + Edge",
+        "for_you": value["decision"]["for_you_now"],
+        "open": {"local_desk": "http://127.0.0.1:8787/desk", "cloud_account": "https://app.pocket.medinatechlabs.net", "channels_and_architecture": "/v1/product/channels"},
         "version": __version__,
     }

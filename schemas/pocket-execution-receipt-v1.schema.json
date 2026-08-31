@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itsnotailabs.dev/schemas/pocket-execution-receipt-v1.schema.json",
+  "title": "POCKET Execution Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "receipt_id", "request_id", "action", "status", "started_at", "finished_at", "digest"],
+  "properties": {
+    "schema": {"const": "pocket.execution-receipt.v1"},
+    "receipt_id": {"type": "string", "minLength": 8, "maxLength": 128},
+    "request_id": {"type": "string", "minLength": 8, "maxLength": 128},
+    "action": {"type": "string", "minLength": 3, "maxLength": 128},
+    "status": {"enum": ["accepted", "running", "succeeded", "failed", "denied", "cancelled", "timed_out"]},
+    "principal_id": {"type": ["string", "null"], "maxLength": 128},
+    "tenant_id": {"type": ["string", "null"], "maxLength": 128},
+    "session_id": {"type": ["string", "null"], "maxLength": 128},
+    "agent_id": {"type": ["string", "null"], "maxLength": 128},
+    "runtime": {"type": ["string", "null"], "maxLength": 128},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "duration_ms": {"type": ["number", "null"], "minimum": 0},
+    "result": {"type": ["object", "null"], "additionalProperties": true},
+    "error": {"type": ["object", "null"], "additionalProperties": true},
+    "policy": {"type": ["object", "null"], "additionalProperties": true},
+    "digest": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "metadata": {"type": "object", "additionalProperties": true}
+  }
+}

@@ -5,18 +5,26 @@ Production apps + CLIs people actually have when they build with AI.
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Known CLI tool catalog (id → discovery)
 CLI_CATALOG: List[Dict[str, str]] = [
     {"id": "git", "bin": "git", "label": "Git", "group": "scm"},
     {"id": "gh", "bin": "gh", "label": "GitHub CLI", "group": "scm"},
     {"id": "codex", "bin": "codex", "label": "OpenAI Codex CLI", "group": "ai"},
     {"id": "claude", "bin": "claude", "label": "Claude Code CLI", "group": "ai"},
+    {"id": "gemini", "bin": "gemini", "label": "Gemini CLI", "group": "ai-free-usage"},
+    {"id": "qwen", "bin": "qwen", "label": "Qwen Code", "group": "ai-open"},
+    {"id": "opencode", "bin": "opencode", "label": "OpenCode", "group": "ai-open"},
+    {"id": "aider", "bin": "aider", "label": "Aider", "group": "ai-open"},
+    {"id": "ollama", "bin": "ollama", "label": "Ollama", "group": "ai-local"},
+    {"id": "llama", "bin": "llama-cli", "label": "llama.cpp CLI", "group": "ai-local"},
+    {"id": "lms", "bin": "lms", "label": "LM Studio CLI", "group": "ai-local"},
+    {"id": "goose", "bin": "goose", "label": "Goose", "group": "ai-open"},
+    {"id": "openhands", "bin": "openhands", "label": "OpenHands", "group": "ai-open"},
+    {"id": "continue", "bin": "cn", "label": "Continue CLI", "group": "ai-open"},
     {"id": "grok", "bin": "grok", "label": "Grok CLI", "group": "ai"},
     {"id": "antigravity", "bin": "antigravity", "label": "Antigravity", "group": "ai"},
     {"id": "spark", "bin": "muse", "label": "Muse Spark (Muse Code)", "group": "ai"},
@@ -49,7 +57,6 @@ def which_tool(bin_name: str) -> str:
     p = shutil.which(bin_name) or ""
     if p:
         return p
-    # grok special
     if bin_name == "grok":
         cand = Path.home() / ".grok" / "bin" / "grok.exe"
         if cand.exists():
@@ -71,7 +78,6 @@ def which_tool(bin_name: str) -> str:
         ):
             if c.exists():
                 return str(c)
-        # also try npx-style
         w = shutil.which("antigravity.cmd") or shutil.which("agy")
         if w:
             return w
@@ -83,9 +89,9 @@ def inventory() -> Dict[str, Any]:
     for t in CLI_CATALOG:
         path = which_tool(t["bin"])
         tools.append({**t, "available": bool(path), "path": path or None})
-    # version samples for available AI tools
+    sample_ids = {"git", "gh", "node", "python", "codex", "docker", "gemini", "qwen", "opencode", "ollama", "go"}
     for t in tools:
-        if t["available"] and t["id"] in ("git", "gh", "node", "python", "codex", "docker"):
+        if t["available"] and t["id"] in sample_ids:
             try:
                 r = subprocess.run(
                     [t["path"] or t["bin"], "--version"],
@@ -93,19 +99,19 @@ def inventory() -> Dict[str, Any]:
                     text=True,
                     timeout=8,
                 )
-                t["version"] = ((r.stdout or r.stderr or "")[:120]).strip()
+                t["version"] = ((r.stdout or r.stderr or "")[:160]).strip()
             except Exception:
                 t["version"] = ""
     return {
         "ok": True,
         "count": len(tools),
         "available": sum(1 for x in tools if x["available"]),
+        "ai_available": sum(1 for x in tools if x["available"] and x["group"].startswith("ai")),
         "tools": tools,
-        "note": "CLIs on PATH the platform can open or shell into. Auth stays on host (gh login, etc.).",
+        "note": "CLIs on PATH. Authentication and provider credentials remain owned by each host CLI.",
     }
 
 
-# Extra CLIs agents may invoke (headless) — not opened as user tabs
 CLI_CATALOG.extend(
     [
         {"id": "rg", "bin": "rg", "label": "ripgrep", "group": "dev"},
@@ -121,7 +127,6 @@ CLI_CATALOG.extend(
     ]
 )
 
-# Deny dangerous agent CLI patterns
 _DENY_RE = (
     r"rm\s+-rf\s+[\\/]",
     r"format\s+",
@@ -140,10 +145,7 @@ def run_cli(
     timeout: float = 60,
     allow_open_app: bool = False,
 ) -> Dict[str, Any]:
-    """Run a host CLI **for agents** — stdout capture, no user browser tabs.
-
-    Prefer this over open_cli_app. Desktop app launch is opt-in only.
-    """
+    """Run a host CLI for agents — stdout capture, no user browser tabs."""
     from pocket.live_events import emit
 
     bin_name = (bin_name or "").strip()
@@ -151,10 +153,8 @@ def run_cli(
     if not bin_name:
         return {"ok": False, "error": "bin required"}
 
-    # Map friendly ids
     path = which_tool(bin_name) or shutil.which(bin_name) or ""
     if not path:
-        # try catalog id
         for t in CLI_CATALOG:
             if t["id"] == bin_name.lower():
                 path = which_tool(t["bin"])

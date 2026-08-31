@@ -1,0 +1,63 @@
+{
+  "schema": "pocket.cloudflare_domain.v1",
+  "product": "POCKET",
+  "environment": "beta",
+  "canonical_host": "beta.pocketnova.app",
+  "canonical_origin": "https://beta.pocketnova.app",
+  "cloudflare": {
+    "account": "operator-managed",
+    "zone": "pocketnova.app",
+    "routes": [
+      {
+        "pattern": "beta.pocketnova.app/*",
+        "target": "pocket-beta",
+        "mode": "cloudflare_worker_or_pages_project",
+        "status": "operator-connected"
+      }
+    ],
+    "dns": [
+      {
+        "type": "CNAME_or_worker_route",
+        "name": "beta",
+        "zone": "pocketnova.app",
+        "target": "operator-managed-cloudflare-target",
+        "proxied": true
+      }
+    ]
+  },
+  "public_routes": [
+    { "path": "/", "surface": "beta landing / desk entry" },
+    { "path": "/desk", "surface": "POCKET Desk" },
+    { "path": "/work", "surface": "POCKET Work Studio" },
+    { "path": "/mail", "surface": "Agent Mail" },
+    { "path": "/docs", "surface": "Docs" },
+    { "path": "/install", "surface": "Install hub" },
+    { "path": "/get", "surface": "Get/install" },
+    { "path": "/developers", "surface": "Developer API" },
+    { "path": "/health", "surface": "Health" },
+    { "path": "/v1/catalog", "surface": "Capability catalog" },
+    { "path": "/v1/ready", "surface": "Readiness" },
+    { "path": "/v1/class", "surface": "Class/routing" }
+  ],
+  "required_secrets": [
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID"
+  ],
+  "optional_secrets": [
+    "CLOUDFLARE_ZONE_ID",
+    "CLOUDFLARE_PAGES_DEPLOY_HOOK",
+    "POCKET_BETA_TOKEN"
+  ],
+  "boundaries": {
+    "secrets_in_git": false,
+    "domain_claim": "operator-provided-domain-and-cloudflare-route",
+    "production_claim": false,
+    "beta_public_surface": true,
+    "customer_data_export": false,
+    "payment_or_wallet_execution": false
+  },
+  "validation": {
+    "script": "python scripts/validate_pocket_beta_domain.py",
+    "receipt": "dist/pocket-beta-domain/validation-receipt.json"
+  }
+}

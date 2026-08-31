@@ -1,0 +1,94 @@
+{
+  "schema": "nexus.capability.v1",
+  "component": "pocket",
+  "repository": "ItsNotAILABS/pocket",
+  "role": "triform-user-team-policy-product-voice-and-device-federation-plane",
+  "actions": [
+    "host.route",
+    "host.policy.decide",
+    "host.health.aggregate",
+    "host.release_truth.classify",
+    "host.device.pair",
+    "host.device.capabilities",
+    "host.receipt.correlate",
+    "host.catalog",
+    "product.architecture.describe",
+    "product.body.select",
+    "evidence.claim.classify",
+    "runtime.cell.describe",
+    "voice.reality.compile",
+    "voice.reality.confirm",
+    "voice.reality.cancel",
+    "voice.reality.dispatch",
+    "voice.reality.seal",
+    "model.mesh.inventory",
+    "model.mesh.route",
+    "model.cli.invoke",
+    "agent.constellation.route",
+    "agent.constellation.team"
+  ],
+  "produces": [
+    "pocket.triform-product.v1",
+    "nexus.device-federation.v1",
+    "nexus.runtime-cell.v1",
+    "nexus.evidence-classification.v1",
+    "nexus.policy-decision.v1",
+    "nexus.health.v1",
+    "nexus.release-evidence.v1",
+    "nexus.task.v1",
+    "nexus.denial.v1",
+    "nexus.execution-receipt.v1",
+    "pocket.voice-state.v1",
+    "pocket.voice-reality-envelope.v1",
+    "pocket.voice-reality-receipt.v1"
+  ],
+  "consumes": [
+    "nexus.capability.v1",
+    "nexus.identity-ref.v1",
+    "nexus.approval.v1",
+    "nexus.compatibility.v1",
+    "nexus.execution-receipt.v1",
+    "nexus.telemetry.v1",
+    "nexus.quota.v1",
+    "nexus.lease.v1"
+  ],
+  "product_contract": {
+    "schema": "pocket.triform-product.v1",
+    "corpus": "medina.corpus-architectura.v2@2.1.0",
+    "bodies": ["cloud-account", "desktop-runtime", "edge-app"],
+    "state_ownership": "explicit-by-body",
+    "cloud_independent_of_device": true,
+    "desktop_self_starts_bundled_engine": true,
+    "edge_is_surface_not_separate_brain": true
+  },
+  "execution_contract": {
+    "sequence": ["discover", "classify-risk", "plan", "approve", "execute", "validate", "receipt"],
+    "runtime_cells": ["agent-sandbox", "app-bottle", "mini-os"],
+    "one_time_action_bound_approval": true
+  },
+  "runtimes": {
+    "control": ["python", "go"],
+    "product_bodies": ["cloudflare-account", "electron-desktop", "microsoft-edge-app"],
+    "voice": ["pocket-voice-to-text", "browser-stt", "edge-tts"],
+    "model_lanes": ["local", "open-source", "account-free-usage", "provider-api"]
+  },
+  "limits": {
+    "provider_specific_routing": false,
+    "cross_tenant_routing": false,
+    "hidden_reasoning_export": false,
+    "implicit_privileged_execution": false,
+    "unconfirmed_high_risk_voice_execution": false,
+    "cloud_claims_local_execution_without_returned_evidence": false,
+    "edge_app_claimed_as_independent_model": false,
+    "source_claimed_as_live_deployment": false
+  },
+  "proof": {
+    "state": "source-tested",
+    "corpus_contract": "medina.corpus-architectura.v2@2.1.0",
+    "go_voice_envelope_local_test": true,
+    "node_voice_envelope_local_test": true,
+    "integration_and_tenant_isolation_evidence_required": true,
+    "cloud_deployment_and_clean_install_evidence_are_separate": true
+  },
+  "authority": "ItsNotAILABS/nexus"
+}
