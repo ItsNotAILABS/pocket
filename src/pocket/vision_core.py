@@ -175,13 +175,44 @@ def windows_ocr_lines() -> Dict[str, Any]:
         return {"ok": False, "error": str(e), "lines": []}
 
 
+def last_observation(*, max_age: float = 2.5) -> Dict[str, Any]:
+    """Return a fresh cached observe so GET never blocks the accept loop."""
+    if not LAST_OBS.is_file():
+        return {"ok": False, "cached": False, "error": "no observation yet"}
+    try:
+        obs = json.loads(LAST_OBS.read_text(encoding="utf-8"))
+        age = time.time() - float(obs.get("at") or LAST_OBS.stat().st_mtime)
+        obs["cached"] = True
+        obs["cache_age"] = round(age, 3)
+        obs["ok"] = True if age <= max_age or obs.get("ok") else bool(obs.get("ok"))
+        obs["stale"] = age > max_age
+        return obs
+    except Exception as e:
+        return {"ok": False, "cached": False, "error": str(e)}
+
+
 def observe(
     *,
     with_ui_map: bool = True,
     with_ocr: bool = False,
     with_understand: bool = True,
+    force: bool = False,
 ) -> Dict[str, Any]:
-    """Full first-class observation — pixel_translator.understand is default."""
+    """Full first-class observation — pixel_translator.understand is default.
+
+    GET/polls must pass force=False so a 100s UIA walk cannot freeze the host.
+    Missing or stale cache still returns immediately — never walk unless force=True.
+    """
+    if not force:
+        cached = last_observation(max_age=1e9)
+        if cached.get("cached") and cached.get("error") != "no observation yet":
+            return cached
+        return {
+            "ok": False,
+            "cached": False,
+            "error": "no observation yet",
+            "hint": "GET /v1/vision/observe?force=1 once; later GETs are cache-only",
+        }
     emit("vision", "observe()", agent="OCULUS", role="python")
     if with_understand:
         try:

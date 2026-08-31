@@ -118,6 +118,8 @@ def dispatch_skill(sid: str, *, prompt: str = "", params: Dict[str, Any] | None 
             image=params.get("image") or params.get("path") or "",
             title=params.get("title") or "POCKET",
             subtitle=params.get("subtitle") or prompt or "Host co-pilot",
+            image_b64=params.get("image_b64") or "",
+            source=params.get("source") or "live",
         )
 
     if sid in ("vcomp_open", "virtual_computer", "open_computer"):

@@ -24,6 +24,9 @@ from typing import Any, Dict, List, Optional
 from pocket import PRODUCT, TAGLINE, __version__
 
 ROOT = Path.home() / ".pocket"
+_CLOUDS_CACHE: Dict[str, Any] = {}
+_CLOUDS_CACHE_AT = 0.0
+_CLOUDS_TTL = 8.0
 PUBLIC_URL_FILE = ROOT / "PUBLIC_URL.txt"
 CF_ENV = ROOT / "cloudflare-named.env"
 
@@ -54,6 +57,132 @@ def _read_public_url() -> str:
     except Exception:
         pass
     return (os.environ.get("POCKET_PUBLIC_URL") or "").rstrip("/")
+
+
+def _http_ok(url: str, timeout: float = 0.35) -> bool:
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return int(getattr(resp, "status", 200) or 200) < 500
+    except Exception:
+        return False
+
+
+def _forge_root() -> Path:
+    env = os.environ.get("SOVEREIGN_FORGE_ROOT")
+    if env:
+        p = Path(env)
+        if p.is_dir():
+            return p
+    for p in (
+        Path.home() / "OneDrive" / "sovereign_forge_os",
+        Path(r"C:\Users\Medin\OneDrive\sovereign_forge_os"),
+    ):
+        if p.is_dir():
+            return p
+    return Path.home() / "OneDrive" / "sovereign_forge_os"
+
+
+def _engine_root() -> Path:
+    env = os.environ.get("SOVEREIGN_ENGINE_ROOT")
+    if env:
+        p = Path(env)
+        if p.is_dir():
+            return p
+    for p in (
+        Path.home() / "OneDrive" / "Documents" / "sovereign-engine",
+        Path(r"C:\Users\Medin\OneDrive\Documents\sovereign-engine"),
+    ):
+        if p.is_dir():
+            return p
+    return Path.home() / "OneDrive" / "Documents" / "sovereign-engine"
+
+
+def _forge_cloud() -> Dict[str, Any]:
+    root = _forge_root()
+    port = int(os.environ.get("SOVEREIGN_FORGE_PORT") or "8789")
+    url = f"http://127.0.0.1:{port}"
+    present = (root / "engine" / "orchestrator.py").is_file()
+    listening = _http_ok(url + "/api/status") if present else False
+    if listening:
+        status = "listening"
+    elif present:
+        status = "ready"
+    else:
+        status = "missing"
+    return {
+        "id": "sovereign_forge",
+        "kind": "trading_envelope",
+        "name": "SovereignForge OS",
+        "status": status,
+        "url": url,
+        "path": str(root) if present else None,
+        "role": "MESIE-routed strategies · PARALLAX · payments ledger · high-level agents",
+        "sovereign": True,
+        "port": port,
+        "note": "Does not bind POCKET Owner :8787 or Users :8788. Start: SOVEREIGN_FORGE_PORT=8789 python main.py",
+        "sdk": "itsnotai_internal.forge_sdk",
+    }
+
+
+def _mesie_cloud() -> Dict[str, Any]:
+    root = Path(r"C:\Users\Medin\Multi-Element-Spectral-Intelligence-Engine-MESIE-")
+    if not root.is_dir():
+        root = Path.home() / "Multi-Element-Spectral-Intelligence-Engine-MESIE-"
+    spec_ok = False
+    version = None
+    try:
+        import importlib.util
+
+        spec_ok = importlib.util.find_spec("mesie") is not None
+        if spec_ok:
+            from mesie.version_info import __version__ as mv  # type: ignore
+
+            version = mv
+    except Exception:
+        spec_ok = (root / "mesie" / "sdk.py").is_file() or (root / "mesie" / "sdk").is_dir()
+    return {
+        "id": "mesie_sdk",
+        "kind": "science_engine",
+        "name": "MESIE Spectral Intelligence SDK",
+        "status": "ready" if spec_ok else "missing",
+        "path": str(root) if root.is_dir() else None,
+        "version": version,
+        "role": "Embed / match / fingerprint / generate — science substrate for Forge + Engine",
+        "sovereign": True,
+        "sdk": "itsnotai_internal.mesie_sdk",
+        "note": "pip show mesie reports 0.2.0 wheel; runtime package is 1.2.0 editable",
+    }
+
+
+def _engine_cloud() -> Dict[str, Any]:
+    root = _engine_root()
+    present = (root / "sovereign_infrastructure" / "nextgen_systems").is_dir()
+    dash = int(os.environ.get("SOVEREIGN_ENGINE_DASH_PORT") or "8090")
+    api = int(os.environ.get("SOVEREIGN_ENGINE_API_PORT") or "8089")
+    listening = _http_ok(f"http://127.0.0.1:{dash}/api/v1/overview") or _http_ok(
+        f"http://127.0.0.1:{api}/health"
+    )
+    if listening:
+        status = "listening"
+    elif present:
+        status = "ready"
+    else:
+        status = "missing"
+    return {
+        "id": "sovereign_engine",
+        "kind": "monetization",
+        "name": "Sovereign Engine",
+        "status": status,
+        "url": f"http://127.0.0.1:{dash}",
+        "api": f"http://127.0.0.1:{api}",
+        "path": str(root) if present else None,
+        "role": "XFIN AURA PULSE MINT GRID NEXS · RevenueCat Shipaton",
+        "sovereign": True,
+        "sdk": "itsnotai_internal.engine_sdk",
+    }
 
 
 def doctrine() -> Dict[str, Any]:
@@ -91,7 +220,7 @@ def doctrine() -> Dict[str, Any]:
                 "name": "Our computing cloud + models",
                 "must": "Work stays in the sovereign perimeter",
                 "means": (
-                    "Host POCKET + our deploys/edge/Auro/NEXUS/mesh are *our* cloud. "
+                    "Host POCKET + our deploys/edge/Auro/NEXUS/mesh/Forge/MESIE/Engine are *our* cloud. "
                     "When jobs run here, prompts are not handed to a Connected-Apps vendor "
                     "as the product — they execute under our control. Vendor model APIs "
                     "are adapters we choose, not the identity of the stack."
@@ -102,15 +231,19 @@ def doctrine() -> Dict[str, Any]:
             "their_remote_browser": "Vendor-hosted browser; they store login/session data",
             "our_remote_browser": "Your Edge profile + host eyes/control; custody on lab host",
             "their_cloud_models": "Their multi-tenant training/ops perimeter",
-            "our_cloud_models": "Our host + our computing clouds (deploys, edge, Auro, NEXUS)",
+            "our_cloud_models": "Our host + our computing clouds (deploys, edge, Auro, NEXUS, Forge, MESIE, Engine)",
             "their_phone": "App talking to their cloud",
             "our_phone": "Remote desk + home IoT mesh into the lab host",
         },
     }
 
 
-def computing_clouds() -> Dict[str, Any]:
+def computing_clouds(*, refresh: bool = False) -> Dict[str, Any]:
     """Inventory of *our* compute surfaces (what the lab already operates)."""
+    global _CLOUDS_CACHE_AT, _CLOUDS_CACHE
+    now = time.time()
+    if not refresh and _CLOUDS_CACHE and (now - _CLOUDS_CACHE_AT) < _CLOUDS_TTL:
+        return _CLOUDS_CACHE
     clouds: List[Dict[str, Any]] = []
 
     # 1. Host co-pilot (always)
@@ -256,7 +389,17 @@ def computing_clouds() -> Dict[str, Any]:
         }
     )
 
-    return {
+    # 9. SovereignForge OS — trading / MESIE / PARALLAX envelope
+    # Never bind :8787 (Owner) or :8788 (Users). Forge default :8789.
+    clouds.append(_forge_cloud())
+
+    # 10. MESIE SDK (editable science engine)
+    clouds.append(_mesie_cloud())
+
+    # 11. Sovereign Engine (RevenueCat / Shipaton cores)
+    clouds.append(_engine_cloud())
+
+    payload = {
         "ok": True,
         "schema": "pocket.computing_clouds.v1",
         "doctrine": "These are OUR computing clouds — work here stays in the sovereign perimeter.",
@@ -264,6 +407,9 @@ def computing_clouds() -> Dict[str, Any]:
         "clouds": clouds,
         "public_url": pub or None,
     }
+    _CLOUDS_CACHE = payload
+    _CLOUDS_CACHE_AT = time.time()
+    return payload
 
 
 def stack_status() -> Dict[str, Any]:

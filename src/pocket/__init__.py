@@ -1,10 +1,10 @@
 """POCKET — AI workspace that runs on your machine."""
 
-__version__ = "3.6.0"
+__version__ = "3.8.0"
 PRODUCT = "POCKET"
 PRODUCT_FULL = "POCKET"
 TAGLINE = "Native Agent OS — habitat · screen · studio · phone · MCP — on your computer."
-DOCTRINE = TAGLINE  # public-facing; keep internal doctrine out of UI
+DOCTRINE = TAGLINE  # public-facing one-liner; binding laws live in DOCTRINE.md + pocket.doctrine
 LAB = "ItsNotAI Labs"
 COMPANY = "Medina Tech Labs"
 ORG = "ItsNotAILABS"

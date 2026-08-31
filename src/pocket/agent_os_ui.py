@@ -1,280 +1,263 @@
-"""Agent OS screen — first-class hub for every POCKET system."""
+"""Agent OS / Platform screen — interactive hub using Power, GO, workflows, clouds."""
 
 OS_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>POCKET Agent OS</title>
+<title>POCKET · Platform</title>
+<script src="/auth/client.js"></script>
 <style>
 :root{
   --bg:#07070a; --panel:#121216; --line:rgba(255,255,255,.08); --fg:#f4f4f5;
-  --muted:#a1a1aa; --accent:#10a37f; --violet:#a78bfa; --blue:#60a5fa; --amber:#fbbf24;
+  --muted:#a1a1aa; --accent:#10a37f; --ok:#6ee7b7;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 420px at 10% -10%,rgba(16,163,127,.08),transparent 50%),var(--bg);color:var(--fg);min-height:100vh;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-.top{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:rgba(7,7,10,.9);position:sticky;top:0;backdrop-filter:blur(12px);z-index:10}
+.top{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:rgba(7,7,10,.8);position:sticky;top:0;backdrop-filter:blur(18px);z-index:10;flex-wrap:wrap}
 .brand{font-weight:700;letter-spacing:-.03em}
 .brand span{color:var(--accent)}
-.nav{display:flex;gap:8px;flex-wrap:wrap;margin-left:12px}
-.nav a{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid transparent}
-.nav a:hover{color:var(--fg);background:rgba(255,255,255,.04);text-decoration:none}
-.nav a.on{color:var(--fg);border-color:var(--line);background:var(--panel)}
-.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 64px}
-h1{font-size:28px;letter-spacing:-.04em;margin:0 0 8px}
-.sub{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 22px;max-width:720px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:120px;display:flex;flex-direction:column;gap:8px}
-.card h3{margin:0;font-size:15px;font-weight:650}
-.card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45;flex:1}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);width:fit-content}
-.badge.ok{color:#6ee7b7;border-color:rgba(16,163,127,.4);background:rgba(16,163,127,.1)}
-.badge.bad{color:#fca5a5;border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.08)}
-.card .actions{display:flex;flex-wrap:wrap;gap:6px}
-.card button,.card a.btn{
-  border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:8px;
-  padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none
-}
-.card button.primary,.card a.btn.primary{background:var(--accent);color:#041;border-color:transparent}
-.section{margin-top:28px}
-.section h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
-.parity{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-.parity .card h3{font-size:14px;color:var(--violet)}
-.parity ul{margin:0;padding-left:16px;font-size:12px;color:var(--muted);line-height:1.45}
-.parity li{margin:3px 0}
-.parity .deeper{color:#86efac}
-.row{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
-input,select,textarea{background:#0c0c0e;border:1px solid var(--line);border-radius:8px;color:var(--fg);padding:8px 10px;font:inherit;font-size:13px}
-textarea{width:100%;min-height:90px}
-pre{background:#0a0a0c;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:11.5px;overflow:auto;max-height:280px;color:#c8f0d4}
-.meta{font-size:12px;color:var(--muted)}
-.chip{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav a{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:8px}
+.nav a:hover,.nav a.on{color:var(--fg);background:rgba(255,255,255,.05)}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 72px}
+h1{font-size:26px;letter-spacing:-.04em;margin:0 0 6px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px;max-width:740px;line-height:1.5}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+input{flex:1;min-width:200px;background:#0c0c0e;border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px 12px;font:inherit}
+button,.btn{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:650;cursor:pointer}
+button.primary,.btn.primary{background:var(--accent);color:#041;border-color:transparent}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.card h3{margin:0;font-size:14px}
+.card p,.meta{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);width:fit-content}
+.badge.ok{color:var(--ok);border-color:rgba(16,163,127,.4);background:rgba(16,163,127,.1)}
+.badge.bad{color:#fca5a5;border-color:rgba(248,113,113,.3)}
+.section{margin-top:26px}
+.section h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.stat{font-size:20px;font-weight:650}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.wf{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+pre{background:#0a0a0c;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:11.5px;overflow:auto;max-height:240px}
+.chip{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.parity{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.parity ul{margin:0;padding-left:16px;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
 <header class="top">
-  <div class="brand">POCKET <span>Agent OS</span></div>
+  <div class="brand">POCKET <span>Platform</span></div>
   <nav class="nav">
-    <a class="on" href="/os">Systems</a>
+    <a class="on" href="/os">Platform</a>
+    <a href="/power">Power</a>
     <a href="/desk">Desk</a>
-    <a href="/work">Work Studio</a>
-    <a href="/studio">Product Studio</a>
+    <a href="/work">Work</a>
+    <a href="/studio">Studio</a>
     <a href="/phone">Phone</a>
-    <a href="/developers">API</a>
   </nav>
   <div style="flex:1"></div>
   <span class="chip" id="ver">…</span>
 </header>
 <div class="wrap">
-  <h1>Native Agent OS</h1>
-  <p class="sub">
-    Every POCKET agent system is first-class — desk, swarm, pixel memory, engines, sandbox, wiki, projects.
-    Depth that 2026 cloud agent desktops sell as products, running <b style="color:var(--fg)">natively on your host</b>.
-  </p>
+  <h1>Platform</h1>
+  <p class="sub">Live lab board. GO holds active states and all 100 workflow slots. Power runs a goal on this host. These controls call those APIs — not a separate demo.</p>
   <div class="row">
-    <span class="chip" id="readyChip">probing…</span>
-    <button class="btn" onclick="load()" style="border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer">Refresh</button>
-    <a class="btn primary" href="/desk" style="border:0;background:var(--accent);color:#041;border-radius:8px;padding:7px 12px;font-weight:700">Open Desk</a>
+    <input id="goal" placeholder="Goal — morning seatbelt, trade prep, billing, phone pair…"/>
+    <button class="primary" onclick="doGoal()">Do it</button>
+    <button class="primary" onclick="goLab()">GO</button>
+    <button onclick="tickGo()">Tick</button>
+    <button onclick="load()">Refresh</button>
   </div>
+  <div class="grid" id="stats"></div>
+  <pre id="out">Hit GO to arm daily + triple workflows, or type a goal.</pre>
 
+  <div class="section">
+    <h2>GO · active surfaces</h2>
+    <div class="grid" id="surfaces"></div>
+  </div>
+  <div class="section">
+    <h2>Working / armed workflows</h2>
+    <div id="working"></div>
+  </div>
   <div class="section">
     <h2>First-class systems</h2>
     <div class="grid" id="systems"></div>
   </div>
-
   <div class="section">
-    <h2>2026 parity — what we cover natively · deeper</h2>
+    <h2>100 multi workflows</h2>
+    <div id="families"></div>
+  </div>
+  <div class="section">
+    <h2>2026 parity</h2>
     <div class="parity" id="parity"></div>
   </div>
-
   <div class="section">
-    <h2>Native project (Replit-class on disk)</h2>
+    <h2>Native project</h2>
     <div class="row">
-      <input id="projName" placeholder="project-name" style="min-width:160px"/>
-      <select id="projTpl">
+      <input id="projName" placeholder="project-name"/>
+      <select id="projTpl" style="background:#0c0c0e;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:8px">
         <option value="typescript">TypeScript</option>
         <option value="python">Python</option>
         <option value="javascript">JavaScript</option>
         <option value="blank">Blank</option>
       </select>
-      <button onclick="createProj()" style="border:0;background:var(--accent);color:#041;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer">Create project</button>
-      <button onclick="runSel()" style="border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer">Run selected</button>
+      <button class="primary" onclick="createProj()">Create</button>
+      <button onclick="runSel()">Run selected</button>
     </div>
     <div class="grid" id="projects"></div>
     <pre id="runOut" style="display:none;margin-top:12px"></pre>
   </div>
-
   <div class="section">
-    <h2>Pixel artifacts (agent memory)</h2>
+    <h2>Pixel artifacts</h2>
     <div class="grid" id="arts"></div>
   </div>
-
   <div class="section">
-    <h2>Swarm roster (AI-version bound)</h2>
+    <h2>Swarm + first-class agents</h2>
+    <p class="meta" id="fcMeta"></p>
     <div class="grid" id="roster"></div>
-  </div>
-
-  <div class="section">
-    <h2>All first-class agents</h2>
-    <p class="meta" id="fcMeta">Loading registry…</p>
-    <div class="grid" id="fcAgents"></div>
-  </div>
-
-  <div class="section">
-    <h2>OS timeline</h2>
-    <pre id="timeline">…</pre>
+    <div class="grid" id="fcAgents" style="margin-top:10px"></div>
   </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);
-let DASH=null, SEL=null;
-function authHeaders(){
-  const h={'Content-Type':'application/json'};
-  try{
-    const tok=sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token')||'';
-    const u=sessionStorage.getItem('pocket_user')||localStorage.getItem('pocket_user')||'';
-    if(tok){ h['X-Pocket-Token']=tok; h['Authorization']='Bearer '+tok; }
-    if(u) h['X-Pocket-User']=u;
-  }catch(_){}
-  return h;
-}
-async function api(path, opts){
-  opts=opts||{};
-  opts.headers=Object.assign({}, authHeaders(), opts.headers||{});
-  const r=await fetch(path, opts);
-  if(r.status===401){ location.href='/desk'; throw new Error('login required — open Desk once to sign in'); }
-  if(!r.ok) throw new Error(await r.text());
-  return r.json();
-}
+let SEL=null;
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+async function api(path, opt){
+  const r=await fetch(path, Object.assign({credentials:'include', headers:{'Content-Type':'application/json'}}, opt||{}));
+  if(r.status===401){ location.href='/desk'; throw new Error('sign in on Desk first'); }
+  const t=await r.text();
+  try{ return JSON.parse(t); }catch(e){ throw new Error(t.slice(0,200)); }
+}
+function card(l,v){ return '<div class="card"><p>'+esc(l)+'</p><div class="stat">'+esc(v)+'</div></div>'; }
+
 async function load(){
-  DASH=await api('/v1/os');
-  $('ver').textContent='v'+(DASH.version||'');
-  $('readyChip').textContent=(DASH.systems&&DASH.systems.ready)+'/'+(DASH.systems&&DASH.systems.total)+' systems ready';
-  // systems
+  const [dash, power, go, wfs] = await Promise.all([
+    api('/v1/os'),
+    api('/v1/power').catch(()=>({})),
+    api('/v1/go').catch(()=>({})),
+    api('/v1/workflows/multi').catch(()=>({})),
+  ]);
+  $('ver').textContent='v'+(dash.version||'');
+  const g=power.go||{};
+  $('stats').innerHTML =
+    card('Systems ready', (dash.systems&&dash.systems.ready)+'/'+(dash.systems&&dash.systems.total))+
+    card('Tools', power.tools||0)+
+    card('Workflows', power.workflows||100)+
+    card('GO active', g.active_count||go.active_count||0)+
+    card('Working', (g.working||go.working||[]).length)+
+    card('Armed', (g.armed||go.armed||[]).length)+
+    card('Clouds', power.clouds||0)+
+    card('Listening', (power.listening||[]).length);
+
+  const sur=Object.values(go.surfaces||{});
+  $('surfaces').innerHTML = sur.length ? sur.map(s=>`
+    <div class="card">
+      <span class="badge ${s.active?'ok':'bad'}">${esc(s.status||'?')}</span>
+      <h3>${esc(s.id)}</h3>
+      <p>${esc(typeof s.detail==='string'?s.detail:(s.url||''))}</p>
+    </div>`).join('') : '<div class="card"><p>No GO board yet — press GO.</p></div>';
+
+  const live=(go.working||[]).concat(go.armed||[]);
+  $('working').innerHTML = live.length
+    ? live.map(id=>`<div class="wf"><code>${esc(id)}</code><button onclick="runWf('${esc(id)}')">Run</button></div>`).join('')
+    : '<div class="meta">None armed. Press GO to arm daily + triple.</div>';
+
   const box=$('systems'); box.innerHTML='';
-  (DASH.systems.systems||[]).forEach(s=>{
-    const el=document.createElement('div'); el.className='card';
+  ((dash.systems&&dash.systems.systems)||[]).forEach(s=>{
     const href=s.route||'/desk';
-    const mode=s.mode?('?mode='+encodeURIComponent(s.mode)):'';
-    el.innerHTML=`<span class="badge ${s.ok?'ok':'bad'}">${s.ok?'live':'degraded'} · ${esc(s.kind||'')}</span>
+    box.insertAdjacentHTML('beforeend', `<div class="card">
+      <span class="badge ${s.ok?'ok':'bad'}">${s.ok?'live':'off'} · ${esc(s.kind||'')}</span>
       <h3>${esc(s.name)}</h3>
       <p>${esc(s.blurb||'')}</p>
-      <div class="meta">${esc(s.detail||'')}</div>
-      <div class="actions">
-        <a class="btn primary" href="${href}">Open</a>
-        ${s.mode?`<a class="btn" href="/desk" onclick="sessionStorage.setItem('pocket_os_mode','${esc(s.mode)}')">Desk · ${esc(s.mode)}</a>`:''}
-      </div>`;
-    box.appendChild(el);
+      <p class="meta">${esc(s.detail||'')}</p>
+      <div class="actions"><a class="btn primary" href="${href}">Open</a></div>
+    </div>`);
   });
-  // parity
+
+  const by={};
+  (wfs.workflows||[]).forEach(w=>{ (by[w.family]=by[w.family]||[]).push(w); });
+  $('families').innerHTML = Object.keys(by).map(f=>{
+    const rows=by[f].map(w=>`<div class="wf"><div><code>${esc(w.id)}</code> ${esc(w.title)} · ${w.steps} steps</div><button onclick="runWf('${esc(w.id)}')">Run</button></div>`).join('');
+    return `<div class="section" style="margin-top:14px"><h2>${esc(f)} · ${by[f].length}</h2>${rows}</div>`;
+  }).join('') || '<div class="meta">Workflow catalog not loaded.</div>';
+
   const pbox=$('parity'); pbox.innerHTML='';
-  ((DASH.parity&&DASH.parity.rows)||[]).forEach(row=>{
-    const el=document.createElement('div'); el.className='card';
-    el.innerHTML=`<h3>${esc(row.competitor)}</h3>
-      <div class="meta">Touches: ${(row.systems_touching||[]).map(esc).join(', ')||'—'}</div>
-      <ul>${(row.pocket_native||[]).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>
-      <ul class="deeper">${(row.pocket_deeper||[]).map(x=>'<li>↑ '+esc(x)+'</li>').join('')}</ul>`;
-    pbox.appendChild(el);
+  ((dash.parity&&dash.parity.rows)||[]).forEach(row=>{
+    pbox.insertAdjacentHTML('beforeend', `<div class="card">
+      <h3>${esc(row.competitor)}</h3>
+      <ul>${(row.pocket_native||[]).slice(0,6).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>
+    </div>`);
   });
-  // projects
+
   const pjs=$('projects'); pjs.innerHTML='';
-  ((DASH.projects&&DASH.projects.projects)||[]).forEach(p=>{
+  const projs=(dash.projects&&dash.projects.projects)||[];
+  if(!projs.length) pjs.innerHTML='<div class="card"><p>No projects yet.</p></div>';
+  projs.forEach(p=>{
     const el=document.createElement('div'); el.className='card';
-    el.innerHTML=`<h3>${esc(p.title||p.id)}</h3>
-      <p>${esc(p.template)} · ${(p.files||[]).slice(0,6).map(esc).join(', ')}</p>
-      <div class="actions">
-        <button class="primary" data-id="${esc(p.id)}">Select &amp; run</button>
-      </div>`;
+    el.innerHTML=`<h3>${esc(p.title||p.id)}</h3><p>${esc(p.template||'')}</p><div class="actions"><button class="primary">Run</button></div>`;
     el.querySelector('button').onclick=()=>{ SEL=p.id; runSel(); };
     pjs.appendChild(el);
   });
-  if(!((DASH.projects&&DASH.projects.projects)||[]).length){
-    pjs.innerHTML='<div class="card"><p>No projects yet — create one above.</p></div>';
-  }
-  // artifacts
+
   const ab=$('arts'); ab.innerHTML='';
-  const arts=(DASH.artifacts&&DASH.artifacts.artifacts)||[];
-  if(!arts.length) ab.innerHTML='<div class="card"><p>No artifacts — run Coding Swarm from desk.</p></div>';
-  arts.slice(0,12).forEach(a=>{
-    const el=document.createElement('div'); el.className='card';
-    el.innerHTML=`<h3 style="font-size:12px;word-break:break-all">${esc(a.symbol)}</h3>
-      <p>${esc((a.note||a.preview||'').slice(0,120))}</p>
-      <div class="actions">
-        <button data-s="${esc(a.symbol)}" class="runA">Run code</button>
-        <button data-s="${esc(a.symbol)}" class="impA">→ Project</button>
-      </div>`;
-    el.querySelector('.runA').onclick=()=>runArt(a.symbol);
-    el.querySelector('.impA').onclick=()=>impArt(a.symbol);
-    ab.appendChild(el);
+  const arts=(dash.artifacts&&dash.artifacts.artifacts)||[];
+  if(!arts.length) ab.innerHTML='<div class="card"><p>No pixel artifacts yet.</p></div>';
+  arts.slice(0,8).forEach(a=>{
+    ab.insertAdjacentHTML('beforeend', `<div class="card"><h3 style="font-size:12px">${esc(a.symbol)}</h3><p>${esc((a.note||'').slice(0,100))}</p></div>`);
   });
-  // roster
+
   const rb=$('roster'); rb.innerHTML='';
-  ((DASH.swarm_roster&&DASH.swarm_roster.agents)||[]).forEach(a=>{
-    const el=document.createElement('div'); el.className='card';
-    el.innerHTML=`<span class="badge ok">${esc(a.bound_engine||'?')} · ${esc(a.ai_version||'')}</span>
-      <h3>${esc(a.name)}</h3><p>${esc(a.role)}</p>`;
-    rb.appendChild(el);
+  ((dash.swarm_roster&&dash.swarm_roster.agents)||[]).forEach(a=>{
+    rb.insertAdjacentHTML('beforeend', `<div class="card"><span class="badge ok">${esc(a.bound_engine||'')}</span><h3>${esc(a.name)}</h3><p>${esc(a.role||'')}</p></div>`);
   });
-  // first-class agents registry
   try{
     const fc=await api('/v1/agents/first-class');
-    const meta=$('fcMeta');
-    if(meta) meta.textContent=(fc.count||0)+' first-class agents · groups: '+Object.keys(fc.by_group||{}).join(', ');
-    const box=$('fcAgents'); if(box){
-      box.innerHTML='';
-      const groups=fc.groups||{};
-      Object.keys(groups).forEach(g=>{
-        (groups[g]||[]).slice(0,24).forEach(a=>{
-          const el=document.createElement('div'); el.className='card';
-          const mode=a.desk_mode||'';
-          el.innerHTML=`<span class="badge ok">${esc(a.kind)} · ${esc(a.group)}</span>
-            <h3>${esc(a.name)}</h3>
-            <p>${esc(a.blurb||a.role||'')}</p>
-            <div class="meta">${a.harness?'harness · ':''}${a.pixel?'pixel · ':''}${esc(a.engine||'')}</div>
-            <div class="actions">
-              ${mode?`<a class="btn primary" href="/desk" onclick="sessionStorage.setItem('pocket_os_mode','${esc(mode)}')">Open</a>`:''}
-              ${a.mention?`<span class="chip">@${esc(a.mention)}</span>`:''}
-            </div>`;
-          box.appendChild(el);
-        });
-      });
-    }
-  }catch(e){ const m=$('fcMeta'); if(m) m.textContent=String(e.message||e); }
-  // timeline
-  const ev=((DASH.timeline&&DASH.timeline.events)||[]).slice(0,30);
-  $('timeline').textContent=ev.length?ev.map(e=>JSON.stringify(e)).join('\n'):'No OS events yet';
+    $('fcMeta').textContent=(fc.count||0)+' first-class agents';
+    const box=$('fcAgents'); box.innerHTML='';
+    Object.values(fc.groups||{}).flat().slice(0,16).forEach(a=>{
+      box.insertAdjacentHTML('beforeend', `<div class="card"><h3>${esc(a.name)}</h3><p>${esc(a.blurb||'')}</p></div>`);
+    });
+  }catch(e){ $('fcMeta').textContent=String(e.message||e); }
+}
+
+async function doGoal(){
+  const goal=$('goal').value.trim();
+  if(!goal){ $('out').textContent='Type a goal.'; return; }
+  $('out').textContent='Power…';
+  const j=await api('/v1/power/do',{method:'POST',body:JSON.stringify({goal})});
+  $('out').textContent=JSON.stringify({ok:j.ok, pick:j.pick, run:j.run},null,2);
+  await load();
+}
+async function goLab(){
+  $('out').textContent='GO…';
+  const j=await api('/v1/go',{method:'POST',body:JSON.stringify({arm_daily:true})});
+  $('out').textContent=JSON.stringify({go_count:j.go_count, active:j.active_count, working:j.working, armed:j.armed, workflow_status:j.workflow_status},null,2);
+  await load();
+}
+async function tickGo(){
+  const j=await api('/v1/go/tick',{method:'POST',body:'{}'});
+  $('out').textContent='Ticked · active '+(j.active_count||0);
+  await load();
+}
+async function runWf(id){
+  $('out').textContent='Running '+id+'…';
+  const j=await api('/v1/power/do',{method:'POST',body:JSON.stringify({workflow_id:id,goal:id})});
+  $('out').textContent=JSON.stringify(j.run||j,null,2);
+  await load();
 }
 async function createProj(){
-  const name=$('projName').value||'';
-  const template=$('projTpl').value;
-  const j=await api('/v1/os/projects',{method:'POST',body:JSON.stringify({name,template,title:name})});
-  if(!j.ok){ alert(j.error||'failed'); return; }
-  SEL=j.project&&j.project.id;
-  await load();
-  alert('Created '+SEL);
+  const j=await api('/v1/os/projects',{method:'POST',body:JSON.stringify({name:$('projName').value,template:$('projTpl').value})});
+  SEL=j.project&&j.project.id; await load();
 }
 async function runSel(){
-  if(!SEL){ alert('Select or create a project first'); return; }
+  if(!SEL){ $('out').textContent='Create or pick a project.'; return; }
   const j=await api('/v1/os/run',{method:'POST',body:JSON.stringify({project_id:SEL})});
   const out=$('runOut'); out.style.display='block';
-  out.textContent=(j.stdout||'')+(j.stderr?('\n[stderr]\n'+j.stderr):'')+(j.error?('\n[error] '+j.error):'');
-  await load();
+  out.textContent=(j.stdout||'')+(j.stderr||'')+(j.error||'');
 }
-async function runArt(sym){
-  const j=await api('/v1/os/run-artifact',{method:'POST',body:JSON.stringify({symbol:sym})});
-  const out=$('runOut'); out.style.display='block';
-  out.textContent=JSON.stringify(j,null,2).slice(0,8000);
-  await load();
-}
-async function impArt(sym){
-  const j=await api('/v1/os/import-artifact',{method:'POST',body:JSON.stringify({symbol:sym})});
-  alert(j.ok?('Project '+j.project_id): (j.error||'fail'));
-  await load();
-}
-load().catch(e=>{ $('readyChip').textContent=String(e.message||e); });
+load().catch(e=>{ $('out').textContent=String(e.message||e); });
 </script>
 </body>
 </html>

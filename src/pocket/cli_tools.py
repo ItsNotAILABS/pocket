@@ -19,6 +19,13 @@ CLI_CATALOG: List[Dict[str, str]] = [
     {"id": "claude", "bin": "claude", "label": "Claude Code CLI", "group": "ai"},
     {"id": "grok", "bin": "grok", "label": "Grok CLI", "group": "ai"},
     {"id": "antigravity", "bin": "antigravity", "label": "Antigravity", "group": "ai"},
+    {"id": "spark", "bin": "muse", "label": "Muse Spark (Muse Code)", "group": "ai"},
+    {"id": "opencode", "bin": "opencode", "label": "OpenCode CLI", "group": "ai"},
+    {"id": "cursor-agent", "bin": "cursor-agent", "label": "Cursor Agent CLI", "group": "ai"},
+    {"id": "aider", "bin": "aider", "label": "Aider CLI", "group": "ai"},
+    {"id": "copilot", "bin": "copilot", "label": "GitHub Copilot CLI", "group": "ai"},
+    {"id": "qwen", "bin": "qwen", "label": "Qwen Code CLI", "group": "ai"},
+    {"id": "gemini", "bin": "gemini", "label": "Gemini CLI", "group": "ai"},
     {"id": "cursor", "bin": "cursor", "label": "Cursor CLI", "group": "ai"},
     {"id": "code", "bin": "code", "label": "VS Code CLI", "group": "editor"},
     {"id": "node", "bin": "node", "label": "Node.js", "group": "runtime"},
@@ -47,6 +54,15 @@ def which_tool(bin_name: str) -> str:
         cand = Path.home() / ".grok" / "bin" / "grok.exe"
         if cand.exists():
             return str(cand)
+    if bin_name in ("muse", "spark"):
+        try:
+            from pocket.phone_agents import which_muse
+
+            m = which_muse()
+            if m:
+                return m
+        except Exception:
+            pass
     if bin_name == "antigravity":
         for c in (
             Path.home() / "AppData" / "Local" / "Programs" / "Antigravity" / "Antigravity.exe",

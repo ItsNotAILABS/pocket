@@ -58,8 +58,33 @@ def phi_scale(x: float) -> Dict[str, Any]:
     }
 
 
+def gcd_pair(a: int, b: int) -> Dict[str, Any]:
+    x, y = abs(int(a)), abs(int(b))
+    while y:
+        x, y = y, x % y
+    return {"ok": True, "a": a, "b": b, "gcd": x, "agent": "GHOST_MATH"}
+
+
+def is_prime(n: int) -> Dict[str, Any]:
+    n = int(n)
+    if n < 2:
+        return {"ok": True, "n": n, "prime": False, "agent": "GHOST_MATH"}
+    if n in (2, 3):
+        return {"ok": True, "n": n, "prime": True, "agent": "GHOST_MATH"}
+    if n % 2 == 0:
+        return {"ok": True, "n": n, "prime": False, "agent": "GHOST_MATH"}
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            return {"ok": True, "n": n, "prime": False, "divides": i, "agent": "GHOST_MATH"}
+        i += 2
+    return {"ok": True, "n": n, "prime": True, "agent": "GHOST_MATH"}
+
+
 def run_ghost(prompt: str) -> Tuple[str, str, str]:
     """Deterministic router for math tasks."""
+    import re
+
     low = (prompt or "").lower()
     if "chain" in low or "hash" in low:
         parts = [p.strip() for p in (prompt or "").split("|") if p.strip()] or ["a", "b", "c"]
@@ -67,12 +92,24 @@ def run_ghost(prompt: str) -> Tuple[str, str, str]:
         body = f"## Ghost hash chain\n\n**root:** `{r['root']}`\n**links:** {r['n']}\n"
         return body, "", "ghost-math"
     if "phi" in low or "golden" in low:
-        import re
-
         m = re.search(r"[-+]?\d*\.?\d+", prompt or "")
         x = float(m.group(0)) if m else 1.0
         r = phi_scale(x)
         return f"## Phi scale\n\n```json\n{r}\n```\n", "", "ghost-math"
-    # default: hash the prompt
+    if "gcd" in low or "greatest common" in low:
+        nums = [int(x) for x in re.findall(r"-?\d+", prompt or "")][:2]
+        if len(nums) < 2:
+            nums = [12, 18]
+        r = gcd_pair(nums[0], nums[1])
+        return f"## GCD (internal)\n\n`gcd({r['a']},{r['b']}) = {r['gcd']}`\n", "", "ghost-math"
+    if "prime" in low:
+        m = re.search(r"-?\d+", prompt or "")
+        n = int(m.group(0)) if m else 17
+        r = is_prime(n)
+        return f"## Prime test (internal)\n\n```json\n{r}\n```\n", "", "ghost-math"
+    nums = [float(x) for x in re.findall(r"[-+]?\d*\.?\d+", prompt or "")]
+    if "mean" in low or "stdev" in low or "stats" in low:
+        r = series_stats(nums or [1.0, 2.0, 3.0])
+        return f"## Series stats (internal)\n\n```json\n{r}\n```\n", "", "ghost-math"
     h = sha256_hex(prompt or "")
-    return f"## Ghost digest\n\n`sha256` = `{h}`\n\n_No LLM — pure math._\n", "", "ghost-math"
+    return f"## Ghost digest\n\n`sha256` = `{h}`\n\n_No LLM — pure internal math._\n", "", "ghost-math"

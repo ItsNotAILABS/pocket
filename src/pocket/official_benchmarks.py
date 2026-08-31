@@ -243,6 +243,9 @@ def run_official_suite() -> Dict[str, Any]:
         _assert(c.get("ok") and c.get("count", 0) >= 4, "our clouds inventory")
         ids = {x.get("id") for x in (c.get("clouds") or [])}
         _assert("host_pocket" in ids, "host cloud")
+        _assert("sovereign_forge" in ids, "forge cloud")
+        _assert("mesie_sdk" in ids, "mesie cloud")
+        _assert("sovereign_engine" in ids, "engine cloud")
 
     add("sovereign.computing_clouds", _sovereign_clouds)
 

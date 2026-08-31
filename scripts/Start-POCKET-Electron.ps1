@@ -8,7 +8,8 @@ function Port-Up([int]$P) {
   try { return [bool](Get-NetTCPConnection -LocalPort $P -State Listen -EA SilentlyContinue) } catch { return $false }
 }
 
-Write-Host "POCKET Desktop" -ForegroundColor Cyan
+if (-not $env:POCKET_CLIENT_ROLE) { $env:POCKET_CLIENT_ROLE = "operator" }
+Write-Host ("POCKET Desktop · " + $env:POCKET_CLIENT_ROLE) -ForegroundColor Cyan
 
 if (-not (Port-Up $Port)) {
   $env:PYTHONPATH = Join-Path $Root "src"

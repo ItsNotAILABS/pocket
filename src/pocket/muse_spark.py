@@ -55,6 +55,7 @@ def _plan_lanes(prompt: str) -> List[Tuple[str, str]]:
         ("Reasoning", f"{p} tradeoffs risks options"),
         ("Action", f"{p} concrete next steps checklist"),
         ("Multimodal", f"{p} visual UI product examples"),
+        ("Neuro", f"{p} memory critic verify-when-done"),
     ]
 
 

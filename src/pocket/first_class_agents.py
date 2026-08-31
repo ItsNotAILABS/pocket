@@ -82,6 +82,32 @@ def _desk_agents() -> List[Dict[str, Any]]:
         # Primary engines
         _e("codex", "Codex", "Host coding agent", kind="desk", group="Primary", color=C["engine"], desk_mode="codex", engine="codex", harness=True, blurb="Write and fix code · harnessed subagents"),
         _e("grok", "Grok", "Code + research agent", kind="desk", group="Primary", color=C["research"], desk_mode="grok", engine="grok", harness=True, blurb="Code, research, reorganize · harnessed"),
+        _e(
+            "gemini_coder",
+            "gemini-coder",
+            "Neuro-Silicon coding lane",
+            kind="desk",
+            group="Primary",
+            color="#34d399",
+            desk_mode="grok",
+            engine="grok",
+            harness=True,
+            blurb="Calibration alias → Grok/Codex job on measured host lanes",
+            aliases=["gemini-coder", "gemini", "@gemini-coder"],
+        ),
+        _e(
+            "sprint_orchestrator",
+            "sprint-orchestrator",
+            "Neuro-Silicon swarm orchestrator",
+            kind="desk",
+            group="Build",
+            color="#f43f5e",
+            desk_mode="rah",
+            engine="rah",
+            harness=True,
+            blurb="Calibration alias → RAH/HYDRA fan-out",
+            aliases=["sprint-orchestrator", "sprint", "@sprint-orchestrator"],
+        ),
         _e("claude", "Claude", "Agent SDK tool loop", kind="desk", group="Primary", color=C["plan"], desk_mode="claude", engine="claude", harness=True, blurb="Claude Agent SDK · tools · receipts"),
         _e("plan", "Plan", "Planning only", kind="desk", group="Primary", color=C["plan"], desk_mode="plan", engine="plan", harness=True, blurb="Outline only — no file writes"),
         _e("voice", "Voice ↔ Voice", "Specialized voice agent", kind="desk", group="Primary", color=C["voice"], desk_mode="voice", engine="voice", harness=False, blurb="Aria · first-class desk + phone · patient VAD · Fusion", surfaces=["desk","phone"]),
@@ -133,6 +159,7 @@ def _desk_agents() -> List[Dict[str, Any]]:
         _e("screen", "Screen share", "Fusion + VComputer", kind="desk", group="Host", color="#67e8f9", desk_mode="screen", engine="screen", harness=False, blurb="Share screen View/Control · all agents see fusion"),
         _e("vcomp", "VComputer", "Virtual computer", kind="desk", group="Host", color="#a5f3fc", desk_mode="vcomp", engine="vcomp", harness=False, blurb="Host machine surface · sense · click · type · shell"),
         _e("work", "Working mode", "Live voice + hardware", kind="desk", group="Primary", color="#f472b6", desk_mode="work", engine="work", harness=True, blurb="Persistent: Aria voice · screen Control · package→artifacts · phone+desk", surfaces=["desk","phone"]),
+        _e("power", "Power", "GO + host command plane", kind="desk", group="Primary", color="#10a37f", desk_mode="assist", engine="assist", harness=True, blurb="Do a goal · GO active states · 100 workflows on this host", surfaces=["desk"], aliases=["go", "command"]),
         _e("working", "Working mode", "Work alias", kind="desk", group="Primary", color="#f472b6", desk_mode="working", engine="work", blurb="Alias → work"),
         _e("mcp", "MCP tools", "10 embedded MCPs", kind="desk", group="Advanced", color="#c4b5fd", desk_mode="mcp", engine="mcp", harness=False, blurb="3 internal + 7 external · agent CLI access (no user tabs)"),
         _e("oculus", "Vision", "OCULUS alias", kind="desk", group="Host", color="#22d3ee", desk_mode="oculus", engine="vision", harness=False, blurb="Alias → vision"),
@@ -148,7 +175,7 @@ def _desk_agents() -> List[Dict[str, Any]]:
         # Intelligence / local
         _e("nexus", "NEXUS", "Intelligence tools", kind="desk", group="Advanced", color=C["build"], desk_mode="nexus", engine="nexus", harness=False, blurb="NEXUS intelligence bridge"),
         _e("mesie", "MESIE", "Spectral compute", kind="desk", group="Advanced", color=C["host"], desk_mode="mesie", engine="mesie", harness=False, blurb="MESIE spectral / compute"),
-        _e("auro", "Auro14B", "Local LMR + meaning", kind="desk", group="Advanced", color=C["local"], desk_mode="auro", engine="auro", harness=False, blurb="Native Auro LMR + meaning model · prefix native for full ckpt"),
+        _e("auro", "Auro14B", "Local LMR + meaning", kind="desk", group="Internal", color=C["local"], desk_mode="auro", engine="auro", harness=False, blurb="Native Auro LMR + meaning model · prefix native for full ckpt"),
         _e(
             "assist",
             "Digital assistant",
@@ -162,14 +189,14 @@ def _desk_agents() -> List[Dict[str, Any]]:
             blurb="Day-to-day assistant · research · life ops · routes engines",
             surfaces=["desk", "phone", "work"],
         ),
-        _e("guppy", "Guppy", "Local helper", kind="desk", group="Advanced", color="#38bdf8", desk_mode="guppy", engine="guppy", harness=False, blurb="Local fish helper"),
+        _e("guppy", "Guppy", "Local helper", kind="desk", group="Internal", color="#38bdf8", desk_mode="guppy", engine="guppy", harness=False, blurb="Local fish helper"),
         _e("archon", "ARCHON", "Orchestrator", kind="desk", group="Advanced", color=C["security"], desk_mode="archon", engine="archon", harness=True, blurb="Desk alpha orchestrator"),
         _e("copilot", "Copilot", "Windows Copilot", kind="desk", group="Advanced", color="#818cf8", desk_mode="copilot", engine="copilot", harness=False, blurb="Consiliarius · Copilot intro"),
         _e("agent", "Doer", "Headless multi-step", kind="desk", group="Advanced", color=C["build"], desk_mode="agent", engine="agent", harness=True, blurb="≤10 step headless doer"),
         _e("doer", "Doer+", "Headless multi-step", kind="desk", group="Advanced", color=C["build"], desk_mode="doer", engine="agent", harness=True, blurb="Headless multi-step runner"),
         _e("swarm", "Swarm", "Coding or always-on", kind="desk", group="Advanced", color=C["mesh"], desk_mode="swarm", engine="swarm", harness=False, blurb="Coding swarm or status/pulse daemon"),
-        _e("novae_grok", "Grok Novae", "Novae hands", kind="desk", group="Advanced", color=C["host"], desk_mode="novae_grok", engine="novae_grok", harness=False, blurb="Grok hands in platform workspace"),
-        _e("novae_codex", "Codex Novae", "Novae hands", kind="desk", group="Advanced", color=C["mesh"], desk_mode="novae_codex", engine="novae_codex", harness=False, blurb="Codex hands in platform workspace"),
+        _e("novae_grok", "Grok Novae", "Nova · research hands", kind="desk", group="Primary", color=C["host"], desk_mode="novae_grok", engine="novae_grok", harness=False, blurb="Nova in POCKET: research, plan, browser, real-world assist", surfaces=["desk","phone","imagine"]),
+        _e("novae_codex", "Codex Novae", "Nova · coding hands", kind="desk", group="Primary", color=C["mesh"], desk_mode="novae_codex", engine="novae_codex", harness=False, blurb="Nova in POCKET: coding, forge, workspace patches", surfaces=["desk","phone"]),
         _e("dream", "Dream", "Idle consolidator", kind="desk", group="Advanced", color="#a78bfa", desk_mode="dream", engine="dream", harness=False, blurb="Dream mode · idle consolidation"),
         _e("duel", "Duels", "Propose & judge", kind="desk", group="Advanced", color="#fb7185", desk_mode="duel", engine="duel", harness=False, blurb="Agent duels"),
         _e("capsule", "Time Capsules", "Future instructions", kind="desk", group="Advanced", color="#94a3b8", desk_mode="capsule", engine="capsule", harness=False, blurb="Time capsules"),
@@ -178,7 +205,13 @@ def _desk_agents() -> List[Dict[str, Any]]:
         _e("workers", "Workers", "Latin roster", kind="desk", group="Advanced", color=C["latin"], desk_mode="workers", engine="workers", harness=False, blurb="List Latin workers"),
         _e("ask", "Ask", "Quick plan", kind="desk", group="Advanced", color=C["plan"], desk_mode="ask", engine="ask", harness=False, blurb="Quick planning ask"),
         _e("handoff", "Handoff", "Plan package", kind="desk", group="Advanced", color="#a1a1aa", desk_mode="handoff", engine="handoff", harness=False, blurb="Deferred plan handoff"),
-        _e("ghost", "Ghost Math", "Local math", kind="desk", group="Advanced", color="#c4b5fd", desk_mode="ghost", engine="ghost", harness=False, blurb="Ghost math caretaker"),
+        _e("ghost", "Ghost Math", "Internal math", kind="desk", group="Internal", color="#c4b5fd", desk_mode="ghost", engine="ghost", harness=False, blurb="Internal math: hash, gcd, primes, phi — no third-party"),
+        _e("logic", "Logic Prover", "Internal proofs", kind="desk", group="Internal", color="#86efac", desk_mode="logic", engine="logic", harness=False, blurb="Local tautologies and contradictions — no CAS cloud"),
+        _e("pattern", "Pattern Forge", "Internal spectral", kind="desk", group="Internal", color="#a78bfa", desk_mode="pattern", engine="pattern", harness=False, blurb="Local pattern decompose — no third-party math API"),
+        _e("world", "World Model", "Intelligence world", kind="desk", group="Internal", color="#fbbf24", desk_mode="world", engine="world", harness=False, blurb="Internal memory: facts, archetypes, syntax"),
+        _e("imagine", "Imagine Studio", "Visual stills", kind="desk", group="Internal", color="#34d399", desk_mode="imagine", engine="imagine", harness=False, blurb="Letterboxed phone/laptop stills from host screen", surfaces=["desk","phone","imagine"]),
+        _e("genetic", "Genetic flow", "Internal models", kind="desk", group="Internal", color="#34d399", desk_mode="genetic", engine="genetic", harness=False, blurb="Express internal AI modules on a goal"),
+        _e("bots", "POCKET Bots", "Teammates", kind="desk", group="Primary", color="#10a37f", desk_mode="bots", engine="bots", harness=True, blurb="Grok-Bot-style teammates · own computer · pocket-agent", surfaces=["desk","phone","bots"]),
         _e("woa", "Wrapped Orch", "Orchestrator LLM", kind="desk", group="Advanced", color="#f472b6", desk_mode="woa", engine="woa", harness=False, blurb="Wrapped orchestrator"),
         # Aliases as first-class desk modes (same agent, different id)
         _e("pixel_swarm", "Coding Swarm", "Pixel swarm alias", kind="desk", group="Build", color=C["swarm"], desk_mode="pixel_swarm", engine="coding_swarm", blurb="Alias → coding swarm"),
@@ -455,7 +488,17 @@ def desk_catalog() -> Dict[str, Any]:
     """Shape for desk AGENT_CATALOG — Primary/Build/Host/Advanced only (no aliases dump)."""
     reg = build_registry(live=False)
     # Prefer non-alias desk agents for picker (skip pure aliases with same name as another)
-    primary_ids = {"codex", "grok", "claude", "voice", "plan"}
+    primary_ids = {"codex", "grok", "claude", "voice", "plan", "novae_grok", "novae_codex", "assist", "bots"}
+    internal_ids = {
+        "ghost",
+        "logic",
+        "pattern",
+        "world",
+        "imagine",
+        "genetic",
+        "auro",
+        "guppy",
+    }
     build_ids = {
         "coding_swarm",
         "build",
@@ -484,19 +527,16 @@ def desk_catalog() -> Dict[str, Any]:
         "term",
         "shell",
         "wsl_native",
+        "power",
     }
     advanced_ids = {
         "swarm",
         "nexus",
         "mesie",
-        "auro",
-        "guppy",
         "archon",
         "copilot",
         "agent",
         "doer",
-        "novae_grok",
-        "novae_codex",
         "dream",
         "duel",
         "capsule",
@@ -505,7 +545,6 @@ def desk_catalog() -> Dict[str, Any]:
         "workers",
         "ask",
         "handoff",
-        "ghost",
         "woa",
     }
     by_id = {a["desk_mode"] or a["id"]: a for a in reg["agents"] if a.get("kind") == "desk"}
@@ -530,6 +569,7 @@ def desk_catalog() -> Dict[str, Any]:
 
     groups = [
         {"group": "Primary", "items": items(primary_ids)},
+        {"group": "Internal", "items": items(internal_ids)},
         {"group": "Build", "items": items(build_ids)},
         {"group": "Host", "items": items(host_ids)},
         {"group": "Advanced", "items": items(advanced_ids)},

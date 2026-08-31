@@ -18,6 +18,7 @@ Practical recipes. Full map: [INDEX.md](INDEX.md) · Live: `GET /v1/catalog` · 
 | Life assistant / loops → desk | [how-to/WORK_STUDIO.md](how-to/WORK_STUDIO.md) |
 | Pair phone | [how-to/PHONE.md](how-to/PHONE.md) |
 | Copy-paste API recipes | [how-to/API_RECIPES.md](how-to/API_RECIPES.md) |
+| **All MCP tools + 20 uses for agents** | [AGENTS_MCP_TOOLS.md](AGENTS_MCP_TOOLS.md) · `GET /v1/agents/tools` |
 
 ---
 

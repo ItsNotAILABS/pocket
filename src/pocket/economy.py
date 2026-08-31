@@ -89,6 +89,13 @@ ECONOMIC_PROTOCOLS: List[Dict[str, Any]] = [
         "summary": "POCK price table for modes, API agents, RAH leaves, twin pulses.",
         "rails": ["pricing"],
     },
+    {
+        "id": "MEDINA-REVENUECAT/1.0",
+        "slug": "revenuecat",
+        "name": "RevenueCat Billing",
+        "summary": "Paid entitlements via RevenueCat. Webhooks mint POCK; never auto-pay.",
+        "rails": ["billing", "subscription", "pock"],
+    },
 ]
 
 # Twin agents that get wallets by default

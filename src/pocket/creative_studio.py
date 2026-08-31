@@ -102,6 +102,7 @@ def catalog() -> Dict[str, Any]:
         "product": "POCKET Creative Studio",
         "modes": MODES,
         "ui": "/studio/create",
+        "imagine_ui": "/imagine",
         "community": "/studio/create#community",
         "api": {
             "catalog": "GET /v1/creative",
@@ -622,13 +623,21 @@ def chat(
                 reply_parts.append(
                     f"**Image compose** (`{img.get('mode')}`) ran via Imagine Studio."
                 )
-                path = None
                 r = img.get("result") or {}
                 path = r.get("path") or r.get("out") or (r.get("export") or {}).get("path")
+                url = r.get("file_url")
+                if url:
+                    reply_parts.append(f"Preview: {url}")
                 if path:
                     reply_parts.append(f"File: `{path}`")
+                reply_parts.append("Open **Imagine Studio** at `/imagine` for the gallery and remake.")
             else:
-                reply_parts.append(f"Image compose note: {img.get('error') or 'see result'}")
+                err = img.get("error") or (img.get("result") or {}).get("error") or "compose failed"
+                hint = (img.get("result") or {}).get("hint") or ""
+                reply_parts.append(f"Image compose note: {err}")
+                if hint:
+                    reply_parts.append(hint)
+                reply_parts.append("Try `/imagine` — compose from live screen, last vision frame, or an uploaded PNG.")
 
     if auto_media and mode_id == "video":
         vid = _maybe_video(text)
@@ -709,6 +718,9 @@ def chat(
             k: {
                 "ok": (v or {}).get("ok"),
                 "action": (v or {}).get("action") or (v or {}).get("mode"),
+                "file_url": ((v or {}).get("result") or {}).get("file_url")
+                or (v or {}).get("file_url"),
+                "error": (v or {}).get("error") or ((v or {}).get("result") or {}).get("error"),
             }
             for k, v in media.items()
         },
@@ -768,6 +780,7 @@ def status() -> Dict[str, Any]:
         "sessions": list_sessions(limit=5).get("count"),
         "artifacts": list_artifacts(limit=5).get("count"),
         "ui": "/studio/create",
+        "imagine_ui": "/imagine",
         "community_ui": "/community",
         "catalog": catalog(),
     }

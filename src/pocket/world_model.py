@@ -122,6 +122,8 @@ def ensure_db() -> Path:
             if _count(con, "archetypes") == 0:
                 _seed(con)
                 con.commit()
+            _upsert_facts(con, POCKET_FOUNDATION_FACTS)
+            con.commit()
         finally:
             con.close()
     return DB_PATH
@@ -129,6 +131,47 @@ def ensure_db() -> Path:
 
 def _count(con: sqlite3.Connection, table: str) -> int:
     return int(con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+
+POCKET_FOUNDATION_FACTS = [
+    ("POCKET", "is_a", "internal host agent OS", "pocket", 1.0),
+    ("POCKET", "lab", "ItsNotAI Labs", "pocket", 1.0),
+    ("Ghost Math", "kind", "internal math model", "pocket", 1.0),
+    ("Logic Prover", "kind", "internal math model", "pocket", 1.0),
+    ("Pattern Forge", "kind", "internal math model", "pocket", 1.0),
+    ("Auro", "kind", "internal local meaning model", "pocket", 1.0),
+    ("World Model", "kind", "internal intelligence memory", "pocket", 1.0),
+    ("Identity", "kind", "internal self model", "pocket", 1.0),
+    ("Heuristic", "kind", "internal self planner", "pocket", 1.0),
+    ("Guppy", "kind", "internal desk helper", "pocket", 1.0),
+    ("Novae", "lives_in", "POCKET workspace", "pocket", 1.0),
+    ("Imagine Studio", "is_a", "letterboxed host still composer", "pocket", 1.0),
+    ("Imagine Studio", "not_a", "text-to-image generator", "pocket", 1.0),
+    ("computational AI", "runs_as", "internal modules", "pocket", 1.0),
+    ("math models", "require", "zero third-party CAS", "pocket", 1.0),
+    ("public seats", "sign_up_at", "/signup", "pocket", 1.0),
+    ("public seats", "sign_in_at", "/login", "pocket", 1.0),
+    ("foundations", "catalog", "/v1/foundations", "pocket", 1.0),
+]
+
+
+def _upsert_facts(con: sqlite3.Connection, facts: List[tuple]) -> int:
+    now = time.time()
+    added = 0
+    for s, p, o, src, conf in facts:
+        row = con.execute(
+            "SELECT id FROM facts WHERE subject=? AND predicate=? AND object=?",
+            (s, p, o),
+        ).fetchone()
+        if row:
+            continue
+        emb = embed_text(f"{s} {p} {o}")
+        con.execute(
+            "INSERT INTO facts(subject,predicate,object,source,confidence,embedding,updated_at) VALUES(?,?,?,?,?,?,?)",
+            (s, p, o, src, conf, emb, now),
+        )
+        added += 1
+    return added
 
 
 def embed_text(text: str, dim: int = 64) -> bytes:
@@ -254,7 +297,7 @@ def _seed(con: sqlite3.Connection) -> None:
             (title, author, source, notes, excerpt, emb, now),
         )
 
-    facts = [
+    facts = list(POCKET_FOUNDATION_FACTS) + [
         ("Shakespeare", "wrote", "Hamlet", "seed", 1.0),
         ("Shakespeare", "wrote", "Macbeth", "seed", 1.0),
         ("Paris", "capital_of", "France", "seed", 1.0),

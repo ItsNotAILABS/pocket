@@ -124,6 +124,17 @@ def dispatch(
 def _execute_agent(name: str, prompt: str) -> Dict[str, Any]:
     n = name.upper()
     try:
+        # Unified router — Latin workers get job+prompt, not (name, whole-prompt).
+        try:
+            from pocket.agent_invoke import invoke as _inv
+
+            routed = _inv(name, prompt=prompt)
+            if isinstance(routed, dict) and (
+                routed.get("ok") is True or routed.get("error") or routed.get("markdown")
+            ):
+                return routed
+        except Exception:
+            pass
         if n in HEADLESS or n.endswith("_HEADLESS"):
             return _run_headless(n, prompt)
         # Design specialists — first-class, not SCRIPTOR

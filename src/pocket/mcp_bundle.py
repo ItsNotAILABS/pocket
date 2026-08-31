@@ -59,8 +59,26 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             # Website interfaces via Python engines
             "web_ui_open", "web_ui_sense", "web_ui_act", "web_ui_fetch",
             "web_ui_search", "web_ui_browse", "web_ui_status",
+            "webmcp_scan", "webmcp_list", "webmcp_use", "webmcp_find",
             # Models → Python agents / engines
             "python_engine", "python_engines_list",
+            "engine_uses", "engine_use",
+            "model_build", "model_list_built", "model_register", "model_suggest",
+            # Comprehensive agent toolkit
+            "agents_toolkit", "agents_tools", "tools_manifest",
+            "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
+            "keep_start", "keep_status", "keep_stop",
+            "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",
+            "workflow_start", "workflow_tick", "workflow_status", "workflow_stop",
+            "multi_plan",
+            # Live MCP JSON-RPC protocol stream
+            "mcp_stream",
+            # Agent virtual numbers + softphone
+            "call_status", "call_numbers", "call_assign",
+            "call_dial", "call_answer", "call_hangup", "call_speak", "call_list",
+            "multi_workflows", "multi_workflow_run", "multi_workflow_get", "multi_workflow_families",
+            "power_do", "power_pulse", "power_vs", "power_recall",
+            "go", "go_state", "go_tick",
         ],
     },
     {
@@ -151,8 +169,28 @@ EXTERNAL_MCPS: List[Dict[str, Any]] = [
     },
 ]
 
+_PACK_ATTACHED = False
+
+
+def _attach_pack_tools() -> None:
+    global _PACK_ATTACHED
+    if _PACK_ATTACHED:
+        return
+    try:
+        from pocket.mcp_fifty import ids
+
+        pocket = next(s for s in INTERNAL_MCPS if s["id"] == "pocket")
+        have = set(pocket["tools"])
+        for i in ids():
+            if i not in have:
+                pocket["tools"].append(i)
+        _PACK_ATTACHED = True
+    except Exception:
+        pass
+
 
 def catalog() -> Dict[str, Any]:
+    _attach_pack_tools()
     all_m = INTERNAL_MCPS + EXTERNAL_MCPS
     return {
         "ok": True,
@@ -171,6 +209,7 @@ def catalog() -> Dict[str, Any]:
 
 
 def list_tools() -> Dict[str, Any]:
+    _attach_pack_tools()
     tools = []
     for s in INTERNAL_MCPS + EXTERNAL_MCPS:
         for t in s.get("tools") or []:
@@ -253,47 +292,72 @@ def invoke(server: str, tool: str, **params) -> Dict[str, Any]:
     sid = (server or "").lower().strip()
     tool = (tool or "").lower().strip()
 
+    # Live JSON-RPC protocol stream (internal invoke channel)
+    try:
+        from pocket.mcp_stream import emit_frame
+
+        emit_frame(
+            direction="in",
+            method=f"tools/call:{sid}.{tool}",
+            payload={"server": sid, "tool": tool, "params": params},
+            channel="invoke",
+        )
+    except Exception:
+        pass
+
+    result: Dict[str, Any]
+
     # --- pocket internal ---
     if sid in ("pocket", "pocket-core"):
-        return _invoke_pocket(tool, params)
+        result = _invoke_pocket(tool, params)
+
+    # --- universal 50-tool pack (any agent, any desk) ---
+    elif sid in ("universal", "pocket-universal", "u", "fifty"):
+        from pocket.mcp_fifty import run as run_fifty
+
+        result = run_fifty(tool, params)
 
     # --- github via gh CLI (no browser tab) ---
-    if sid == "github":
-        return _invoke_github(tool, params)
+    elif sid == "github":
+        result = _invoke_github(tool, params)
 
     # --- filesystem ---
-    if sid == "filesystem":
+    elif sid == "filesystem":
         if tool in ("fs_list", "list"):
-            return fs_list(params.get("path") or "", int(params.get("limit") or 40))
-        if tool in ("fs_read", "read"):
-            return fs_read(params.get("path") or "", int(params.get("max_chars") or 12000))
-        if tool in ("fs_write", "write"):
-            return fs_write(params.get("path") or "", params.get("content") or "")
-        if tool == "fs_stat":
+            result = fs_list(params.get("path") or "", int(params.get("limit") or 40))
+        elif tool in ("fs_read", "read"):
+            result = fs_read(params.get("path") or "", int(params.get("max_chars") or 12000))
+        elif tool in ("fs_write", "write"):
+            result = fs_write(params.get("path") or "", params.get("content") or "")
+        elif tool == "fs_stat":
             p = Path(params.get("path") or "").expanduser()
             if not p.exists():
-                return {"ok": False, "error": "missing"}
-            st = p.stat()
-            return {"ok": True, "path": str(p), "bytes": st.st_size, "dir": p.is_dir()}
+                result = {"ok": False, "error": "missing"}
+            else:
+                st = p.stat()
+                result = {"ok": True, "path": str(p), "bytes": st.st_size, "dir": p.is_dir()}
+        else:
+            result = {"ok": False, "error": f"unknown filesystem tool {tool}"}
 
     # --- nexus bridge if present ---
-    if sid == "nexus":
+    elif sid == "nexus":
         try:
             from pocket import nexus_bridge as nb
 
             if hasattr(nb, "run_nexus"):
-                return nb.run_nexus(params.get("prompt") or tool, job={})
-            if hasattr(nb, "status"):
-                return {"ok": True, "status": nb.status(), "tool": tool, "params": params}
-            return {"ok": True, "module": "nexus_bridge", "tool": tool, "note": "use NEXUS desk agent for full runs"}
+                result = nb.run_nexus(params.get("prompt") or tool, job={})
+            elif hasattr(nb, "status"):
+                result = {"ok": True, "status": nb.status(), "tool": tool, "params": params}
+            else:
+                result = {"ok": True, "module": "nexus_bridge", "tool": tool, "note": "use NEXUS desk agent for full runs"}
         except Exception as e:
-            return {"ok": False, "error": f"nexus: {e}", "hint": "ensure NEXUS on host"}
+            result = {"ok": False, "error": f"nexus: {e}", "hint": "ensure NEXUS on host"}
 
     # --- loom catalog hint ---
-    if sid == "loom":
+    elif sid == "loom":
         cat = Path(r"C:\Users\Medin\OneDrive\mcps\loom\tools")
         tools = [p.stem for p in cat.glob("*.json")][:40] if cat.is_dir() else []
-        return {
+        result = {
             "ok": True,
             "server": "loom",
             "tool": tool,
@@ -302,24 +366,43 @@ def invoke(server: str, tool: str, **params) -> Dict[str, Any]:
             "params": params,
         }
 
-    # --- remote HTTP MCP (document only — live session uses grok config) ---
-    for s in EXTERNAL_MCPS:
-        if s["id"] == sid and s.get("transport") == "http":
-            return {
-                "ok": True,
-                "server": sid,
-                "tool": tool,
-                "transport": "http",
-                "url": s.get("url"),
-                "note": (
-                    "Remote MCP is configured in ~/.grok/config.toml for Grok. "
-                    "POCKET agents use CLI/local bridges for host work; "
-                    "Grok/Claude sessions inherit the remote MCP tools."
-                ),
-                "params": params,
-            }
+    else:
+        # --- remote HTTP MCP (document only — live session uses grok config) ---
+        result = {"ok": False, "error": f"unknown server/tool {sid}.{tool}", "catalog": catalog()["servers"]}
+        for s in EXTERNAL_MCPS:
+            if s["id"] == sid and s.get("transport") == "http":
+                result = {
+                    "ok": True,
+                    "server": sid,
+                    "tool": tool,
+                    "transport": "http",
+                    "url": s.get("url"),
+                    "note": (
+                        "Remote MCP is configured in ~/.grok/config.toml for Grok. "
+                        "POCKET agents use CLI/local bridges for host work; "
+                        "Grok/Claude sessions inherit the remote MCP tools."
+                    ),
+                    "params": params,
+                }
+                break
 
-    return {"ok": False, "error": f"unknown server/tool {sid}.{tool}", "catalog": catalog()["servers"]}
+    if not isinstance(result, dict):
+        result = {"ok": True, "result": result}
+
+    try:
+        from pocket.mcp_stream import emit_frame
+
+        emit_frame(
+            direction="out",
+            method=f"tools/call:{sid}.{tool}",
+            payload=result,
+            error=None if result.get("ok", True) else result.get("error"),
+            channel="invoke",
+        )
+    except Exception:
+        pass
+
+    return result
 
 
 def _invoke_mail_web(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -432,11 +515,196 @@ def _invoke_mail_web(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
             p.get("prompt") or p.get("text") or p.get("goal") or "",
             params=p,
         )
+    if t in ("engine_uses", "list_engine_uses", "web_ui_uses"):
+        from pocket.web_ui_engine import list_uses
+
+        return list_uses()
+    if t in ("webmcp_scan", "webmcp_diffuse"):
+        from pocket.webmcp import scan
+
+        return scan(url=p.get("url") or "", fusion=bool(p.get("fusion") or p.get("screen")))
+    if t in ("webmcp_list", "webmcp_catalog"):
+        from pocket.webmcp import catalog
+
+        return catalog(refresh=bool(p.get("refresh")))
+    if t in ("webmcp_find",):
+        from pocket.webmcp import find_actions
+
+        return {"ok": True, "hits": find_actions(p.get("q") or p.get("query") or p.get("name") or "")}
+    if t in ("webmcp_use", "webmcp_act"):
+        from pocket.webmcp import use_action
+
+        return use_action(p.get("name") or p.get("id") or p.get("action") or "", prompt=p.get("prompt") or p.get("text") or "")
+    if t in ("engine_use", "run_engine_use"):
+        from pocket.web_ui_engine import run_use, pick_use
+
+        uid = p.get("use") or p.get("use_id") or p.get("id") or ""
+        prompt = p.get("prompt") or p.get("text") or p.get("goal") or ""
+        if not uid and prompt:
+            return pick_use(prompt)
+        return run_use(uid, prompt, params=p)
+    if t in ("model_build", "build_model", "forge_model"):
+        from pocket.model_forge import build_model
+
+        return build_model(
+            model_id=str(p.get("model_id") or p.get("id") or ""),
+            name=str(p.get("name") or ""),
+            kind=str(p.get("kind") or "template"),
+            description=str(p.get("description") or p.get("text") or p.get("prompt") or ""),
+            tags=p.get("tags") if isinstance(p.get("tags"), list) else None,
+            template=str(p.get("template") or ""),
+            rules=p.get("rules") if isinstance(p.get("rules"), list) else None,
+            default=str(p.get("default") or ""),
+            formula=str(p.get("formula") or ""),
+            wrap_engine=str(p.get("wrap_engine") or ""),
+            wrap_params=p.get("wrap_params") if isinstance(p.get("wrap_params"), dict) else None,
+            code=str(p.get("code") or ""),
+            system=str(p.get("system") or ""),
+            fit_keywords=p.get("fit_keywords") if isinstance(p.get("fit_keywords"), list) else None,
+            register_now=p.get("register_now", True) is not False,
+            author=str(p.get("author") or "agent"),
+        )
+    if t in ("model_list_built", "list_built_models", "models_built"):
+        from pocket.model_forge import list_built
+
+        return list_built(limit=int(p.get("limit") or 50))
+    if t in ("model_register", "register_models"):
+        from pocket.model_forge import register_built
+
+        return register_built(str(p.get("model") or p.get("model_id") or p.get("id") or ""))
+    if t in ("model_suggest", "suggest_model"):
+        from pocket.model_forge import suggest_from_goal
+
+        return suggest_from_goal(p.get("goal") or p.get("prompt") or p.get("text") or "")
+    if t in ("agents_toolkit", "agents_tools", "tools_manifest", "agent_tools"):
+        from pocket.agents_toolkit import manifest, markdown, write_docs_file
+
+        fmt = (p.get("format") or p.get("fmt") or "json").lower()
+        if fmt in ("md", "markdown"):
+            return {"ok": True, "format": "markdown", "markdown": markdown()}
+        if fmt in ("write", "file", "docs"):
+            return write_docs_file()
+        return manifest()
+    if t in ("multi_plan", "multiplan", "plan_exec", "agentic_plan"):
+        from pocket.multi_plan import run_multi_plan
+
+        return run_multi_plan(
+            p.get("prompt") or p.get("goal") or p.get("text") or "",
+            job_id=str(p.get("job_id") or ""),
+            session_id=str(p.get("session_id") or ""),
+            max_tasks=int(p.get("max_tasks") or 24),
+        )
+    if t in ("mcp_stream", "mcp_rpc_stream", "protocol_stream", "jsonrpc_stream"):
+        from pocket.mcp_stream import list_frames, snapshot, format_term_view, clear as mcp_clear
+
+        action = str(p.get("action") or p.get("mode") or "").lower()
+        if action in ("clear", "reset"):
+            return mcp_clear()
+        after = int(p.get("after") or p.get("seq") or 0)
+        limit = int(p.get("limit") or 50)
+        fmt = str(p.get("format") or p.get("fmt") or "json").lower()
+        if fmt in ("term", "markdown", "md"):
+            return {"ok": True, "format": "term", "markdown": format_term_view(after_seq=after, limit=limit)}
+        return {"ok": True, **snapshot(), "frames": list_frames(after_seq=after, limit=limit)}
+    if t in ("call_status", "calls_status"):
+        from pocket.agent_calls import status as calls_status
+
+        return calls_status()
+    if t in ("call_numbers", "list_call_numbers"):
+        from pocket.agent_calls import list_numbers
+
+        return list_numbers()
+    if t in ("call_assign", "assign_number"):
+        from pocket.agent_calls import assign_number
+
+        return assign_number(
+            str(p.get("agent") or p.get("agent_id") or p.get("id") or ""),
+            name=str(p.get("name") or ""),
+            area=str(p.get("area") or "201"),
+            line=str(p.get("line") or ""),
+        )
+    if t in ("call_dial", "dial", "phone_call"):
+        from pocket.agent_calls import dial
+
+        return dial(
+            from_agent=str(p.get("from") or p.get("from_agent") or p.get("agent") or "phone_agent"),
+            to=str(p.get("to") or p.get("number") or ""),
+            purpose=str(p.get("purpose") or p.get("reason") or p.get("prompt") or p.get("text") or ""),
+            text=str(p.get("text") or ""),
+            mode=str(p.get("mode") or "soft"),
+            session_id=str(p.get("session_id") or ""),
+        )
+    if t in ("call_answer",):
+        from pocket.agent_calls import answer
+
+        return answer(str(p.get("id") or p.get("call_id") or ""), by=str(p.get("by") or "agent"))
+    if t in ("call_hangup",):
+        from pocket.agent_calls import hangup
+
+        return hangup(str(p.get("id") or p.get("call_id") or ""), reason=str(p.get("reason") or "hangup"))
+    if t in ("call_speak",):
+        from pocket.agent_calls import speak
+
+        return speak(
+            str(p.get("id") or p.get("call_id") or ""),
+            str(p.get("text") or p.get("message") or ""),
+            role=str(p.get("role") or "agent"),
+        )
+    if t in ("call_list", "list_calls"):
+        from pocket.agent_calls import list_calls
+
+        return list_calls(status=str(p.get("status") or ""), limit=int(p.get("limit") or 30))
     return {"ok": False, "error": f"unknown mail/web tool {tool}"}
 
 
 def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
     t = tool
+    if t in ("multi_workflows", "multi_workflow_run", "multi_workflow_get", "multi_workflow_families"):
+        from pocket.multi_workflows import catalog as mw_cat, families as mw_fam, get as mw_get, run as mw_run
+
+        if t in ("multi_workflows",):
+            return mw_cat(family=params.get("family") or params.get("name") or "")
+        if t == "multi_workflow_families":
+            return mw_fam()
+        if t == "multi_workflow_get":
+            return mw_get(params.get("name") or params.get("id") or params.get("text") or "")
+        return mw_run(
+            params.get("name") or params.get("id") or params.get("text") or "mw001_stack_health",
+            dry=bool(params.get("dry")),
+            params=params,
+        )
+    if t in ("power_do", "power_pulse", "power_vs", "power_recall"):
+        from pocket.power import do as power_do, pulse as power_pulse, recall as power_recall, vs_theirs
+
+        if t == "power_pulse":
+            return power_pulse()
+        if t == "power_vs":
+            return vs_theirs()
+        if t == "power_recall":
+            return power_recall(int(params.get("limit") or 8))
+        return power_do(
+            params.get("goal") or params.get("text") or params.get("prompt") or "",
+            dry=bool(params.get("dry")),
+            workflow_id=str(params.get("name") or params.get("id") or params.get("workflow_id") or ""),
+        )
+    if t in ("go", "go_state", "go_tick"):
+        from pocket.go_plane import go as go_start, snapshot as go_snap, tick as go_tick
+
+        if t == "go_state":
+            return go_snap()
+        if t == "go_tick":
+            return go_tick()
+        return go_start(
+            arm_daily=params.get("arm_daily", True) is not False,
+            run_morning=bool(params.get("morning") or params.get("text") == "morning"),
+        )
+    try:
+        from pocket.mcp_fifty import known, run as run_fifty
+
+        if known(t):
+            return run_fifty(t, params)
+    except Exception:
+        pass
     # Agent mail + website UI + python engines first
     if t in (
         "mail_status", "mail_accounts", "mail_account_create",
@@ -445,6 +713,18 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
         "web_ui_open", "web_ui_sense", "web_ui_act", "web_ui_fetch",
         "web_ui_search", "web_ui_browse", "web_ui_status",
         "python_engine", "python_engines_list",
+        "engine_uses", "engine_use", "list_engine_uses",
+        "model_build", "model_list_built", "model_register", "model_suggest",
+        "build_model", "forge_model",
+        "agents_toolkit", "agents_tools", "tools_manifest",
+        "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
+        "keep_start", "keep_status", "keep_stop",
+        "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",
+        "workflow_start", "workflow_tick", "workflow_status", "workflow_stop",
+        "multi_plan", "multiplan", "plan_exec", "agentic_plan",
+        "mcp_stream", "mcp_rpc_stream", "protocol_stream", "jsonrpc_stream",
+        "call_status", "call_numbers", "call_assign",
+        "call_dial", "call_answer", "call_hangup", "call_speak", "call_list",
         "webui_open", "webui_sense", "webui_act", "site_open", "site_browse",
         "run_engine", "engines_list",
     ):
@@ -452,6 +732,10 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
     # Coherent platform tools (same as skills)
     if t in (
         "platform_map", "platform_health", "find_feature", "list_agents",
+        "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
+        "keep_start", "keep_status", "keep_stop",
+        "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",
+        "workflow_start", "workflow_tick", "workflow_status", "workflow_stop",
         "habitat_status", "habitat_open", "habitat_pulse", "habitat_assign",
         "screen_view", "screen_control", "screen_off",
         "fusion_voice", "fusion_schema", "fusion_last", "aria_turn", "voice_skills_list",

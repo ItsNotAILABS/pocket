@@ -45,19 +45,19 @@ Design: `docs/research/POCKET_AGENT_WASM_SANDBOX.md`
 
 ## P3 — Sell / market
 
-- [ ] One-page pricing story (plain language)  
-- [ ] Public README = customer face only  
-- [ ] Demo video script: desk 60s  
-- [ ] Promote path documented (internal → public)  
+- [x] One-page pricing story (plain language) — `/pricing` + `/join`  
+- [x] Public README = customer face only  
+- [x] Demo video script: desk 60s — `docs/DEMO_60S.md`  
+- [x] Promote path documented (internal → public) — `docs/PROMOTE.md`  
 
 ## P4 — Reliability
 
 - [x] Health endpoint returns edition + app_url (via `/health`)  
-- [ ] Vision never freezes host accept loop  
-- [ ] Ensure-POCKET-Up on login failure toast  
+- [x] Vision never freezes host accept loop (GET observe/page serve cache; force=1 for a full walk)  
+- [x] Ensure-POCKET-Up on login failure toast  
 
 ---
 
 **Charter:** [CHARTER.md](CHARTER.md)  
 **Founder split:** [FOUNDER.md](FOUNDER.md)  
-**Version:** 2.2.0  
+**Version:** 3.7.0

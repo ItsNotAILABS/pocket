@@ -96,7 +96,36 @@ _TOOL_RULES: List[Tuple[re.Pattern, str, Optional[Dict[str, Any]]]] = [
     (re.compile(r"\b(list workers|worker status|subagents|list agents)\b", re.I), "list_agents", None),
     (re.compile(r"\b(sovereign|remote browser status|our stack)\b", re.I), "sovereign", None),
     (re.compile(r"\b(computing clouds|our clouds)\b", re.I), "computing_clouds", None),
-    (re.compile(r"\b(mcp catalog|list mcp|embedded mcp)\b", re.I), "mcp_catalog", None),
+    (
+        re.compile(
+            r"\b(hit go|press go|start go|go plane|arm (the )?workflows|"
+            r"what('?s| is) working|active states|working workflows|"
+            r"sync (the )?(lab|stack)|go status)\b",
+            re.I,
+        ),
+        "go",
+        None,
+    ),
+    (re.compile(r"\b(go state|go board|live board)\b", re.I), "go_state", None),
+    (
+        re.compile(
+            r"\b(power do|run (this |the )?goal|do it on (the )?host|"
+            r"morning seatbelt|run (a )?multi[- ]?workflow|use power)\b",
+            re.I,
+        ),
+        "power_do",
+        None,
+    ),
+    (re.compile(r"\b(vs theirs|beat (chatgpt|claude|them)|why (are )?we better)\b", re.I), "power_vs", None),
+    (
+        re.compile(
+            r"\b(100 workflows|multi workflows|list workflows|workflow catalog)\b",
+            re.I,
+        ),
+        "multi_workflows",
+        None,
+    ),
+    (re.compile(r"\b(mcp catalog|list mcp|embedded mcp|200 tools)\b", re.I), "mcp_catalog", None),
     (re.compile(r"\b(integrations|opentable|doordash catalog|50 integrations|54 integrations)\b", re.I), "integrations_list", None),
     (
         re.compile(
@@ -260,8 +289,49 @@ _TOOL_RULES: List[Tuple[re.Pattern, str, Optional[Dict[str, Any]]]] = [
         None,
     ),
     (
+        re.compile(
+            r"\b(webmcp|list (all )?(actions|functions|tasks) on (the )?(page|app|site|screen)|"
+            r"what can (i|we|agents) click|diffuse (the )?(ui|page|screen))\b",
+            re.I,
+        ),
+        "webmcp_scan",
+        None,
+    ),
+    (
         re.compile(r"\b(python engine|list engines|run engine|named engine)\b", re.I),
         "python_engines_list",
+        None,
+    ),
+    (
+        re.compile(
+            r"\b(engine uses|20 uses|named uses|list uses for engines|"
+            r"web ui uses)\b",
+            re.I,
+        ),
+        "engine_uses",
+        None,
+    ),
+    (
+        re.compile(
+            r"\b(build (a |an )?(platform )?model|forge (a )?model|"
+            r"create (a )?model for|register model)\b",
+            re.I,
+        ),
+        "model_build",
+        None,
+    ),
+    (
+        re.compile(
+            r"\b(multi.?plan|plan (this|the) (task|work)|break (this )?down|"
+            r"sub.?agents? (for|to)|task list for)\b",
+            re.I,
+        ),
+        "multi_plan",
+        None,
+    ),
+    (
+        re.compile(r"\b(list built models|built models|model forge status)\b", re.I),
+        "model_list_built",
         None,
     ),
     # --- Multi-Sandbox Capsule + WebGPU (PROTO-CAPSULE-WASM-009) ---
@@ -438,6 +508,9 @@ _PROMPT_SKILLS = frozenset(
         "web_ui_open",
         "web_ui_act",
         "python_engine",
+        "engine_use",
+        "model_build",
+        "model_suggest",
         "capsule_allocate",
         "capsule_execute",
         "capsule_commit",
@@ -672,6 +745,14 @@ def run_tools_for_prompt(
                 "\n[INSTRUCTION] RAH already executed for this turn. "
                 "Summarize the synthesis for the user; do not re-plan the same fan-out linearly.\n"
             )
+        cmd_skills = {str(r.get("skill") or "") for r in results}
+        if cmd_skills & {"go", "go_state", "go_tick", "power_do", "power_vs", "multi_workflows"}:
+            inject += (
+                "\n[INSTRUCTION] GO/Power already ran on this host. "
+                "Summarize the skill block for the user in plain language. "
+                "Do not invent a generic morning plan or say you lack access.\n"
+            )
+    command_md = "\n".join(parts) if parts else ""
     return {
         "ok": True,
         "planned": planned,
@@ -679,6 +760,7 @@ def run_tools_for_prompt(
         "inject": inject,
         "ran": len(results),
         "rah_auto_result": rah_auto_result,
+        "command_md": command_md,
     }
 
 
@@ -735,6 +817,16 @@ def enrich_prompt(prompt: str, *, mode: str = "") -> Tuple[str, Dict[str, Any]]:
             "Multi-step work: prefer LOOMGRAPH (skill loomgraph_run) so the path is a readable graph. "
             "You are a POCKET host agent — help the user operate POCKET."
         )
+    # Spherical neuro pass for Grok / Claude / Codex / Spark / Auro
+    try:
+        from pocket.neuro_think import inject as neuro_inject
+
+        joined = "\n\n".join(chunks)
+        joined, nmeta = neuro_inject(joined, mode=mode)
+        meta["neuro"] = {k: nmeta.get(k) for k in ("ok", "kind", "ms", "spherical", "already", "skipped") if k in nmeta}
+        return joined + ("\n" if not joined.endswith("\n") else ""), meta
+    except Exception as e:
+        meta["neuro_error"] = str(e)[:120]
     return "\n\n".join(chunks) + "\n", meta
 
 

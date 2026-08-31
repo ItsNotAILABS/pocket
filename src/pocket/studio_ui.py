@@ -13,10 +13,11 @@ STUDIO_HTML = r"""<!DOCTYPE html>
   --accent:#34d399;--accent2:#10b981;--violet:#a78bfa;--blue:#60a5fa;
   --font:ui-sans-serif,system-ui,"Segoe UI",sans-serif;
   --shadow:0 16px 48px rgba(0,0,0,.45);
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--font);background:radial-gradient(900px 500px at 0% 0%,rgba(52,211,153,.08),transparent 50%),radial-gradient(800px 400px at 100% 0%,rgba(167,139,250,.08),transparent 45%),var(--bg);color:var(--text);min-height:100vh}
-.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.92);position:sticky;top:0;z-index:30;backdrop-filter:blur(14px)}
+body{margin:0;font-family:var(--font);background:radial-gradient(900px 500px at 0% 0%,rgba(52,211,153,.08),transparent 50%),radial-gradient(800px 400px at 100% 0%,rgba(167,139,250,.08),transparent 45%),var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.72);position:sticky;top:0;z-index:30;backdrop-filter:blur(22px) saturate(1.3)}
 .pnav .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.03em;font-size:14px;color:#f5f5f5;text-decoration:none;margin-right:8px}
 .pnav .brand i{width:22px;height:22px;border-radius:6px;background:#10a37f;display:grid;place-items:center;font-size:11px;font-weight:800;color:#041;font-style:normal}
 .pnav .links{display:flex;gap:2px;flex-wrap:wrap}
@@ -30,7 +31,7 @@ body{margin:0;font-family:var(--font);background:radial-gradient(900px 500px at 
 .pnav .back:hover{background:#111}
 main{display:grid;grid-template-columns:1fr 360px;gap:20px;padding:20px 24px 40px;max-width:1280px;margin:0 auto}
 @media(max-width:960px){main{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent),var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),transparent),var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);transition:border-color .2s var(--ease),transform .2s var(--ease),box-shadow .2s var(--ease)}
 .card h2{margin:0 0 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .rec{display:flex;gap:12px;padding:12px;border-radius:12px;border:1px solid transparent;cursor:pointer;margin-bottom:8px;align-items:center}
 .rec:hover,.rec.on{border-color:var(--line);background:rgba(255,255,255,.03)}
@@ -71,6 +72,7 @@ input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid 
     <a href="/desk">Desk</a>
     <a href="/work">Work Studio</a>
     <a class="on" href="/studio">Product Studio</a>
+    <a href="/imagine">Imagine</a>
     <a href="/studio/create">Creative Studio</a>
     <a href="/community">Community</a>
     <a href="/studio/voice">Voice Studio</a>
@@ -100,6 +102,7 @@ input,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid 
         <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doLatest()">Viral latest</button>
         <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doStoryboard()">Storyboard</button>
         <button class="btn ghost" type="button" style="width:auto;margin:0" onclick="doCaption()">Captions</button>
+        <a class="btn ghost" href="/imagine" style="width:auto;margin:0;text-decoration:none">Imagine stills</a>
         <a class="btn ghost" href="/studio/create" style="width:auto;margin:0;text-decoration:none">Creative chat</a>
         <a class="btn ghost" href="/community" style="width:auto;margin:0;text-decoration:none">Community</a>
         <a class="btn ghost" href="/desk?agent=studio" style="width:auto;margin:0;text-decoration:none">Seat agent</a>

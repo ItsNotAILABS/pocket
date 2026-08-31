@@ -15,6 +15,14 @@ test("desktop package includes its local host", () => {
   assert.match(source, /--background/);
 });
 
+test("owner and users are separate local products", () => {
+  assert.match(source, /OWNER_PORT = 8787/);
+  assert.match(source, /USERS_PORT = 8788/);
+  assert.match(source, /POCKET Owner — your machine/);
+  assert.match(source, /POCKET Seat — user facing/);
+  assert.match(source, /POCKET_PRODUCT/);
+});
+
 test("lifecycle refuses automatic process killing", () => {
   assert.doesNotMatch(source + manager, /taskkill|Stop-Process|process\.kill/);
   assert.match(manager, /will not kill or replace/);

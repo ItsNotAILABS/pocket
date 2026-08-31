@@ -1,10 +1,27 @@
+# POCKET 3.7 — ship on this host
+
+**Desk is home.** Agents are POCKET agents: they get identity + GO live board + can run `power_do` / `go` without you naming skills.
+
+| Open | What |
+|------|------|
+| http://127.0.0.1:8787/desk | Codex / Grok / Power — work happens here |
+| http://127.0.0.1:8787/os | Platform board (GO + 100 workflows) |
+| http://127.0.0.1:8787/power | Command plane (Do it · GO) |
+
+Ports: **Owner :8787** · **Users :8788** · **Forge :8789** (never put Forge on Users).
+
+Say on desk: **“hit GO”**, **“what’s working”**, **“morning seatbelt”**, **“do it on the host”**. Host tools run first; the model must use those results.
+
+---
+
 # POCKET v0.6 — orchestration on top of your CLIs
 
 You already have **Codex** and **Grok**. POCKET does not replace them — it **orchestrates** them.
 
 ## Open
 
-**http://127.0.0.1:8787/** (Ctrl+F5)
+**POCKET Owner:** http://127.0.0.1:8787/desk (shortcut **POCKET Owner**)  
+**POCKET for Users:** http://127.0.0.1:8788/desk (shortcut **POCKET for Users**)
 
 ## Why POCKET is valuable
 

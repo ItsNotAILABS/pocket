@@ -32,6 +32,12 @@ DEFAULT_USER = "pocket"
 # ---------------------------------------------------------------------------
 ALWAYS_PUBLIC_PATHS = frozenset({
     "/",
+    "/which",
+    "/which/",
+    "/which-pocket",
+    "/faces",
+    "/v1/which",
+    "/v1/which-pocket",
     "/tour",
     "/product",
     "/present",
@@ -51,19 +57,140 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/status",
     "/v1/ready",
     "/v1/auth/login",
+    "/v1/auth/me",
     "/v1/auth/register",
+    "/v1/auth/providers",
+    "/v1/auth/github/local",
+    "/v1/auth/desktop/enter",
+    "/enter-desk",
+    "/v1/auth/code",
+    "/v1/auth/code/mint",
+    "/v1/auth/oauth",
+    "/v1/clis",
+    "/v1/auth/clis",
+    "/v1/model-clis",
+    "/ecosystem",
+    "/v1/ecosystem",
+    "/network",
+    "/v1/network",
+    "/studio/agents",
+    "/studio/develop",
+    "/studio/ship",
+    "/studio/ship-agents",
+    "/v1/network/agents",
+    "/v1/network/agents/run",
+    "/v1/network/agents/ship",
+    "/v1/twin",
+    "/v1/twin/mint",
+    "/v1/twin/open",
+    "/v1/twin/vault",
+    "/v1/twin/agent",
+    "/v1/twin/agent/run",
+    "/api/twin",
+    "/api/twin/mint",
+    "/api/twin/open",
+    "/api/twin/vault",
+    "/api/twin/agent",
+    "/api/twin/agent/run",
+    "/phoneai",
+    "/phoneai/how",
+    "/how-phoneai",
+    "/phoneai/work",
+    "/phoneai/anti",
+    "/phoneai/antigravity",
+    "/phoneai/twin",
+    "/twin",
+    "/v1/phoneai/work",
+    "/v1/phoneai/work/stream",
+    "/v1/phoneai/space",
+    "/v1/phoneai/life",
+    "/v1/phoneai/settings",
+    "/v1/phoneai/anti",
+    "/v1/phoneai/photo",
+    "/phoneai/manifest.json",
+    "/phoneai/manifest",
+    "/v1/phoneai/desk",
+    "/v1/phoneai/sessions",
+    "/v1/phoneai/personas",
+    "/v1/phoneai/talk",
+    "/api/phoneai/sessions",
+    "/api/phoneai/talk",
+    "/v1/live-desk",
+    "/api/phoneai/work",
+    "/api/phoneai/life",
+    "/api/phoneai/settings",
+    "/api/phoneai/anti",
+    "/webmcp",
+    "/web-mcp",
+    "/v1/webmcp",
+    "/v1/webmcp/scan",
+    "/v1/webmcp/use",
+    "/v1/webmcp/find",
+    "/api/webmcp/scan",
+    "/api/webmcp/use",
+    "/kernel",
+    "/tech",
+    "/v1/tech",
+    "/v1/atlas",
+    "/v1/companion/status",
+    "/v1/companion/chat",
+    "/v1/live/chat",
+    "/v1/imagine",
+    "/v1/imagine/status",
+    "/v1/imagine/gallery",
+    "/v1/imagine/composites",
+    "/v1/imagine/modes",
+    "/v1/imagine/file",
+    "/v1/imagine/compose",
+    "/v1/imagine/render",
+    "/v1/phoneai/kernel",
+    "/v1/kernel",
+    "/join",
+    "/signup",
+    "/sign-up",
+    "/register",
+    "/login",
+    "/signin",
+    "/sign-in",
+    "/pricing",
+    "/plans",
+    "/sold",
+    "/start",
+    "/v1/product/sold",
+    "/v1/sold",
+    # RevenueCat → host (Authorization: REVENUECAT_WEBHOOK_AUTH)
+    "/v1/billing/webhook",
+    "/v1/billing/revenuecat",
     "/v1/auth/desktop",
     "/v1/auth/local",
     # Shared browser login client (all surfaces)
     "/auth/client.js",
     "/v1/auth/client.js",
+    # Fluid UI kit — every module + lock page
+    "/ui/kit.css",
+    "/ui/kit.js",
+    "/assets/ui-kit.css",
+    "/assets/ui-kit.js",
     # Protocol catalog + identity (read-only; agents & public docs)
     "/v1/protocols",
     "/v1/protocols/status",
     "/v1/platform/protocols",
     "/v1/identity",
+    "/v1/foundations",
+    "/v1/neuro",
+    "/v1/neuro/think",
+    "/v1/neuro-think",
+    "/v1/ai/foundations",
+    "/v1/models/foundations",
     "/v1/whoami",
     "/v1/pocket/identity",
+    "/v1/doctrine",
+    "/v1/pocket/doctrine",
+    "/v1/laws",
+    "/v1/doctrine/beings",
+    "/v1/beings",
+    "/v1/doctrine/agents",
+    "/v1/doctrine/organisms",
     "/v1/rah",
     "/v1/rah/status",
     "/v1/rah/plan",
@@ -147,7 +274,13 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/os",
     "/agent-os",
     "/systems",
+    "/power",
+    "/command",
     "/studio",
+    "/imagine",
+    "/imagine-studio",
+    "/studio/imagine",
+    "/visual",
     "/studio/voice",
     "/voice-studio",
     "/v2v-studio",
@@ -236,6 +369,26 @@ LOCAL_PUBLIC_PATHS = frozenset({
     "/v1/catalog",
     "/v1/platform/catalog",
     "/v1/platform-catalog",
+    "/v1/agents/tools",
+    "/v1/agent/tools",
+    "/v1/agents/toolkit",
+    "/v1/mcp/tools",
+    "/v1/tools/manifest",
+    "/v1/mcp/stream",
+    "/v1/mcp/rpc/stream",
+    "/v1/protocol/stream",
+    "/v1/mcp/stream/page",
+    "/mcp/stream",
+    "/protocol/stream",
+    "/v1/engine-uses",
+    "/v1/engines/uses",
+    "/v1/web-ui/uses",
+    "/v1/models/built",
+    "/v1/model-forge",
+    "/v1/calls",
+    "/v1/calls/status",
+    "/v1/calls/numbers",
+    "/v1/agent-calls",
     "/mail",
     "/agent-mail",
     "/docs",
@@ -266,6 +419,14 @@ PUBLIC_PREFIXES = (
     # Docs hub how-to pages (markdown rendered)
     "/docs/view/",
     "/docs/md/",
+    "/v1/doctrine/",
+    "/v1/auth/oauth/",
+    "/api/",
+    "/phoneai/",
+    "/v1/phoneai/",
+    "/v1/twin/",
+    "/v1/network/",
+    "/v1/imagine/",
 )
 
 # Loopback-only prefixes (in-chat app preview iframes need cookie-less same-origin GET)
@@ -285,10 +446,16 @@ APP_SHELL_PATHS = frozenset({
     "/os",
     "/agent-os",
     "/systems",
+    "/power",
+    "/command",
     "/phone",
     "/m",
     "/mobile",
     "/studio",
+    "/imagine",
+    "/imagine-studio",
+    "/studio/imagine",
+    "/visual",
     "/studio/voice",
     "/voice-studio",
     "/v2v-studio",
@@ -300,6 +467,9 @@ APP_SHELL_PATHS = frozenset({
     "/curiosities",
     "/lab",
     "/weird",
+    "/bots",
+    "/bot",
+    "/teammates",
 })
 
 # Rate limit failed logins: max N failures per IP per window
@@ -575,79 +745,161 @@ def is_app_shell(path: str) -> bool:
 
 
 def public_gate_html(*, reason: str = "owner-only") -> str:
-    """Sign-in page for visitors who are not in the workspace yet."""
+    """Public sign-in + sign-up for visitors (desk, phone, /login, /signup)."""
     return """<!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#07070b"/>
 <title>Sign in · POCKET</title>
 <style>
-  :root { --bg:#09090b; --card:#141416; --fg:#fafafa; --muted:#a1a1aa; --accent:#10a37f; --line:rgba(255,255,255,.1); }
+  :root { --bg:#07070b; --card:#121218; --fg:#f4f4f5; --muted:#a1a1aa; --accent:#10a37f; --accent-ink:#042f24; --line:rgba(255,255,255,.1); }
   * { box-sizing:border-box; }
   body { margin:0; min-height:100vh; font-family:ui-sans-serif,system-ui,Segoe UI,sans-serif;
-    background:var(--bg); color:var(--fg);
-    display:flex; align-items:center; justify-content:center; padding:24px; }
-  .card { width:min(420px,100%); background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:28px 26px 24px; box-shadow:0 20px 60px #0006; }
-  h1 { margin:0 0 8px; font-size:1.35rem; letter-spacing:-0.02em; }
+    background:radial-gradient(900px 420px at 10% -10%,rgba(16,163,127,.12),transparent 50%),var(--bg); color:var(--fg);
+    display:flex; align-items:center; justify-content:center; padding:24px; padding-bottom:max(24px,env(safe-area-inset-bottom)); }
+  .card { width:min(440px,100%); background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:28px 26px 22px; box-shadow:0 24px 70px #0008; }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:14px; font-weight:700; letter-spacing:-.03em; }
+  .brand i { width:28px; height:28px; border-radius:8px; background:#10a37f; color:#042f24; display:grid; place-items:center; font-style:normal; font-size:14px; }
+  h1 { margin:0 0 6px; font-size:1.3rem; letter-spacing:-0.03em; }
   p { margin:0 0 12px; color:var(--muted); line-height:1.5; font-size:14px; }
+  .tabs { display:flex; gap:6px; margin:0 0 14px; }
+  .tabs button { flex:1; border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:10px; padding:11px; font-weight:600; cursor:pointer; }
+  .tabs button.on { color:var(--fg); border-color:rgba(16,163,127,.45); background:rgba(16,163,127,.12); }
   label { display:block; font-size:12px; color:var(--muted); margin:12px 0 6px; }
-  input { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
-    background:#0c0c0e; color:var(--fg); font-size:14px; }
-  button { margin-top:16px; width:100%; padding:12px; border:0; border-radius:10px; cursor:pointer;
-    background:var(--accent); color:#041; font-weight:700; font-size:14px; }
-  button:hover { filter:brightness(1.05); }
+  input[type=text], input[type=password], input[type=email], input[type=username] { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line);
+    background:#0c0c0e; color:var(--fg); font-size:16px; }
+  input:focus { outline:0; border-color:rgba(16,163,127,.5); }
+  .pw-row { position:relative; }
+  .pw-row input { padding-right:64px; }
+  .show-pw { position:absolute; right:8px; top:8px; border:0; background:transparent; color:var(--muted); font-size:11px; font-weight:700; cursor:pointer; }
+  .primary { margin-top:16px; width:100%; padding:12px; border:0; border-radius:10px; cursor:pointer;
+    background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:14px; }
+  .primary:disabled { opacity:.55; cursor:wait; }
   .err { color:#f87171; font-size:13px; min-height:1.2em; margin-top:10px; }
   .hint { font-size:12px; color:var(--muted); margin-top:14px; line-height:1.45; }
   a { color:var(--accent); }
+  .terms, .remember { display:flex; gap:8px; align-items:flex-start; font-size:12px; color:var(--muted); margin-top:12px; }
+  .remember { align-items:center; }
+  .opt { font-weight:500; text-transform:none; letter-spacing:0; color:var(--muted); }
+  .oauth { display:flex; flex-direction:column; gap:8px; margin:0 0 14px; }
+  .oauth button { width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:#0c0c0e; color:var(--fg); font-weight:650; cursor:pointer; font-size:13px; }
+  .oauth button:hover { border-color:rgba(16,163,127,.45); }
+  .or { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:11px; margin:4px 0 8px; }
+  .or:before,.or:after { content:""; flex:1; height:1px; background:var(--line); }
+  details.code { margin-top:12px; color:var(--muted); font-size:12px; }
+  details.code input { margin-top:8px; }
 </style></head><body>
 <div class="card">
-  <h1>Sign in to POCKET</h1>
-  <p>This workspace is private. Use the account your admin gave you, or your own login if you already joined.</p>
+  <div class="brand"><i>P</i> POCKET</div>
+  <h1 id="h">Sign in</h1>
+  <p id="blurb">GitHub, Google, Microsoft, X, or a username. New seats already have Grok, Codex, Claude, Gemini, Qwen, and POCKET Agent CLIs on this host.</p>
+  <div class="tabs" role="tablist">
+    <button type="button" class="on" id="tabL" role="tab" aria-selected="true">Sign in</button>
+    <button type="button" id="tabR" role="tab" aria-selected="false">Sign up</button>
+  </div>
+  <div id="oauthBtns" class="oauth"></div>
+  <div class="or">or username</div>
   <form id="f" autocomplete="on">
     <label for="u">Username</label>
-    <input id="u" name="username" value="pocket" autocomplete="username" placeholder="pocket"/>
+    <input id="u" name="username" value="" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="your username"/>
     <label for="p">Password</label>
-    <input id="p" name="password" type="password" autocomplete="current-password" placeholder="your password"/>
-    <button type="submit" id="loginBtn">Continue</button>
+    <div class="pw-row">
+      <input id="p" name="password" type="password" autocomplete="current-password" placeholder="your password"/>
+      <button type="button" class="show-pw" id="pShow">Show</button>
+    </div>
+    <label class="remember"><input type="checkbox" id="loginRemember" checked/> Stay signed in on this device</label>
+    <button type="submit" class="primary" id="loginBtn">Sign in</button>
   </form>
+  <form id="rf" autocomplete="on" style="display:none">
+    <label for="regUser">Username</label>
+    <input id="regUser" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="pick a username"/>
+    <label for="regEmail">Email <span class="opt">(optional)</span></label>
+    <input id="regEmail" type="email" autocomplete="email" placeholder="you@email.com"/>
+    <label for="regPass">Password (min 8)</label>
+    <div class="pw-row">
+      <input id="regPass" type="password" autocomplete="new-password" placeholder="at least 8 characters"/>
+      <button type="button" class="show-pw" id="regPassShow">Show</button>
+    </div>
+    <label for="regPass2">Confirm password</label>
+    <input id="regPass2" type="password" autocomplete="new-password" placeholder="same password again"/>
+    <label for="regDisplay">Display name <span class="opt">(optional)</span></label>
+    <input id="regDisplay" autocomplete="nickname" placeholder="how agents greet you"/>
+    <label for="regInvite">Invite key <span class="opt">(optional)</span></label>
+    <input id="regInvite" autocomplete="off" spellcheck="false" placeholder="pk_seat_… if you have one"/>
+    <label class="terms"><input type="checkbox" id="regTerms"/> I accept the <a href="/v1/legal" target="_blank" rel="noopener">terms</a>. My files stay in my workspace.</label>
+    <button type="submit" class="primary" id="regBtn">Create account &amp; enter</button>
+  </form>
+  <details class="code" id="codeBox">
+    <summary>One-time code from this PC</summary>
+    <input id="otpCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code"/>
+    <button type="button" class="primary" id="otpBtn" style="margin-top:8px">Redeem code</button>
+  </details>
   <div class="err" id="e"></div>
-  <p class="hint">New to this team? Ask your admin for an invite, then choose <strong>Join with invite</strong> in the app.
-  <a href="/">Learn about POCKET</a></p>
+  <p class="hint">Public desk · phone · Imagine Studio. New here? Sign up with GitHub or a username. <a href="/join">Plans</a> · <a href="/">About</a></p>
 </div>
 <script src="/auth/client.js"></script>
 <script>
 (function(){
-  try{
-    if(sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token')){
-      location.replace('/desk?authed=1');
-      return;
-    }
-  }catch(_){}
   function goDesk(){ location.replace('/desk?authed=1'); }
-  if(window.PocketAuth&&PocketAuth.bindLoginForm){
-    PocketAuth.bindLoginForm({
-      userId:'u', passId:'p', btnId:'loginBtn', errId:'e', formId:'f',
-      device:'public-gate', defaultUser:'pocket', onSuccess:goDesk
-    });
-  }else{
-    document.getElementById('f').onsubmit=async function(ev){
-      ev.preventDefault();
-      var e=document.getElementById('e');
-      e.textContent='Signing in…';
-      try{
-        var u=(document.getElementById('u').value||'').trim()||'pocket';
-        var p=document.getElementById('p').value||'';
-        var r=await fetch('/v1/auth/login',{method:'POST',credentials:'same-origin',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({username:u,user:u,password:p})});
-        var j=await r.json().catch(function(){return {};});
-        var tok=j.token||j.session_token||'';
-        if(!r.ok||(!j.ok&&!tok)){ e.textContent=j.error||('Could not sign in ('+r.status+')'); return; }
-        try{ sessionStorage.setItem('pocket_token',tok); localStorage.setItem('pocket_token',tok); }catch(_){}
-        goDesk();
-      }catch(err){ e.textContent=String(err.message||err); }
-    };
+  async function maybeResume(){
+    try{
+      var tok = sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token');
+      if(!tok) return;
+      if(!window.PocketAuth || !PocketAuth.me) return;
+      var me = await PocketAuth.me();
+      if(me && me.ok){ location.replace('/desk?authed=1'); return; }
+      PocketAuth.clearSession();
+    }catch(_){}
   }
+  maybeResume();
+  function tab(which){
+    var join = which==='register';
+    document.getElementById('tabL').className = join ? '' : 'on';
+    document.getElementById('tabR').className = join ? 'on' : '';
+    document.getElementById('tabL').setAttribute('aria-selected', join ? 'false' : 'true');
+    document.getElementById('tabR').setAttribute('aria-selected', join ? 'true' : 'false');
+    document.getElementById('f').style.display = join ? 'none' : 'block';
+    document.getElementById('rf').style.display = join ? 'block' : 'none';
+    document.getElementById('h').textContent = join ? 'Create your account' : 'Sign in';
+    document.getElementById('blurb').textContent = join
+      ? 'Continue with GitHub (or Google / Microsoft / X), or pick a username and password.'
+      : 'GitHub, Google, Microsoft, X, or a username. Create a free account if you are new.';
+    document.getElementById('e').textContent = '';
+    try{ history.replaceState(null,'', join ? '/signup' : '/login'); }catch(_){}
+    try{ (join ? document.getElementById('regUser') : document.getElementById('u')).focus(); }catch(_){}
+  }
+  document.getElementById('tabL').onclick=function(){ tab('login'); };
+  document.getElementById('tabR').onclick=function(){ tab('register'); };
+  var path=(location.pathname||'').toLowerCase();
+  var startJoin = /signup|sign-up|register|join/.test(path);
+  if(window.PocketAuth){
+    if((PocketAuth.wantsJoinTab && PocketAuth.wantsJoinTab()) || startJoin) tab('register');
+    if(PocketAuth.wireShowPassword){
+      PocketAuth.wireShowPassword('p','pShow');
+      PocketAuth.wireShowPassword('regPass','regPassShow');
+    }
+    if(PocketAuth.bindLoginForm){
+      PocketAuth.bindLoginForm({
+        userId:'u', passId:'p', btnId:'loginBtn', errId:'e', formId:'f',
+        rememberId:'loginRemember', device:'public-gate', defaultUser:false, onSuccess:goDesk
+      });
+    }
+    if(PocketAuth.bindRegisterForm){
+      PocketAuth.bindRegisterForm({
+        inviteId:'regInvite', userId:'regUser', passId:'regPass', pass2Id:'regPass2',
+        displayId:'regDisplay', emailId:'regEmail', termsId:'regTerms', btnId:'regBtn', errId:'e', formId:'rf',
+        device:'public-gate', channel:'public', onSuccess:goDesk
+      });
+    }
+    if(PocketAuth.bindProviders){
+      PocketAuth.bindProviders({ mountId:'oauthBtns', errId:'e', onSuccess:goDesk });
+    }
+    if(PocketAuth.bindOneTimeCode){
+      PocketAuth.bindOneTimeCode({ inputId:'otpCode', btnId:'otpBtn', errId:'e', onSuccess:goDesk });
+    }
+  } else if(startJoin) tab('register');
 })();
 </script>
 </body></html>
@@ -787,24 +1039,40 @@ def is_authorized(headers: Mapping[str, str]) -> bool:
 
 
 def current_user(headers: Mapping[str, str]) -> Optional[dict]:
-    """Return logged-in user record if any."""
-    sess = headers.get("X-Pocket-Token") or headers.get("x-pocket-token") or ""
-    if sess:
-        try:
-            from pocket.users import user_from_token
+    """Return logged-in user record if any.
 
+    Edge and the web app send Bearer and/or cookies; older code only
+    looked at X-Pocket-Token, so /v1/auth/me returned 401 after a good login.
+    """
+    try:
+        from pocket.users import user_from_token, verify
+    except Exception:
+        user_from_token = None  # type: ignore
+        verify = None  # type: ignore
+
+    tok = session_token_from_headers(headers)
+    if tok and user_from_token:
+        try:
+            u = user_from_token(tok)
+            if u:
+                return u
+        except Exception:
+            pass
+
+    sess = headers.get("X-Pocket-Token") or headers.get("x-pocket-token") or ""
+    if sess and user_from_token:
+        try:
             u = user_from_token(sess.strip())
             if u:
                 return u
         except Exception:
             pass
+
     candidate = headers.get("Authorization") or headers.get("authorization") or ""
-    if candidate.startswith("Basic "):
+    if candidate.startswith("Basic ") and verify:
         try:
             raw = base64.b64decode(candidate[6:].strip()).decode("utf-8")
             user, password = raw.split(":", 1)
-            from pocket.users import verify
-
             return verify(user, password)
         except Exception:
             return {"user": _AUTH.user, "role": "admin", "display": "Operator"}

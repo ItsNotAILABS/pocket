@@ -22,7 +22,7 @@ def get_app_html() -> str:
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
 *{{box-sizing:border-box}}
-body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1000px 480px at 8% -12%,rgba(16,163,127,.1),transparent 52%),var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
 a{{color:inherit;text-decoration:none}}
 {SHELL_CSS}
 .wrap{{max-width:880px;margin:0 auto;padding:48px 22px 80px}}
@@ -116,7 +116,7 @@ def updates_html() -> str:
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
 *{{box-sizing:border-box}}
-body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1000px 480px at 8% -12%,rgba(16,163,127,.1),transparent 52%),var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
 a{{color:inherit;text-decoration:none}}
 {SHELL_CSS}
 .wrap{{max-width:820px;margin:0 auto;padding:48px 22px 80px}}
@@ -274,7 +274,7 @@ def landing_html() -> str:
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--accent2:#0d8c6c}}
 *{{box-sizing:border-box}}
-body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(1000px 480px at 8% -12%,rgba(16,163,127,.1),transparent 52%),var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
 a{{color:inherit;text-decoration:none;cursor:pointer}}
 {SHELL_CSS}
 .pnav a,.pnav .cta,.pnav .ghost,.btn,.card-link,.go{{pointer-events:auto!important;position:relative;z-index:2}}
@@ -328,10 +328,10 @@ a.card-link .go{{margin-top:16px;font-weight:700;font-size:13px;color:var(--acce
     <h1>AI that works where you work.</h1>
     <p class="lead">Chat with coding agents, plan projects, and keep team workspaces on your machine — not in a black-box cloud.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="/desk">Open the app</a>
-      <a class="btn btn-ghost" href="/get">Get started</a>
+      <a class="btn btn-primary" href="/join">Create my seat</a>
+      <a class="btn btn-ghost" href="/billing">See plans</a>
+      <a class="btn btn-ghost" href="/desk">Sign in</a>
       <a class="btn btn-ghost" href="/download">Download for Windows</a>
-      <a class="btn btn-ghost" href="/developers">Developers</a>
     </div>
     <div class="proof">
       <span>Browser</span>

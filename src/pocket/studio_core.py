@@ -137,7 +137,11 @@ def studio_map() -> Dict[str, Any]:
             },
             {"id": "voice_studio", "where": "/studio/voice", "for": "V2V canvas · persona · code snap"},
             {"id": "work_studio", "where": "/work", "for": "Digital assistant loops (separate)"},
-            {"id": "imagine", "where": "POST /v1/imagine/compose", "for": "Still device frames"},
+            {
+                "id": "imagine",
+                "where": "/imagine",
+                "for": "Device stills · letterboxed glass · fusion remake",
+            },
         ],
         "agent_features": AGENT_FEATURES,
         "playbooks": PLAYBOOKS,
@@ -154,6 +158,7 @@ def studio_map() -> Dict[str, Any]:
             "storyboard": "POST /v1/studio/storyboard",
             "caption": "POST /v1/studio/caption",
             "ship": "POST /v1/studio/ship",
+            "imagine": "GET /imagine · GET /v1/imagine · POST /v1/imagine/compose",
             "creative": "GET /v1/creative · POST /v1/creative/chat",
             "community": "GET /v1/community · POST /v1/community/share",
         },
@@ -210,12 +215,14 @@ def first_class_status() -> Dict[str, Any]:
             "voice": "http://127.0.0.1:8787/studio/voice",
             "work": "http://127.0.0.1:8787/work",
             "creative": "http://127.0.0.1:8787/studio/create",
+            "imagine": "http://127.0.0.1:8787/imagine",
             "community": "http://127.0.0.1:8787/community",
         }
     except Exception:
         out["urls"] = {
             "local": "/studio",
             "creative": "/studio/create",
+            "imagine": "/imagine",
             "community": "/community",
         }
     try:
@@ -698,6 +705,8 @@ def run_studio_skill(
             image=params.get("image") or params.get("path") or "",
             title=params.get("title") or "POCKET",
             subtitle=params.get("subtitle") or p or "Host co-pilot",
+            image_b64=params.get("image_b64") or "",
+            source=params.get("source") or "live",
         )
 
     return {

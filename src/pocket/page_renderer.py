@@ -205,8 +205,31 @@ def render_full_page(
     include_visual: bool = True,
     include_image: bool = False,
     visual_grid: int = 5,
+    force: bool = False,
 ) -> Dict[str, Any]:
-    """Full page model: every micro detail we can extract, fused as symbols."""
+    """Full page model: every micro detail we can extract, fused as symbols.
+
+    Cached file is returned on GET unless force=True (UIA walk is 10–100s).
+    Stale or missing cache still returns immediately — never walk unless force=True.
+    """
+    if not force:
+        if PAGE_PATH.is_file():
+            try:
+                age = time.time() - PAGE_PATH.stat().st_mtime
+                data = json.loads(PAGE_PATH.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    data["cached"] = True
+                    data["cache_age"] = round(age, 3)
+                    data["stale"] = age >= 3.0
+                    return data
+            except Exception:
+                pass
+        return {
+            "ok": False,
+            "cached": False,
+            "error": "no page yet",
+            "hint": "GET /v1/vision/page?force=1 once; later GETs are cache-only",
+        }
     from pocket.pixel_translator import (
         _capture_pil,
         pure_visual_analyze,

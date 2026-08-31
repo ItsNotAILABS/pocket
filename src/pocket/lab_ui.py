@@ -15,8 +15,8 @@ LAB_HTML = r"""<!DOCTYPE html>
   --accent:#34d399;--ok:#4ade80;--warn:#fbbf24;--font:ui-sans-serif,system-ui,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--font);background:radial-gradient(900px 420px at 0% 0%,rgba(52,211,153,.07),transparent 50%),var(--bg);color:var(--text);min-height:100vh}
-.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.9);position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+body{margin:0;font-family:var(--font);background:radial-gradient(900px 420px at 0% 0%,rgba(52,211,153,.07),transparent 50%),var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.72);position:sticky;top:0;z-index:20;backdrop-filter:blur(22px) saturate(1.3)}
 .pnav .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:#f5f5f5;text-decoration:none}
 .pnav .brand i{width:22px;height:22px;border-radius:6px;background:#10a37f;display:grid;place-items:center;font-size:11px;font-weight:800;color:#041;font-style:normal}
 .pnav a{color:#8e8e8e;text-decoration:none;font-size:13px;padding:7px 11px;border-radius:8px}
@@ -29,7 +29,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 48px}
 .hero h1{margin:0 0 8px;font-size:22px;letter-spacing:-.03em}
 .hero p{margin:0;color:var(--muted);font-size:14px;line-height:1.5;max-width:52em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.card{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent),var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:180px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),transparent),var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:180px;transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s,border-color .2s}
 .card.ok{border-color:rgba(74,222,128,.22)}
 .card.warn{border-color:rgba(251,191,36,.28)}
 .card h2{margin:0;font-size:15px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
@@ -56,6 +56,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 48px}
   <a href="/desk">Desk</a>
   <a class="on" href="/lab">Lab</a>
   <a href="/studio">Studio</a>
+  <a href="/imagine">Imagine</a>
   <a href="/phone">Phone</a>
   <a href="/work">Work</a>
   <div class="sp"></div>

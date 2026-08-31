@@ -24,8 +24,18 @@ HTML = r"""<!DOCTYPE html>
   --focus:0 0 0 2px rgba(16,163,127,.45);
   --side-w:256px; --rail-w:300px; --screen-w:0px;
   --ease:cubic-bezier(.22,1,.36,1);
-  --t:160ms var(--ease);
+  --t:180ms var(--ease);
 }
+/* Fluid desk — GPU layers, spring column, message rise */
+.app{will-change:grid-template-columns}
+.side,.rail,.screen-col,.habitat{transition:width var(--t),opacity var(--t),transform var(--t)}
+.msg{animation:pkDeskRise .32s var(--ease) both}
+@keyframes pkDeskRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.composer,.dock,.agent-picker{
+  backdrop-filter:blur(18px) saturate(1.2);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2)
+}
+.transcript{scroll-behavior:smooth}
 /* Contractor-grade surfaces */
 .card{
   border-radius:var(--radius)!important;
@@ -72,6 +82,54 @@ button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .live-dot,.sa-dot.run{animation:none!important}
 }
+/* Sold seat — hide founder lab / host-control surfaces */
+body.sold-seat [data-tab="lab"],
+body.sold-seat [data-tab="curiosities"],
+body.sold-seat [data-tab="os"],
+body.sold-seat [data-tab="screen"],
+body.sold-seat [data-tab="remote"],
+body.sold-seat [data-tab="platform"]{display:none!important}
+/* Face split: YOUR POCKET (gold chrome) vs USER SEAT (teal chrome). Product accent stays teal. */
+.face-ribbon{
+  grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:4px 12px;font-size:11px;border-bottom:1px solid var(--line);z-index:21;
+  background:rgba(255,255,255,.025)
+}
+.face-ribbon.owner{background:rgba(234,179,8,.12)}
+.face-ribbon.seat{background:rgba(16,163,127,.1)}
+.face-ribbon.public{background:rgba(96,165,250,.08)}
+.face-pills{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:0 0 auto}
+.face-pill{
+  font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  padding:4px 10px;color:var(--muted);text-decoration:none;background:transparent;border:0
+}
+.face-pill:hover{color:var(--fg);text-decoration:none}
+.face-pill.on.owner{background:rgba(234,179,8,.22);color:#fbbf24}
+.face-pill.on.seat{background:rgba(16,163,127,.22);color:#6ee7b7}
+.face-copy{color:var(--muted);font-weight:650;letter-spacing:.01em;flex:1;min-width:140px;font-size:11.5px;text-transform:none}
+.face-map{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.brand .face-badge{
+  font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)
+}
+.brand .face-badge.owner{border-color:rgba(234,179,8,.45);color:#fbbf24;background:rgba(234,179,8,.12)}
+.brand .face-badge.seat{border-color:rgba(16,163,127,.45);color:#6ee7b7;background:rgba(16,163,127,.12)}
+.brand .face-badge.public{border-color:rgba(96,165,250,.4);color:#93c5fd;background:rgba(96,165,250,.1)}
+body.owner-desk .brand .mark{
+  background:linear-gradient(145deg,#fbbf24,#eab308 45%,#a16207);color:#1c1400;
+  box-shadow:0 0 0 1px rgba(234,179,8,.4),0 4px 14px rgba(234,179,8,.25)
+}
+.face-doors{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.face-door{
+  text-align:left;border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+  background:rgba(255,255,255,.03);cursor:pointer;color:var(--fg)
+}
+.face-door small{display:block;color:var(--muted);font-size:11px;margin-top:3px;font-weight:500}
+.face-door.on.owner{border-color:rgba(234,179,8,.55);background:rgba(234,179,8,.1)}
+.face-door.on.seat{border-color:rgba(16,163,127,.55);background:rgba(16,163,127,.1)}
+.face-door .k{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.face-door.owner .k{color:#fbbf24}
+.face-door.seat .k{color:#6ee7b7}
 a{color:var(--accent);text-decoration:none}
 a:hover{color:var(--accent2)}
 /* scrollbars — product density (left side + right rail match) */
@@ -79,7 +137,7 @@ a:hover{color:var(--accent2)}
 .side-scroll::-webkit-scrollbar,.slist::-webkit-scrollbar,.transcript::-webkit-scrollbar,.rr-body::-webkit-scrollbar,.rail-scroll::-webkit-scrollbar{width:6px;height:6px}
 .side-scroll::-webkit-scrollbar-thumb,.slist::-webkit-scrollbar-thumb,.transcript::-webkit-scrollbar-thumb,.rail-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
 /* Claude-style multi-column: agents | chat | screen/vcomp | workspace */
-.app{display:grid;grid-template-columns:var(--side-w) minmax(0,1fr) var(--screen-w) var(--rail-w);grid-template-rows:48px 1fr;height:100vh;height:100dvh;transition:grid-template-columns .2s ease}
+.app{display:grid;grid-template-columns:var(--side-w) minmax(0,1fr) var(--screen-w) var(--rail-w);grid-template-rows:auto 48px 1fr;height:100vh;height:100dvh;transition:grid-template-columns .2s ease}
 body.screen-col-open{--screen-w:min(380px,32vw)}
 body.screen-col-open.screen-col-wide{--screen-w:min(480px,40vw)}
 /* Hybrid habitat: agents live/work in a GUI floor next to chat */
@@ -547,6 +605,62 @@ body.screen-col-open .screen-col{display:flex}
   font-family:var(--mono);font-size:11.5px;line-height:1.45;background:#141416;border:1px solid var(--line);
   border-radius:10px;padding:10px 12px;overflow:auto;max-height:min(200px,32vh);margin:.55em 0;color:#b7f0c6;
   white-space:pre
+}
+/* Sovereign multi-plan terminal (WSL-wrapped look, live in chat) */
+.sovereign-term{
+  margin:.5em 0 .75em;border-radius:14px;overflow:hidden;max-width:min(96%,720px);
+  border:1px solid rgba(16,163,127,.35);
+  background:linear-gradient(180deg,#0b1210 0%,#070a09 100%);
+  box-shadow:0 8px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(16,163,127,.12);
+  font-family:var(--mono)
+}
+.sovereign-term .st-titlebar{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:linear-gradient(180deg,rgba(16,163,127,.16),rgba(0,0,0,.35));
+  border-bottom:1px solid rgba(16,163,127,.2);font-size:11.5px;color:var(--muted)
+}
+.sovereign-term .st-titlebar b{color:#6ee7b7;font-weight:700;letter-spacing:.02em}
+.sovereign-term .st-dots{display:flex;gap:5px}
+.sovereign-term .st-dots i{width:9px;height:9px;border-radius:50%;display:block}
+.sovereign-term .st-dots i:nth-child(1){background:#ff5f57}
+.sovereign-term .st-dots i:nth-child(2){background:#febc2e}
+.sovereign-term .st-dots i:nth-child(3){background:#28c840}
+.sovereign-term .st-phase{
+  margin-left:auto;font-size:10.5px;padding:2px 8px;border-radius:999px;
+  border:1px solid rgba(16,163,127,.35);color:#6ee7b7;text-transform:uppercase;letter-spacing:.04em
+}
+.sovereign-term .st-phase.live{animation:stPulse 1.2s ease-in-out infinite}
+@keyframes stPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.sovereign-term .st-goal{
+  padding:8px 12px;font-size:12px;color:#a7f3d0;border-bottom:1px solid rgba(255,255,255,.05);
+  white-space:pre-wrap;line-height:1.4
+}
+.sovereign-term .st-reason{
+  padding:8px 12px;font-size:11.5px;color:#a1a1aa;line-height:1.45;
+  border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--font)
+}
+.sovereign-term .st-tasks{padding:6px 8px;max-height:200px;overflow:auto}
+.sovereign-term .st-task{
+  display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:8px;
+  font-size:12px;color:#d4d4d8;margin:2px 0
+}
+.sovereign-term .st-task.running{background:rgba(16,163,127,.1);color:#ecfdf5}
+.sovereign-term .st-task.done{opacity:.85}
+.sovereign-term .st-task.failed{background:rgba(239,68,68,.08);color:#fecaca}
+.sovereign-term .st-ico{flex:0 0 auto;width:1.1em;text-align:center;font-weight:700}
+.sovereign-term .st-task.running .st-ico{color:#34d399}
+.sovereign-term .st-task.done .st-ico{color:#6ee7b7}
+.sovereign-term .st-task.failed .st-ico{color:#f87171}
+.sovereign-term .st-meta{font-size:10.5px;color:#71717a;margin-top:2px;font-family:var(--mono)}
+.sovereign-term .st-log{
+  border-top:1px solid rgba(16,163,127,.15);background:#050807;
+  padding:8px 12px;max-height:140px;overflow:auto;font-size:11px;line-height:1.5;color:#86efac
+}
+.sovereign-term .st-log .ln{opacity:.9}
+.sovereign-term .st-log .ln .ts{color:#4ade80;opacity:.7;margin-right:6px}
+.sovereign-term .st-foot{
+  display:flex;gap:10px;padding:6px 12px;font-size:10.5px;color:#71717a;
+  border-top:1px solid rgba(255,255,255,.05);background:rgba(0,0,0,.25)
 }
 /* In-chat app preview bubbles (agents render live UI) */
 .app-preview{
@@ -1144,6 +1258,12 @@ body.work-mode-on .composer-inner{box-shadow:inset 0 0 0 1px rgba(244,114,182,.1
 .gate .primary:disabled{opacity:.55;cursor:wait}
 .gate .secondary{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:8px;padding:10px;font-weight:500;background:transparent;color:var(--muted);cursor:pointer}
 .gate .err{color:#fca5a5;font-size:12px;margin-top:10px;min-height:18px;line-height:1.4;white-space:pre-wrap}
+.gate .err.ok{color:#6ee7b7}
+.gate .pw-row{position:relative}
+.gate .pw-row input{padding-right:64px}
+.gate .pw-row .show-pw{position:absolute;right:8px;top:8px;border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:650;cursor:pointer;padding:4px 6px}
+.gate .hint{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.45}
+.gate .ok-hint{color:#6ee7b7}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tabs button{flex:1;border:1px solid var(--line);background:transparent;border-radius:8px;padding:8px;font-size:12px;font-weight:500;color:var(--muted)}
 .tabs button.on{color:var(--text);border-color:rgba(16,163,127,.4);background:rgba(16,163,127,.1)}
@@ -1298,6 +1418,7 @@ body.device-computer .rail{display:flex!important}
     <button type="button" onclick="browserQuick('/developers')">API · MCP</button>
     <button type="button" onclick="remoteBrowserOpenQuick()">Our remote browser</button>
     <button type="button" onclick="browserQuick('/studio')">Studio</button>
+    <button type="button" onclick="browserQuick('/imagine')">Imagine</button>
     <button type="button" onclick="browserQuick('/desk')">This desk</button>
   </div>
   <div class="browser-stage">
@@ -1310,10 +1431,17 @@ body.device-computer .rail{display:flex!important}
   </div>
 </div>
 <div class="app">
+  <div class="face-ribbon owner" id="faceRibbon">
+    <span class="face-copy" id="faceCopy">POCKET Owner · this machine · :8787 — not the Users product</span>
+    <a class="face-map" href="/which">Two products</a>
+  </div>
   <header class="top">
     <button type="button" class="top-back" id="btnBack" onclick="goAppBack()" title="Back">← Back</button>
     <button type="button" class="menu-btn side-toggle" id="btnAgents" onclick="toggleSide()" aria-label="Agents" title="Agents">☰ Agents</button>
-    <div class="brand" onclick="goDeskHome()" style="cursor:pointer" title="POCKET desk"><div class="mark">P</div>POCKET</div>
+    <div class="brand" id="brandMark" onclick="goDeskHome()" style="cursor:pointer" title="Which POCKET — open the map">
+      <div class="mark">P</div><span id="brandName">POCKET</span>
+      <span class="face-badge" id="faceBadge">…</span>
+    </div>
     <nav class="top-links" id="appTabs" aria-label="POCKET app">
       <!-- Primary ops — always visible, each its own surface -->
       <a href="#" class="on-desk" data-tab="desk" data-group="primary" onclick="event.preventDefault();showAppTab('desk')" title="Chat · Working board · agents">Desk</a>
@@ -1329,8 +1457,11 @@ body.device-computer .rail{display:flex!important}
         <button type="button" class="tab-more-btn" id="tabMoreBtn" onclick="toggleTabMore(event)" aria-haspopup="true" aria-expanded="false" title="Studios &amp; systems">More <span class="chev">▾</span></button>
         <div class="tab-more-menu" id="tabMoreMenu" role="menu" aria-label="More surfaces">
           <div class="mm-label">Studios</div>
+          <a href="#" data-tab="power" role="menuitem" onclick="event.preventDefault();showAppTab('power');closeTabMore()" title="Command plane"><span>Power</span><small>Do a goal · 100 workflows · beat theirs</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="work" role="menuitem" onclick="event.preventDefault();showAppTab('work');closeTabMore()" title="Design agent loops"><span>Work Studio</span><small>Design loops → run on desk</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="studio" role="menuitem" onclick="event.preventDefault();showAppTab('studio');closeTabMore()" title="Record · viral · ship"><span>Product Studio</span><small>Record · viral pack · agent ship</small><span class="mm-go">→</span></a>
+          <a href="#" data-tab="imagine" role="menuitem" onclick="event.preventDefault();showAppTab('imagine');closeTabMore()" title="Device stills · letterbox glass"><span>Imagine Studio</span><small>Phone / laptop stills · fusion remake</small><span class="mm-go">→</span></a>
+          <a href="#" data-tab="bots" role="menuitem" onclick="event.preventDefault();showAppTab('bots');closeTabMore()" title="Named teammates with their own computer"><span>Bots</span><small>pocket-agent teammates · Grok-Bot style</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="loomgraph" role="menuitem" onclick="event.preventDefault();showAppTab('loomgraph');closeTabMore()" title="LOOMGRAPH — graphs + loops harness"><span>LOOMGRAPH</span><small>See the graph · run the loop</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="creative" role="menuitem" onclick="event.preventDefault();showAppTab('creative');closeTabMore()" title="Friendly AI chat · image · video · blog"><span>Creative Studio</span><small>Chat · image · video · blog · social</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="community" role="menuitem" onclick="event.preventDefault();showAppTab('community');closeTabMore()" title="Intentional public shares"><span>Community</span><small>What users share on purpose</small><span class="mm-go">→</span></a>
@@ -1338,6 +1469,7 @@ body.device-computer .rail{display:flex!important}
           <a href="#" data-tab="lab" role="menuitem" onclick="event.preventDefault();showAppTab('lab');closeTabMore()" title="Studio · Capsules · Life · Phone readiness"><span>Lab</span><small>Readiness · capsules · ship loop</small><span class="mm-go">→</span></a>
           <div class="mm-label">Systems</div>
           <a href="#" data-tab="os" role="menuitem" onclick="event.preventDefault();showAppTab('os');closeTabMore()" title="Every system first-class"><span>Agent OS</span><small>Systems map · parity</small><span class="mm-go">→</span></a>
+          <a href="/seats" data-tab="seats" role="menuitem" class="admin-only" onclick="closeTabMore()" title="Mint seat keys"><span>Seats</span><small>Sell · mint pk_seat_ · members</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="mcp" role="menuitem" onclick="event.preventDefault();showAppTab('mcp');closeTabMore()" title="MCP tools &amp; API"><span>API · MCP</span><small>Keys · tools · developers</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="curiosities" role="menuitem" onclick="event.preventDefault();showAppTab('curiosities');closeTabMore()"><span>Curiosities</span><small>Dream · Duel · lab</small><span class="mm-go">→</span></a>
           <div class="mm-foot">Each opens its own panel — never merges into Desk.</div>
@@ -1377,6 +1509,8 @@ body.device-computer .rail{display:flex!important}
       <button type="button" onclick="pickAgent('plan')"><b>Plan</b><small>Planning only</small></button>
       <button type="button" onclick="pickAgent('build')" title="Plan → code → test → ship"><b>Build</b><small>Multi-agent ship loop</small></button>
       <button type="button" onclick="pickAgent('genetic')" title="Internal models as modules · genetic flow evolves which run"><b>Genetic</b><small>Models · evolve · express</small></button>
+      <button type="button" onclick="pickAgent('multi_plan')" title="Reason → task list + sub-agents → live sovereign terminal in chat"><b>Multi-plan</b><small>Tasks · sub-agents · live term</small></button>
+      <button type="button" onclick="pickAgent('power')" title="GO + Power — run a goal on this host"><b>Power</b><small>GO · 100 workflows</small></button>
       <button type="button" onclick="location.href='/mail'" title="Agent email accounts + inboxes"><b>Mail</b><small>Agent inboxes</small></button>
       <button type="button" onclick="location.href='/docs'" title="Docs hub + how-to guides"><b>Docs</b><small>How-to · catalog</small></button>
       <button type="button" onclick="showAppTab('lab')" title="Lab readiness — Studio · Capsules · Life · Phone"><b>Lab</b><small>Readiness map</small></button>
@@ -1448,7 +1582,7 @@ body.device-computer .rail{display:flex!important}
       <div class="empty" id="emptyHome">
         <div class="mark">P</div>
         <h2>Main desk</h2>
-        <p>This is home base — seat an agent to chat and run tools. Other surfaces stay their own tabs (never merge into this chat).</p>
+        <p>This is home base — seat an agent to chat and run tools. Other surfaces stay their own tabs (never merge into this chat). Press <kbd>Ctrl</kbd><kbd>K</kbd> to jump anywhere.</p>
         <div class="empty-actions">
           <button type="button" data-mode="codex">Codex</button>
           <button type="button" data-mode="grok">Grok</button>
@@ -1663,14 +1797,16 @@ body.device-computer .rail{display:flex!important}
         <div id="aiBus"><div class="hint" style="font-size:11px;color:var(--muted)">Helper notes appear as work finishes</div></div>
       </div>
       <div class="ai-sum" id="platformCard">
-        <h3>Platform · workflows</h3>
-        <div class="body" id="platformStatus" style="font-size:11px;line-height:1.45;color:var(--muted)">Sovereign stack · remote browser · IoT · clouds</div>
+        <h3>Platform · Power</h3>
+        <div class="body" id="platformStatus" style="font-size:11px;line-height:1.45;color:var(--muted)">Sovereign stack · 200 tools · 100 workflows</div>
         <div class="meta" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+          <input id="powerGoal" placeholder="Do a goal…" style="flex:1;min-width:120px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px 8px;color:var(--fg);font-size:11px"/>
+          <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="runPowerGoal()">Do it</button>
           <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="runWorkflow('ship_loop')">Ship</button>
           <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="runWorkflow('remote_loop')">Remote</button>
           <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="runWorkflow('voice_loop')">Voice</button>
           <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="runWorkflow('phone_iot')">Phone·IoT</button>
-          <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="showAppTab('platform')">Map</button>
+          <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="showAppTab('power')">Power</button>
           <button type="button" class="icon" style="border:1px solid var(--line);padding:2px 8px" onclick="refreshPlatformRail()">↻</button>
         </div>
         <div id="platformRailDetail" style="margin-top:8px;font-size:11px;color:var(--muted);max-height:120px;overflow:auto"></div>
@@ -1872,38 +2008,49 @@ body.device-computer .rail{display:flex!important}
 
 <div class="gate" id="loginGate" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
   <div class="card">
-    <h2 id="loginTitle">Sign in to POCKET</h2>
-    <p id="loginBlurb">Use your workspace account. Teammates join with an invite — each person has their own login.</p>
+    <h2 id="loginTitle">POCKET</h2>
+    <p id="loginBlurb">Sign in to your seat, or create a free account. Owner and members each use their own username.</p>
     <div class="tabs">
       <button type="button" class="on" id="tabLogin" onclick="setAuthTab('login')">Sign in</button>
-      <button type="button" id="tabReg" onclick="setAuthTab('register')">Join with invite</button>
+      <button type="button" id="tabReg" onclick="setAuthTab('register')">Sign up</button>
     </div>
     <div id="loginPane">
       <form id="loginForm" autocomplete="on" onsubmit="event.preventDefault();doLogin();return false;">
       <label for="loginUser">Username</label>
-      <input id="loginUser" name="username" value="" placeholder="your username" autocomplete="username"/>
+      <input id="loginUser" name="username" value="" placeholder="your username" autocomplete="username" autocapitalize="none" spellcheck="false"/>
       <label for="loginPass">Password</label>
-      <input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="your password"/>
-      <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="loginRemember" checked/> Stay signed in on this device</label>
-      <button class="primary" id="loginBtn" type="submit">Continue</button>
+      <div class="pw-row">
+        <input id="loginPass" name="password" type="password" autocomplete="current-password" placeholder="your password"/>
+        <button type="button" class="show-pw" id="loginPassShow" aria-pressed="false">Show</button>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:8px;text-transform:none;letter-spacing:0;font-weight:500"><input type="checkbox" id="loginRemember" checked/> Stay signed in on this device</label>
+      <button class="primary" id="loginBtn" type="submit">Sign in</button>
       </form>
-      <button class="secondary" id="localUnlockBtn" type="button" style="display:none" title="This computer only">Continue on this computer</button>
+      <button class="secondary" id="localUnlockBtn" type="button" style="display:none" title="This computer only">Continue on this computer (no password)</button>
+      <p class="hint">Use the username you created. New here? Open Sign up. Local owner can still use Continue on this computer.</p>
     </div>
     <div id="regPane" style="display:none">
-      <p style="font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45">Create <b style="color:var(--fg)">your own</b> account with the invite your admin sent. You will not use their password.</p>
-      <label>Invite code</label>
-      <input id="regInvite" placeholder="Paste the invite code"/>
-      <label>Choose username</label>
-      <input id="regUser" autocomplete="username" placeholder="your name"/>
-      <label>Choose password (min 8)</label>
-      <input id="regPass" type="password" autocomplete="new-password"/>
-      <label>Display name</label>
-      <input id="regDisplay" placeholder="optional"/>
-      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:var(--muted);font-weight:500">
+      <p class="hint" style="margin:0 0 10px">Create <b style="color:var(--fg)">your own</b> account. Invite key is optional. You will not share the operator login.</p>
+      <form id="regForm" autocomplete="on" onsubmit="event.preventDefault();doRegister();return false;">
+      <label for="regUser">Username</label>
+      <input id="regUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="pick a username"/>
+      <label for="regInvite">Invite key (optional)</label>
+      <input id="regInvite" name="invite" autocomplete="off" spellcheck="false" placeholder="pk_seat_… if you have one"/>
+      <label for="regPass">Password (min 8)</label>
+      <div class="pw-row">
+        <input id="regPass" name="password" type="password" autocomplete="new-password" placeholder="at least 8 characters"/>
+        <button type="button" class="show-pw" id="regPassShow" aria-pressed="false">Show</button>
+      </div>
+      <label for="regPass2">Confirm password</label>
+      <input id="regPass2" type="password" autocomplete="new-password" placeholder="same password again"/>
+      <label for="regDisplay">Display name</label>
+      <input id="regDisplay" autocomplete="nickname" placeholder="optional — how agents greet you"/>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">
         <input type="checkbox" id="regTerms" style="margin-top:3px"/>
         <span>I accept the <a href="/v1/legal" target="_blank" rel="noopener">terms</a>. My files stay in my workspace — not mixed with the admin’s.</span>
       </label>
-      <button class="primary" id="regBtn" type="button">Create account</button>
+      <button class="primary" id="regBtn" type="submit">Create account &amp; enter</button>
+      </form>
     </div>
     <div class="err" id="loginErr"></div>
   </div>
@@ -1911,7 +2058,7 @@ body.device-computer .rail{display:flex!important}
 
 <script>
 const $=id=>document.getElementById(id);
-const MODE_COLOR={codex:'#22c55e',claude:'#f59e0b',voice:'#0b84fe',v2v:'#0b84fe',voice_agent:'#0b84fe',voice2voice:'#0b84fe',muse_spark:'#a855f7',muse:'#a855f7',spark:'#a855f7',assist:'#2dd4bf',assistant:'#2dd4bf',digital:'#2dd4bf',auro:'#fbbf24',auro14b:'#fbbf24',work:'#f472b6',working:'#f472b6',live_work:'#f472b6',mcp:'#c4b5fd',coding_swarm:'#c084fc',pixel_swarm:'#c084fc',harness:'#c084fc',swarm_code:'#c084fc',code_swarm:'#c084fc',swarm:'#34d399',shell:'#3b82f6',wsl:'#8b5cf6',wsl_native:'#8b5cf6',linux:'#8b5cf6',ask:'#f59e0b',plan:'#eab308',grok:'#06b6d4',handoff:'#a1a1aa',term:'#34d399',desktop:'#a78bfa',web:'#38bdf8',nexus:'#f472b6',mesie:'#a78bfa',auro:'#fbbf24',auro14b:'#fbbf24',ro14b:'#fbbf24',him:'#fbbf24',agent:'#fb7185',doer:'#fb7185',guppy:'#38bdf8',browser:'#f97316',capture:'#a3e635',vision:'#22d3ee',oculus:'#22d3ee',see:'#22d3ee',screen:'#67e8f9',vcomp:'#a5f3fc',repos:'#94a3b8',github:'#e6edf3',gh:'#e6edf3',copilot:'#818cf8',archon:'#f43f5e',alpha:'#f43f5e',workers:'#e11d48',novae_grok:'#a78bfa',novae_codex:'#34d399',novae:'#a78bfa',offload:'#fbbf24',build:'#f472b6',ship:'#f472b6',use_case:'#fb7185',emergent:'#f472b6',loop:'#f472b6',custom_agent:'#c084fc',genetic:'#34d399',genetic_flow:'#34d399',internal:'#34d399',internal_models:'#34d399',mail:'#2dd4bf',agent_mail:'#2dd4bf'};
+const MODE_COLOR={codex:'#22c55e',claude:'#f59e0b',voice:'#0b84fe',v2v:'#0b84fe',voice_agent:'#0b84fe',voice2voice:'#0b84fe',muse_spark:'#a855f7',muse:'#a855f7',spark:'#a855f7',assist:'#2dd4bf',assistant:'#2dd4bf',digital:'#2dd4bf',auro:'#fbbf24',auro14b:'#fbbf24',work:'#f472b6',working:'#f472b6',live_work:'#f472b6',mcp:'#c4b5fd',coding_swarm:'#c084fc',pixel_swarm:'#c084fc',harness:'#c084fc',swarm_code:'#c084fc',code_swarm:'#c084fc',swarm:'#34d399',shell:'#3b82f6',wsl:'#8b5cf6',wsl_native:'#8b5cf6',linux:'#8b5cf6',ask:'#f59e0b',plan:'#eab308',grok:'#06b6d4',handoff:'#a1a1aa',term:'#34d399',desktop:'#a78bfa',web:'#38bdf8',nexus:'#f472b6',mesie:'#a78bfa',auro:'#fbbf24',auro14b:'#fbbf24',ro14b:'#fbbf24',him:'#fbbf24',agent:'#fb7185',doer:'#fb7185',guppy:'#38bdf8',browser:'#f97316',capture:'#a3e635',vision:'#22d3ee',oculus:'#22d3ee',see:'#22d3ee',screen:'#67e8f9',vcomp:'#a5f3fc',repos:'#94a3b8',github:'#e6edf3',gh:'#e6edf3',copilot:'#818cf8',archon:'#f43f5e',alpha:'#f43f5e',workers:'#e11d48',novae_grok:'#a78bfa',novae_codex:'#34d399',novae:'#a78bfa',offload:'#fbbf24',build:'#f472b6',ship:'#f472b6',use_case:'#fb7185',emergent:'#f472b6',loop:'#f472b6',custom_agent:'#c084fc',genetic:'#34d399',genetic_flow:'#34d399',internal:'#34d399',internal_models:'#34d399',mail:'#2dd4bf',agent_mail:'#2dd4bf',multi_plan:'#4ade80',multiplan:'#4ade80',plan_exec:'#4ade80',agentic_plan:'#4ade80'};
 /** Specialized Voice ↔ Voice agent only — never applies to Codex/Grok/Plan/etc. */
 const VOICE_MODES=new Set(['voice','v2v','voice_agent','voice2voice']);
 // Working mode uses voice skills + TTS but is broader than V2V
@@ -2607,8 +2754,10 @@ let AGENT_CATALOG=[
     {id:'auro', name:'Auro14B', blurb:'Local LMR + meaning model', color:'#fbbf24', first_class:true},
     {id:'voice', name:'Voice ↔ Voice', blurb:'Specialized agent — talk and hear back', color:'#0b84fe', first_class:true},
     {id:'work', name:'Working mode', blurb:'Live voice + screen Control + CLI/MCP + package→artifacts', color:'#f472b6', first_class:true, harness:true},
+    {id:'power', name:'Power', blurb:'GO + 100 workflows + do a goal on this host', color:'#10a37f', first_class:true, harness:true},
     {id:'plan', name:'Plan', blurb:'Outline only — harnessed helpers', color:'#eab308', first_class:true, harness:true},
     {id:'genetic', name:'Genetic', blurb:'Internal models as modules · evolve which run', color:'#34d399', first_class:true, harness:true},
+    {id:'multi_plan', name:'Multi-plan', blurb:'Reason · task list · sub-agents · live sovereign term', color:'#4ade80', first_class:true, harness:true},
   ]},
   {group:'Build', items:[
     {id:'coding_swarm', name:'Coding Swarm', blurb:'Sophia · Solver · Twin → pixel artifacts', color:'#c084fc', first_class:true},
@@ -2646,8 +2795,15 @@ let AGENT_CATALOG=[
     {id:'ship', name:'Ship', blurb:'Release ship loop', color:'#f472b6', first_class:true, harness:true},
     {id:'emergent', name:'Emergent', blurb:'Ship factory', color:'#f472b6', first_class:true, harness:true},
     {id:'agent', name:'Doer', blurb:'Headless multi-step', color:'#fb7185', first_class:true, harness:true},
-    {id:'novae_grok', name:'Grok Novae', blurb:'Novae hands', color:'#a78bfa', first_class:true},
-    {id:'novae_codex', name:'Codex Novae', blurb:'Novae hands', color:'#34d399', first_class:true},
+    {id:'novae_grok', name:'Grok Novae', blurb:'Nova research hands', color:'#a78bfa', first_class:true},
+    {id:'novae_codex', name:'Codex Novae', blurb:'Nova coding hands', color:'#34d399', first_class:true},
+    {id:'ghost', name:'Ghost Math', blurb:'Internal math', color:'#c4b5fd', first_class:true},
+    {id:'logic', name:'Logic Prover', blurb:'Internal proofs', color:'#86efac', first_class:true},
+    {id:'pattern', name:'Pattern Forge', blurb:'Internal spectral', color:'#a78bfa', first_class:true},
+    {id:'world', name:'World Model', blurb:'Intelligence world', color:'#fbbf24', first_class:true},
+    {id:'imagine', name:'Imagine Studio', blurb:'Device stills', color:'#34d399', first_class:true},
+    {id:'genetic', name:'Genetic flow', blurb:'Internal models', color:'#34d399', first_class:true},
+    {id:'bots', name:'POCKET Bots', blurb:'Teammates · own computer', color:'#10a37f', first_class:true, harness:true},
     {id:'dream', name:'Dream', blurb:'Idle consolidator', color:'#a78bfa', first_class:true},
     {id:'proof', name:'Proof', blurb:'Work receipts', color:'#86efac', first_class:true},
     {id:'copilot', name:'Copilot', blurb:'Windows Copilot', color:'#818cf8', first_class:true},
@@ -2659,7 +2815,7 @@ async function loadFirstClassCatalog(){
     const j=await api('/v1/agents/catalog');
     if(!j||!j.ok||!Array.isArray(j.groups)) return;
     // Keep Primary order; replace/extend from server
-    const prefer=j.groups.filter(g=>['Primary','Build','Host','Advanced'].includes(g.group));
+    const prefer=j.groups.filter(g=>['Primary','Internal','Build','Host','Advanced'].includes(g.group));
     if(prefer.length){
       AGENT_CATALOG=prefer.map(g=>({
         group:g.group,
@@ -2918,7 +3074,9 @@ function applyDevice(){
         ? 'Tablet remote desk for your PC. Password required on public access.'
         : 'Multi-agent desk for your PC. Password required on public access.');
   }
-  document.title=d.kind==='phone'?'POCKET · Phone':(d.kind==='tablet'?'POCKET · Tablet':'POCKET');
+  try{ paintPocketFace(); }catch(_){
+    document.title=d.kind==='phone'?'POCKET · Phone':(d.kind==='tablet'?'POCKET · Tablet':'POCKET');
+  }
   updatePhoneNav();
 }
 
@@ -3331,6 +3489,9 @@ async function api(path, opts){
   }catch(net){
     const err=new Error('Network: '+(net&&net.message||'Failed to fetch')+' — is host on :8787?');
     err.code='network';
+    try{
+      toast('Host not reachable on :8787. Start POCKET (Ensure-POCKET-Up / Owner shortcut), then retry.','err');
+    }catch(_){}
     throw err;
   }
   if(r.status===401){
@@ -3354,8 +3515,50 @@ async function api(path, opts){
 }
 function setLoginErr(msg){
   const el=$('loginErr');
-  if(el) el.textContent=msg||'';
-  if(msg) try{ toast(msg,'err'); }catch(_){}
+  if(el){ el.textContent=msg||''; el.classList.toggle('ok', /creating|signing|welcome|ready/i.test(msg||'')); }
+  if(msg && !/creating|signing|welcome|ready/i.test(msg)) try{ toast(msg,'err'); }catch(_){}
+}
+function hostProduct(){
+  if(window.__pocketProduct==='users' || window.__pocketProduct==='owner') return window.__pocketProduct;
+  try{
+    if(window.pocket && window.pocket.clientRole==='user') return 'users';
+    if(window.pocket && window.pocket.clientRole==='operator') return 'owner';
+  }catch(_){}
+  const p=String(location.port||'');
+  if(p==='8788') return 'users';
+  return 'owner';
+}
+function paintPocketFace(){
+  const users=hostProduct()==='users';
+  const kind=(typeof DEVICE!=='undefined' && DEVICE && DEVICE.kind)||'computer';
+  const brand=$('brandName');
+  const badge=$('faceBadge');
+  const ribbon=$('faceRibbon');
+  const copy=$('faceCopy');
+  const titleEl=$('loginTitle');
+  const blurb=$('loginBlurb');
+  const name=users?'POCKET for Users':'POCKET Owner';
+  const badgeText=users?'USERS': 'OWNER';
+  const ribbonClass=users?'seat':'owner';
+  const copyText=users
+    ? 'POCKET for Users · :8788 · customer product — not your Owner desk'
+    : 'POCKET Owner · :8787 · your machine — not the Users product';
+  let title=users?'POCKET for Users — :8788':'POCKET Owner — :8787';
+  if(kind==='phone') title+=' · Phone';
+  else if(kind==='tablet') title+=' · Tablet';
+  if(brand) brand.textContent=name;
+  if(badge){ badge.textContent=badgeText; badge.className='face-badge '+ribbonClass; }
+  if(ribbon){ ribbon.hidden=false; ribbon.className='face-ribbon '+ribbonClass; }
+  if(copy) copy.textContent=copyText;
+  document.body.classList.toggle('owner-desk', !users);
+  document.body.classList.toggle('users-product', !!users);
+  document.title=title;
+  if(titleEl) titleEl.textContent=name;
+  if(blurb){
+    blurb.textContent=users
+      ? 'This is the customer product. Create your own seat. Never use the Owner password. Owner desk is :8787.'
+      : 'This is your machine desk. Customers open POCKET for Users on :8788.';
+  }
 }
 function showGate(){
   dismissBootSplash(true);
@@ -3365,13 +3568,29 @@ function showGate(){
   g.style.display='flex';
   g.style.visibility='visible';
   g.style.pointerEvents='auto';
-  // Localhost: offer one-click unlock
-  const local=location.hostname==='127.0.0.1'||location.hostname==='localhost';
+  const users=hostProduct()==='users';
   const lub=$('localUnlockBtn');
-  if(lub) lub.style.display=local?'block':'none';
+  if(lub) lub.style.display=users?'none':'block';
   const u=$('loginUser');
-  if(u && !u.value) u.value='pocket';
-  try{ ($('loginPass')||u).focus(); }catch(_){}
+  if(u && !u.value && !users) u.value='pocket';
+  if(users){ try{ setAuthTab('register'); }catch(_){} }
+  try{
+    if(window.PocketAuth && PocketAuth.wantsJoinTab && PocketAuth.wantsJoinTab()) setAuthTab('register');
+    if(window.PocketAuth && PocketAuth.inviteFromUrl){
+      const inv=PocketAuth.inviteFromUrl();
+      if(inv && $('regInvite') && !$('regInvite').value) $('regInvite').value=inv;
+    }
+    if(window.PocketAuth && PocketAuth.wireShowPassword && !window._pwWired){
+      PocketAuth.wireShowPassword('loginPass','loginPassShow');
+      PocketAuth.wireShowPassword('regPass','regPassShow');
+      window._pwWired=true;
+    }
+  }catch(_){}
+  try{ paintPocketFace(); }catch(_){}
+  try{
+    const usersTab=authTab==='register';
+    ((usersTab?$('regInvite'):$('loginPass'))||$('loginUser')).focus();
+  }catch(_){}
 }
 function hideGate(){
   const g=$('loginGate');
@@ -3396,7 +3615,13 @@ function setAuthTab(t){
   if(tr) tr.classList.toggle('on', t==='register');
   if(lp) lp.style.display=t==='login'?'block':'none';
   if(rp) rp.style.display=t==='register'?'block':'none';
+  const title=$('loginTitle');
+  if(title) title.textContent=t==='register'?'Create your account':(hostProduct()==='users'?'POCKET for Users':'POCKET');
   setLoginErr('');
+  try{
+    if(t==='register') ($('regInvite')||$('regUser')).focus();
+    else ($('loginPass')||$('loginUser')).focus();
+  }catch(_){}
 }
 function storeSession(user, token, rem){
   // Always keep sessionStorage; persist to localStorage when remembered (default true)
@@ -3439,7 +3664,9 @@ async function finishLogin(u, token){
   }
 }
 async function tryDesktopAutoLogin(force){
-  // Electron / localhost only — host issues operator session without typing password
+  // Owner desk on this machine only. Seat client must never steal the operator session.
+  if(hostProduct()==='users') return false;
+  if(window.pocket && window.pocket.clientRole==='user') return false;
   if(location.hostname!=='127.0.0.1' && location.hostname!=='localhost') return false;
   if(!force && (sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token'))) return false;
   try{
@@ -3467,7 +3694,7 @@ async function doLogin(){
     if(window.PocketAuth && PocketAuth.login){
       const res=await PocketAuth.login(u, p, {device:'desk'});
       if(!res.ok){
-        if((location.hostname==='127.0.0.1'||location.hostname==='localhost')){
+        if(hostProduct()!=='users' && (location.hostname==='127.0.0.1'||location.hostname==='localhost')){
           const auto=await tryDesktopAutoLogin(true);
           if(auto){ if(btn) btn.disabled=false; return; }
         }
@@ -3490,7 +3717,7 @@ async function doLogin(){
     try{ j=await r.json(); }catch(_){ j={ok:false,error:'Login returned non-JSON (HTTP '+r.status+')'}; }
     const tok=j.token||j.session_token||'';
     if(!r.ok||(!j.ok&&!tok)){
-      if((location.hostname==='127.0.0.1'||location.hostname==='localhost')){
+      if(hostProduct()!=='users' && (location.hostname==='127.0.0.1'||location.hostname==='localhost')){
         const auto=await tryDesktopAutoLogin(true);
         if(auto){ if(btn) btn.disabled=false; return; }
       }
@@ -3507,24 +3734,58 @@ async function doLogin(){
   }
 }
 async function doRegister(){
+  const btn=$('regBtn');
   try{
-    if(!$('regTerms')||!$('regTerms').checked){
-      $('loginErr').textContent='Accept the terms to register';
+    const p1=($('regPass')&&$('regPass').value)||'';
+    const p2=($('regPass2')&&$('regPass2').value)||'';
+    if(p2 && p1!==p2){ setLoginErr('Passwords do not match.'); return; }
+    setLoginErr('Creating your account…');
+    if(btn) btn.disabled=true;
+    let res;
+    if(window.PocketAuth && PocketAuth.register){
+      res=await PocketAuth.register({
+        invite:($('regInvite')&&$('regInvite').value)||'',
+        user:($('regUser')&&$('regUser').value)||'',
+        password:p1,
+        password2:p2,
+        display:($('regDisplay')&&$('regDisplay').value)||'',
+        accepted_terms: !($('regTerms')) || $('regTerms').checked,
+        device:'desk'
+      });
+    }else{
+      if(!$('regTerms')||!$('regTerms').checked){
+        setLoginErr('Accept the terms to create a seat.');
+        if(btn) btn.disabled=false;
+        return;
+      }
+      const r=await fetch('/v1/auth/register',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        invite:$('regInvite').value.trim(),
+        user:$('regUser').value.trim(),
+        password:p1,
+        display:$('regDisplay').value.trim(),
+        accepted_terms:true
+      })});
+      res=await r.json().catch(()=>({ok:false,error:'Register returned non-JSON'}));
+    }
+    if(!res.ok){
+      setLoginErr(res.error||'Could not create account.');
+      if(btn) btn.disabled=false;
       return;
     }
-    const j=await fetch('/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      invite:$('regInvite').value.trim(),
-      user:$('regUser').value.trim(),
-      password:$('regPass').value,
-      display:$('regDisplay').value.trim(),
-      accepted_terms:true
-    })}).then(r=>r.json());
-    if(!j.ok){ $('loginErr').textContent=j.error||'Register failed'; return; }
-    storeSession(j.user, j.token||'', true);
-    hideGate();
-    await boot();
-    toast('Account created — welcome');
-  }catch(e){ $('loginErr').textContent=String(e.message||e); }
+    const uname=(typeof res.user==='string'?res.user:(res.user&&res.user.user))||($('regUser')&&$('regUser').value)||'';
+    if(res.token){
+      await finishLogin(uname, res.token);
+      toast('Account ready — welcome, '+uname,'ok');
+    }else{
+      setLoginErr('Seat created. Sign in with your new username and password.');
+      setAuthTab('login');
+      if($('loginUser')) $('loginUser').value=uname;
+    }
+    if(btn) btn.disabled=false;
+  }catch(e){
+    setLoginErr(String(e.message||e));
+    if(btn) btn.disabled=false;
+  }
 }
 async function doLogout(){
   try{
@@ -3538,19 +3799,35 @@ async function doLogout(){
   toast('Signed out');
 }
 function applyRoleUI(){
-  const admin = (ME.role||'')==='admin';
+  const admin = (ME.role||'')==='admin' || ME.is_owner===true;
+  const sold = !admin && (ME.edition==='market' || ME.role==='member');
+  document.body.classList.toggle('sold-seat', !!sold);
+  document.body.classList.toggle('owner-desk', hostProduct()==='owner');
+  document.body.classList.toggle('users-product', hostProduct()==='users');
   document.querySelectorAll('.admin-only').forEach(el=>{
     el.style.display = admin ? '' : 'none';
   });
+  const hide = sold ? ['lab','curiosities','os','screen','remote','platform'] : [];
+  hide.forEach(tab=>{
+    document.querySelectorAll('[data-tab="'+tab+'"]').forEach(el=>{ el.style.display='none'; });
+  });
   const lb=$('logoutBtn');
   if(lb) lb.style.display = ME.user ? 'inline-flex' : 'none';
-  if($('userChip')) $('userChip').textContent = ME.user ? ((ME.display||ME.user)+' · '+ME.role) : 'signed out';
+  if($('userChip')) $('userChip').textContent = ME.user ? ((ME.display||ME.user)+' · '+(sold?'USER SEAT':'YOUR POCKET')) : 'signed out';
+  try{ paintPocketFace(); }catch(_){}
 }
 async function boot(opts){
   opts=opts||{};
   ensureLivePoll();
   detectDevice();
   applyDevice();
+  try{
+    fetch('/v1/which').then(function(r){return r.json();}).then(function(j){
+      if(j && j.product) window.__pocketProduct=j.product;
+      paintPocketFace();
+    }).catch(function(){});
+    paintPocketFace();
+  }catch(_){}
   // Restore Screen column preference (Claude-style side panel)
   try{
     if(localStorage.getItem('pocket_screen_col')==='1'){
@@ -3601,7 +3878,7 @@ async function boot(opts){
 
   // Auth check only — 401 returns to gate; anything else keeps session
   try{
-    const me=await api('/v1/auth/me',{method:'POST',body:JSON.stringify({})});
+    const me=await api('/v1/auth/me',{method:'GET'});
     if(me&&me.user){ ME=me.user; }
     else if(me&&me.ok===false){ showGate(); dismissBootSplash(); return; }
   }catch(e){
@@ -3754,6 +4031,16 @@ const APP_TAB_ROUTES={
       {label:'Desk', fn:'showAppTab', arg:'desk'}
     ]
   },
+  power:{
+    path:'/power', title:'Power', group:'Systems',
+    blurb:'One command plane — sense the lab, run a multi-workflow, keep the receipt.',
+    actions:[
+      {label:'Open Power', fn:'appPanelReload', primary:true},
+      {label:'Pulse', fn:'refreshPlatformRail'},
+      {label:'Morning', fn:'runWorkflow', arg:'mw097_morning_seatbelt'},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
   work:{
     path:'/work', title:'Work Studio', group:'Studios',
     blurb:'First-class digital assistant — life ops, research, Muse, Auro (separate from coding desk).',
@@ -3765,6 +4052,25 @@ const APP_TAB_ROUTES={
       {label:'Auro', fn:'pickAgent', arg:'auro'}
     ]
   },
+  imagine:{
+    path:'/imagine', title:'Imagine Studio', group:'Studios',
+    blurb:'Device stills from the host screen — rotato phone, MacBook, clean. Letterbox glass, never stretch-crop.',
+    actions:[
+      {label:'Open Imagine', fn:'appPanelReload', primary:true},
+      {label:'Product Studio', fn:'showAppTab', arg:'studio'},
+      {label:'Creative chat', fn:'showAppTab', arg:'creative'},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
+  bots:{
+    path:'/bots', title:'POCKET Bots', group:'Agents',
+    blurb:'Named teammates with their own computer. Message like a colleague. Powered by pocket-agent.',
+    actions:[
+      {label:'Open Bots', fn:'appPanelReload', primary:true},
+      {label:'Hire teammate', fn:'showAppTab', arg:'bots'},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
   studio:{
     path:'/studio', title:'Product Studio', group:'Studios',
     blurb:'First-class for agents — record · storyboard · viral pack · caption · ship.',
@@ -3774,6 +4080,7 @@ const APP_TAB_ROUTES={
       {label:'Ship pack', fn:'runStudioShip'},
       {label:'Viral pack', fn:'runStudioViral'},
       {label:'Storyboard', fn:'runStudioStoryboard'},
+      {label:'Imagine stills', fn:'showAppTab', arg:'imagine'},
       {label:'Creative chat', fn:'showAppTab', arg:'creative'},
       {label:'Screen eyes', fn:'showAppTab', arg:'screen'},
       {label:'Desk', fn:'showAppTab', arg:'desk'}
@@ -3794,6 +4101,7 @@ const APP_TAB_ROUTES={
     blurb:'Friendly OpenAI-style chat — image · video · blog · paper · social. Share to Community on purpose only.',
     actions:[
       {label:'Open Creative', fn:'appPanelReload', primary:true},
+      {label:'Imagine stills', fn:'showAppTab', arg:'imagine'},
       {label:'Community feed', fn:'showAppTab', arg:'community'},
       {label:'Product Studio', fn:'showAppTab', arg:'studio'},
       {label:'Desk', fn:'showAppTab', arg:'desk'}
@@ -3857,12 +4165,12 @@ const APP_TAB_ROUTES={
   },
   platform:{
     path:'/os', title:'Platform', group:'Systems',
-    blurb:'Sovereign stack · clouds · remote · IoT.',
+    blurb:'GO · Power · 200 tools · 100 workflows · clouds.',
     actions:[
-      {label:'Refresh stack', fn:'refreshPlatformRail', primary:true},
-      {label:'Ship loop', fn:'runWorkflow', arg:'ship_loop'},
-      {label:'Remote browser', fn:'runWorkflow', arg:'remote_loop'},
-      {label:'Phone · IoT', fn:'runWorkflow', arg:'phone_iot'}
+      {label:'Open Platform', fn:'appPanelReload', primary:true},
+      {label:'GO', fn:'runWorkflow', arg:'go_plane'},
+      {label:'Power', fn:'showAppTab', arg:'power'},
+      {label:'Refresh', fn:'refreshPlatformRail'}
     ]
   },
   sovereign:{path:'/os', title:'Sovereign stack', group:'Systems', blurb:'Sovereign stack status.', actions:[]}
@@ -4176,8 +4484,32 @@ async function runWorkflow(name){
       }catch(_){ toast('Studio loop — Product Studio open · seat Studio agent'); }
       return;
     }
+    if(name==='go_plane' || name==='go'){
+      toast('GO — syncing active states…');
+      const j=await api('/v1/go',{method:'POST',body:JSON.stringify({arm_daily:true})});
+      toast('GO · '+(j.active_count||0)+' active · '+(j.armed||[]).length+' armed');
+      try{ refreshPlatformRail(); }catch(_){}
+      return;
+    }
+    if(String(name).indexOf('mw')===0){
+      toast('Power workflow '+name+'…');
+      const j=await api('/v1/power/do',{method:'POST',body:JSON.stringify({workflow_id:name,goal:name})});
+      toast((j.ok?'Ran ':'Fail ')+(j.pick&&j.pick.title||name)+' · '+(j.run&&j.run.passed||0)+'/'+(j.run&&j.run.total||0));
+      try{ refreshPlatformRail(); }catch(_){}
+      return;
+    }
     toast('Unknown workflow');
   }catch(e){ toast(e.message||String(e),'err'); }
+}
+async function runPowerGoal(){
+  const g=($('powerGoal')&&$('powerGoal').value||'').trim();
+  if(!g){ toast('Type a goal'); return; }
+  toast('Power: '+g);
+  try{
+    const j=await api('/v1/power/do',{method:'POST',body:JSON.stringify({goal:g})});
+    toast((j.ok?'Did ':'Miss ')+(j.pick&&j.pick.title||g));
+    try{ refreshPlatformRail(); }catch(_){}
+  }catch(e){ toast(e.message||'power failed','err'); }
 }
 
 async function runStudioViral(){
@@ -4238,15 +4570,17 @@ async function refreshPlatformRail(){
   if(!el&&!det) return;
   try{
     const j=await api('/v1/sovereign');
+    const p=await api('/v1/power').catch(()=>({}));
     const clouds=(j.computing_clouds&&j.computing_clouds.clouds)||[];
     const rb=j.remote_browser||{};
     const iot=j.iot_home||{};
     const pub=(j.remote&&j.remote.public_url)||'';
-    if(el) el.textContent=(clouds.length||0)+' clouds · remote '+(rb.mode||'?')+' · IoT '+(iot.device_count||0)+' · '+(pub? 'tunnel' : 'local');
+    if(el) el.textContent=(p.tools||0)+' tools · '+(p.workflows||0)+' workflows · '+(clouds.length||0)+' clouds · IoT '+(iot.device_count||0);
     if(det){
-      det.innerHTML=clouds.slice(0,6).map(c=>
+      det.innerHTML=clouds.slice(0,8).map(c=>
         '<div><b style="color:var(--fg)">'+(c.name||c.id)+'</b> · '+(c.status||'')+'</div>'
-      ).join('')+(pub?('<div style="margin-top:4px">Remote '+esc(pub)+'</div>'):'');
+      ).join('')+(pub?('<div style="margin-top:4px">Remote '+esc(pub)+'</div>'):'')+
+        (p.last_run?('<div style="margin-top:4px">Last: '+esc(String(p.last_run.goal||''))+'</div>'):'');
     }
   }catch(_){
     if(el) el.textContent='Sign in for sovereign stack status';
@@ -4741,7 +5075,7 @@ function showEmpty(){
   $('transcript').innerHTML=`<div class="empty" id="emptyHome">
     <div class="mark">P</div>
     <h2>Main desk</h2>
-    <p>Home base — seat an agent to chat and run tools. Other surfaces stay their own tabs.</p>
+    <p>Home base — seat an agent to chat and run tools. Other surfaces stay their own tabs. Press <kbd>Ctrl</kbd><kbd>K</kbd> to jump anywhere.</p>
     <div class="empty-actions">
       <button type="button" data-mode="codex">Codex</button>
       <button type="button" data-mode="grok">Grok</button>
@@ -4800,6 +5134,66 @@ async function refreshDeskReadyStrip(){
     el.innerHTML='<span class="prod-pill warn"><i></i>Host…</span>';
   }
 }
+/** Parse [[POCKET_TERM:multi_plan]] … [[/POCKET_TERM]] from streamed message body */
+function parseMultiPlanTerm(raw){
+  const s=String(raw||'');
+  const open='[[POCKET_TERM:multi_plan]]';
+  const close='[[/POCKET_TERM]]';
+  const i=s.indexOf(open);
+  if(i<0) return null;
+  const j=s.indexOf(close, i+open.length);
+  if(j<0){
+    // still streaming — try parse partial JSON after open
+    const chunk=s.slice(i+open.length).trim();
+    try{ return JSON.parse(chunk); }catch(_){
+      // incomplete JSON — return last good partial via regex fields
+      return {phase:'streaming', goal:'…', reasoning:'Building plan…', tasks:[], log:[], _partial:true};
+    }
+  }
+  const chunk=s.slice(i+open.length, j).trim();
+  try{ return JSON.parse(chunk); }catch(_){ return null; }
+}
+function renderSovereignTerm(st, streaming){
+  const wrap=document.createElement('div');
+  wrap.className='sovereign-term pop-in';
+  const phase=String(st.phase||'…');
+  const live=streaming || phase==='execute' || phase==='plan' || phase==='reason' || phase==='streaming';
+  const tasks=st.tasks||[];
+  const log=st.log||[];
+  const ico={pending:'○',running:'●',done:'✓',failed:'✗',skipped:'–'};
+  const taskHtml=tasks.map(t=>{
+    const stt=t.status||'pending';
+    const agents=(t.agents||[]).join(', ')||'—';
+    const prev=t.result_preview?`<div class="st-meta">${esc(String(t.result_preview).slice(0,140))}</div>`:'';
+    return `<div class="st-task ${esc(stt)}">
+      <span class="st-ico">${ico[stt]||'·'}</span>
+      <div style="flex:1;min-width:0">
+        <div><b>T${esc(String(t.id))}</b> ${esc(t.title||'')}</div>
+        <div class="st-meta">agents: ${esc(agents)} · ${esc(stt)}${t.kind?(' · '+esc(t.kind)):''}</div>
+        ${prev}
+      </div>
+    </div>`;
+  }).join('') || '<div class="st-task"><span class="st-ico">…</span><div>Waiting for plan…</div></div>';
+  const logHtml=log.slice(-16).map(row=>
+    `<div class="ln"><span class="ts">${esc(row.t||'')}</span>${esc(row.line||'')}</div>`
+  ).join('') || '<div class="ln"><span class="ts">—</span>awaiting ticks…</div>';
+  wrap.innerHTML=`
+    <div class="st-titlebar">
+      <div class="st-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      <b>wsl · multi-plan</b>
+      <span class="st-phase ${live?'live':''}">${esc(phase)}${live?' · live':''}</span>
+    </div>
+    <div class="st-goal">$ ${esc((st.goal||'').slice(0,220))}</div>
+    <div class="st-reason"><b style="color:#6ee7b7">reason</b> · ${esc((st.reasoning||'').slice(0,420))}</div>
+    <div class="st-tasks">${taskHtml}</div>
+    <div class="st-log">${logHtml}${live?'<div class="ln"><span class="ts">▌</span><span class="stream-caret"></span></div>':''}</div>
+    <div class="st-foot">
+      <span>done ${esc(String(st.tasks_done||0))}/${esc(String(st.tasks_total||tasks.length||0))}</span>
+      <span>expanded ${esc(String(st.expanded||0))}</span>
+      <span style="margin-left:auto">${esc(st.run_id||'')}</span>
+    </div>`;
+  return wrap;
+}
 function emptyHint(mode){
   const m={
     desktop:'Ask to open an app or a website on this PC.',
@@ -4836,6 +5230,10 @@ function emptyHint(mode){
     genetic_flow:'Same as Genetic — evolve internal model modules.',
     internal:'Same as Genetic — internal models as modules.',
     internal_models:'Same as Genetic — internal models as modules.',
+    multi_plan:'Multi-plan — I reason, list tasks + sub-agents, then execute. A live sovereign WSL-style terminal box pops up in chat and updates as each task runs.',
+    multiplan:'Same as Multi-plan — live sovereign term box in chat.',
+    plan_exec:'Same as Multi-plan — execute with visible sovereign terminal.',
+    agentic_plan:'Same as Multi-plan — agentic plan with live term box.',
     pixel_swarm:'Same as Coding Swarm — artifacts land in pixel memory.',
     harness:'Coding Swarm harness — @sophia @solver @twin routing.',
     swarm_code:'Coding Swarm harness.',
@@ -5134,7 +5532,7 @@ function renderTranscript(s){
   document.body.classList.toggle('work-mode-on', isWorkMode);
   if(isWorkMode){ try{ ensureWorkingBoardPanel(true); refreshWorkingBoard(); }catch(_){} }
   else { try{ ensureWorkingBoardPanel(false); }catch(_){} }
-  const imsgModes=new Set(['plan','grok','claude','codex','build','web','custom_agent','ship','voice','v2v','voice_agent','voice2voice','muse_spark','muse','spark','coding_swarm','pixel_swarm','harness','swarm_code','code_swarm','swarm','genetic','genetic_flow','internal','internal_models']);
+  const imsgModes=new Set(['plan','grok','claude','codex','build','web','custom_agent','ship','voice','v2v','voice_agent','voice2voice','muse_spark','muse','spark','coding_swarm','pixel_swarm','harness','swarm_code','code_swarm','swarm','genetic','genetic_flow','internal','internal_models','multi_plan','multiplan','plan_exec','agentic_plan','task_plan']);
   // Voice panel: native Aria OR any agent with Voice engine activated
   const isVoiceMode=isVoiceSessionMode();
   box.classList.toggle('imsg', imsgModes.has(modeKey) || modeKey.includes('novae'));
@@ -5202,6 +5600,19 @@ function renderTranscript(s){
           <span style="margin-left:auto;font-size:11px;opacity:.75">${esc(String(workedSeconds(m)||0)+'s')}${esc(tok)}</span>`;
         box.appendChild(tr);
       } else {
+        const raw=streamBody||(streaming?'':(m.status==='cancelled'?'Stopped — send a new message to reorganize.':''));
+        // Sovereign multi-plan terminal box (live WSL-wrapped look)
+        const termState=parseMultiPlanTerm(raw);
+        if(termState){
+          if(streaming){
+            const ban=document.createElement('div');
+            ban.className='stream-banner pop-in';
+            ban.innerHTML=`<span class="live-dot"></span><span><b>multi-plan</b> · sovereign term live</span>
+              <span style="margin-left:auto;opacity:.8">${esc(String(workedSeconds(m)||0)+'s')}</span>`;
+            box.appendChild(ban);
+          }
+          box.appendChild(renderSovereignTerm(termState, streaming));
+        } else {
         if(streaming){
           const ban=document.createElement('div');
           ban.className='stream-banner pop-in';
@@ -5211,13 +5622,13 @@ function renderTranscript(s){
         }
         const a=document.createElement('div');
         a.className='msg agent pop-in '+(streaming?'streaming ':'')+(m.status||'');
-        const raw=streamBody||(streaming?'':(m.status==='cancelled'?'Stopped — send a new message to reorganize.':''));
         const novaeBadge=String(s.mode||'').includes('novae')?' <span class="novae-pill">Novae</span>':'';
         const bodyHtml=isTerm?formatAgentBody(raw):formatProseBody(raw||(streaming?'…':''));
         const caret=streaming?'<span class="stream-caret" aria-hidden="true"></span>':'';
         a.innerHTML=`<div class="mh"><span><span class="live-dot" style="display:${streaming?'inline-block':'none'}"></span>${esc(eng)}${novaeBadge}${esc(tok)}</span><span>${esc(streaming?'live':(m.status||''))}</span></div>
           <div class="mb ${isTerm?'term':'prose'}">${bodyHtml}${caret}</div>`;
         box.appendChild(a);
+        }
         // Speak back ONLY in Voice ↔ Voice agent (never Codex/Grok/Plan/etc.)
         if(isVoiceMode && !streaming && m.status==='done' && raw){
           try{ speakVoiceReply(raw, m.id||''); }catch(_){}

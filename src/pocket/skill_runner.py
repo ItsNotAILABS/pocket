@@ -219,6 +219,31 @@ def run_skill(
         r = open_app((prompt or params.get("app") or "notepad").split()[0])
         return _md(sid, r), "" if r.get("ok") else r.get("error", ""), "portarius"
 
+    if sid in ("webmcp_scan", "webmcp_list", "webmcp_use", "webmcp_find"):
+        from pocket.mcp_bundle import invoke
+
+        r = invoke("pocket", sid, text=prompt, **params)
+        return _md(sid, r), "" if r.get("ok") else r.get("error", ""), "navigator"
+
+    if sid in ("go", "go_state", "go_tick"):
+        from pocket.mcp_bundle import invoke
+
+        r = invoke("pocket", sid, text=prompt, **params)
+        return _md(sid, r), "" if r.get("ok") else r.get("error", ""), "archon"
+    if sid in ("multi_workflows", "multi_workflow_run", "multi_workflow_get", "multi_workflow_families"):
+        from pocket.mcp_bundle import invoke
+
+        r = invoke("pocket", sid, text=prompt, **params)
+        return _md(sid, r), "" if r.get("ok") else r.get("error", ""), "archon"
+    try:
+        from pocket.mcp_fifty import known, run as run_fifty
+
+        if known(sid):
+            r = run_fifty(sid, {**params, "text": prompt or params.get("text") or ""})
+            return _md(sid, r), "" if r.get("ok") else r.get("error", ""), "archon"
+    except Exception:
+        pass
+
     return "", f"unknown skill: {skill_id}", "skill"
 
 
@@ -339,4 +364,21 @@ def powershell_command(cmd: str) -> Dict[str, Any]:
 def _md(sid: str, r: Dict[str, Any]) -> str:
     import json
 
-    return f"## Skill `{sid}`\n\n**{r.get('message') or ''}**\n\n```json\n{json.dumps(r, indent=2, default=str)[:5000]}\n```\n"
+    if sid in ("go", "go_state", "go_tick"):
+        try:
+            from pocket.go_plane import summarize
+
+            return f"## Skill `{sid}`\n\n{summarize(r)}\n"
+        except Exception:
+            pass
+    if sid in ("power_do", "power_pulse"):
+        try:
+            from pocket.power import summarize_do
+
+            if sid == "power_do" and (r.get("run") or r.get("pick")):
+                return f"## Skill `{sid}`\n\n{summarize_do(r)}\n"
+        except Exception:
+            pass
+    msg = r.get("message") or ""
+    body = json.dumps(r, indent=2, default=str)[:2500]
+    return f"## Skill `{sid}`\n\n**{msg}**\n\n```json\n{body}\n```\n"

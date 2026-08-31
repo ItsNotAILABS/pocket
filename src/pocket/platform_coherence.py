@@ -166,9 +166,11 @@ SURFACES: List[Dict[str, Any]] = [
             "/v1/economy/transfer",
             "/v1/economy/escrow",
             "/v1/economy/parallax",
+            "/v1/billing",
+            "/v1/billing/webhook",
         ],
-        "skills": ["economy_map", "economy_twins"],
-        "for": "POCK wallets, digital twin wallets, escrow, clearing, Parallax paper rails",
+        "skills": ["economy_map", "economy_twins", "billing_status"],
+        "for": "POCK wallets, digital twin wallets, escrow, clearing, Parallax paper rails, RevenueCat seats",
     },
     {
         "id": "screen",
@@ -269,6 +271,50 @@ SURFACES: List[Dict[str, Any]] = [
         "skills": ["mcp_catalog", "mcp_invoke", "cli_list", "cli_run"],
         "for": "10 MCPs + host CLIs headlessly",
     },
+    {
+        "id": "novae",
+        "name": "NOVAE hands",
+        "where": "desk Grok Novae · Codex Novae · /v1/novae",
+        "api": [
+            "/v1/novae",
+            "/v1/novae/list",
+            "/v1/novae/status",
+            "/v1/novae/activate",
+        ],
+        "skills": ["novae_list", "novae_activate", "novae_status"],
+        "for": "Nova lives inside POCKET — Grok research hands + Codex coding hands, same habitat/workspace",
+    },
+    {
+        "id": "imagine",
+        "name": "Imagine Studio",
+        "where": "/imagine · /studio/imagine · desk More → Imagine",
+        "api": [
+            "/imagine",
+            "/v1/imagine",
+            "/v1/imagine/gallery",
+            "/v1/imagine/compose",
+            "/v1/imagine/file",
+            "/v1/fusion/remake",
+        ],
+        "skills": ["imagine_status", "imagine_gallery", "imagine_compose"],
+        "for": "Letterboxed device stills from the host screen + fusion remake — not a prompt-to-image generator",
+    },
+    {
+        "id": "foundations",
+        "name": "Internal AI foundations",
+        "where": "GET /v1/foundations · skill foundations_map",
+        "api": ["/v1/foundations", "/v1/internal-models", "/v1/genetic", "/v1/identity"],
+        "skills": ["foundations_map", "internal_models", "genetic_flow", "express_model"],
+        "for": "Computational AI + math + self + intelligence world — all internal, no third-party inference required",
+    },
+    {
+        "id": "bots",
+        "name": "POCKET Bots",
+        "where": "/bots · desk tab Bots · pocket-agent teammates",
+        "api": ["/bots", "/v1/bots", "/v1/bots/hire", "/v1/bots/{id}/message", "/v1/bots/{id}/pulse"],
+        "skills": ["bots_list", "bots_hire", "bots_message"],
+        "for": "Grok-Bot-style named teammates with their own computer, threads, and always-on pulse — powered by pocket-agent",
+    },
 ]
 
 FLOW = [
@@ -280,6 +326,8 @@ FLOW = [
     "6. Voice turns → Conversational Fusion (POCKET) → expert/patience/preload",
     "7. Working packages conversation → handoff artifacts",
     "8. Agents call skills/MCP/CLI — never need separate apps for core loops",
+    "9. Seat Novae (Grok / Codex) for research or coding hands in the same workspace",
+    "10. Imagine Studio — compose host UI into phone/laptop stills at /imagine",
 ]
 
 # Agent-callable platform skills (id → definition)
@@ -292,8 +340,26 @@ PLATFORM_SKILLS: Dict[str, Dict[str, Any]] = {
     },
     "platform_health": {
         "worker": "ARCHON",
-        "desc": "Domain health for habitat/screen/work/fusion/mcp/agents",
+        "desc": "Domain health for habitat/screen/work/fusion/mcp/agents/novae",
         "tags": ["platform", "health"],
+        "kind": "atomic",
+    },
+    "novae_list": {
+        "worker": "ARCHON",
+        "desc": "List Grok Novae + Codex Novae hands and workspace",
+        "tags": ["platform", "novae", "agents"],
+        "kind": "atomic",
+    },
+    "novae_status": {
+        "worker": "ARCHON",
+        "desc": "Novae activation + last goal",
+        "tags": ["platform", "novae"],
+        "kind": "atomic",
+    },
+    "novae_activate": {
+        "worker": "ARCHON",
+        "desc": "Activate Grok Novae or Codex Novae in platform workspace",
+        "tags": ["platform", "novae", "agents"],
         "kind": "atomic",
     },
     "protocols_map": {
@@ -452,6 +518,198 @@ PLATFORM_SKILLS: Dict[str, Dict[str, Any]] = {
         "tags": ["engines", "python", "discover"],
         "kind": "atomic",
     },
+    "engine_uses": {
+        "worker": "ARCHON",
+        "desc": "20 named uses for web_ui + python_engine (research, browse, mail, forge…)",
+        "tags": ["engines", "web", "uses"],
+        "kind": "atomic",
+    },
+    "engine_use": {
+        "worker": "ARCHON",
+        "desc": "Run one named use id (or auto-pick from prompt)",
+        "tags": ["engines", "web", "uses"],
+        "kind": "composite",
+    },
+    "model_build": {
+        "worker": "ARCHON",
+        "desc": "Build a new internal model and register it on the platform",
+        "tags": ["models", "forge", "platform"],
+        "kind": "composite",
+    },
+    "model_list_built": {
+        "worker": "ARCHON",
+        "desc": "List agent-built models on this host",
+        "tags": ["models", "forge"],
+        "kind": "atomic",
+    },
+    "model_register": {
+        "worker": "ARCHON",
+        "desc": "Register built models into genetic/express registry",
+        "tags": ["models", "forge"],
+        "kind": "atomic",
+    },
+    "model_suggest": {
+        "worker": "ARCHON",
+        "desc": "Suggest a model blueprint from a free-text goal",
+        "tags": ["models", "forge"],
+        "kind": "atomic",
+    },
+    "agents_toolkit": {
+        "worker": "ARCHON",
+        "desc": "Full agent toolkit: internal MCP tools, 20 uses, skills, engines, model forge",
+        "tags": ["platform", "mcp", "agents", "discover"],
+        "kind": "atomic",
+    },
+    "agent_invoke": {
+        "worker": "ARCHON",
+        "desc": "Call any named being (ARCHON, OCULUS, KEEP, SOLUS, Aria…) — the AI invoke path",
+        "tags": ["platform", "agents", "invoke"],
+        "kind": "composite",
+    },
+    "agent_roster": {
+        "worker": "ARCHON",
+        "desc": "List every invocable sub-agent / organism and how to call it",
+        "tags": ["platform", "agents", "discover"],
+        "kind": "atomic",
+    },
+    "autonomous_status": {
+        "worker": "ARCHON",
+        "desc": "Status of KEEP, swarm, dream, organism, mesh hook, RAH, Damian",
+        "tags": ["platform", "agents", "autonomous"],
+        "kind": "atomic",
+    },
+    "autonomous_ensure": {
+        "worker": "ARCHON",
+        "desc": "Arm mesh hook + swarm + dreams + Damian so autonomous agents actually run",
+        "tags": ["platform", "agents", "autonomous"],
+        "kind": "composite",
+    },
+    "keep_start": {
+        "worker": "ARCHON",
+        "desc": "Start a KEEP agent bound to this chat until the session ends",
+        "tags": ["platform", "keep", "autonomous"],
+        "kind": "composite",
+    },
+    "keep_status": {
+        "worker": "ARCHON",
+        "desc": "KEEP agents currently running",
+        "tags": ["platform", "keep"],
+        "kind": "atomic",
+    },
+    "keep_stop": {
+        "worker": "ARCHON",
+        "desc": "Stop a KEEP agent (or end_chat for a session)",
+        "tags": ["platform", "keep"],
+        "kind": "atomic",
+    },
+    "kernel_status": {
+        "worker": "ARCHON",
+        "desc": "Neuro-Silicon userspace driver status (honest lanes, no slide FLOPS)",
+        "tags": ["platform", "kernel", "neuro"],
+        "kind": "atomic",
+    },
+    "kernel_calibrate": {
+        "worker": "ARCHON",
+        "desc": "Measure slab + matmul + 5-stage cognitive loop on this host",
+        "tags": ["platform", "kernel", "neuro"],
+        "kind": "composite",
+    },
+    "kernel_slab": {
+        "worker": "ARCHON",
+        "desc": "SLUB-shaped userspace slab status or bench",
+        "tags": ["platform", "kernel"],
+        "kind": "atomic",
+    },
+    "cognitive_loop": {
+        "worker": "ARCHON",
+        "desc": "Run 5 cognitive stages against the real agent roster",
+        "tags": ["platform", "kernel", "agents"],
+        "kind": "composite",
+    },
+    "workflow_start": {
+        "worker": "ARCHON",
+        "desc": "Start a long-running workflow (days). Host-bound context + ticks + compact.",
+        "tags": ["platform", "kernel", "workflow", "long"],
+        "kind": "composite",
+    },
+    "workflow_tick": {
+        "worker": "ARCHON",
+        "desc": "Force one long-workflow tick (cognitive loop + extras + checkpoint)",
+        "tags": ["platform", "kernel", "workflow"],
+        "kind": "composite",
+    },
+    "workflow_status": {
+        "worker": "ARCHON",
+        "desc": "List or get long workflows",
+        "tags": ["platform", "kernel", "workflow"],
+        "kind": "atomic",
+    },
+    "workflow_stop": {
+        "worker": "ARCHON",
+        "desc": "Pause/resume/stop a long workflow",
+        "tags": ["platform", "kernel", "workflow"],
+        "kind": "atomic",
+    },
+    "multi_plan": {
+        "worker": "ARCHON",
+        "desc": "Reason → task list + sub-agents → execute with live sovereign terminal in chat",
+        "tags": ["platform", "plan", "subagents", "orchestration"],
+        "kind": "composite",
+    },
+    "mcp_stream": {
+        "worker": "ARCHON",
+        "desc": "Live MCP JSON-RPC protocol stream — every tools/call frame in/out",
+        "tags": ["platform", "mcp", "protocol", "stream", "jsonrpc"],
+        "kind": "atomic",
+    },
+    "call_status": {
+        "worker": "ARCHON",
+        "desc": "Agent virtual numbers + call status (softphone / optional PSTN)",
+        "tags": ["phone", "calls", "virtual"],
+        "kind": "atomic",
+    },
+    "call_numbers": {
+        "worker": "ARCHON",
+        "desc": "List agent virtual numbers (+p-XXX-XXXX)",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
+    "call_assign": {
+        "worker": "ARCHON",
+        "desc": "Assign a virtual number to an agent",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
+    "call_dial": {
+        "worker": "ARCHON",
+        "desc": "Dial from agent virtual number (soft call or PSTN if Twilio set)",
+        "tags": ["phone", "calls", "dial"],
+        "kind": "composite",
+    },
+    "call_answer": {
+        "worker": "ARCHON",
+        "desc": "Answer a ringing agent call",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
+    "call_hangup": {
+        "worker": "ARCHON",
+        "desc": "Hang up an agent call",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
+    "call_speak": {
+        "worker": "ARCHON",
+        "desc": "Speak/text on an active soft call",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
+    "call_list": {
+        "worker": "ARCHON",
+        "desc": "List recent agent calls",
+        "tags": ["phone", "calls"],
+        "kind": "atomic",
+    },
     "economy_map": {
         "worker": "ARCHON",
         "desc": "Economic domain: wallets, twin wallets, escrow, clearing, Parallax bridge",
@@ -462,6 +720,18 @@ PLATFORM_SKILLS: Dict[str, Dict[str, Any]] = {
         "worker": "ARCHON",
         "desc": "List digital twin wallets for agents",
         "tags": ["economy", "twin", "wallet"],
+        "kind": "atomic",
+    },
+    "billing_status": {
+        "worker": "ARCHON",
+        "desc": "RevenueCat entitlements + POCK refill status (never auto-pay)",
+        "tags": ["economy", "billing", "revenuecat"],
+        "kind": "atomic",
+    },
+    "billing_sync": {
+        "worker": "ARCHON",
+        "desc": "Pull a RevenueCat subscriber and apply seats / plan",
+        "tags": ["economy", "billing", "revenuecat"],
         "kind": "atomic",
     },
     "list_agents": {
@@ -1019,6 +1289,48 @@ PLATFORM_SKILLS: Dict[str, Dict[str, Any]] = {
         "tags": ["studio", "imagine"],
         "kind": "atomic",
     },
+    "imagine_status": {
+        "worker": "STUDIO",
+        "desc": "Imagine Studio status + UI path",
+        "tags": ["studio", "imagine"],
+        "kind": "atomic",
+    },
+    "imagine_gallery": {
+        "worker": "STUDIO",
+        "desc": "List Imagine stills and fusion remakes",
+        "tags": ["studio", "imagine"],
+        "kind": "atomic",
+    },
+    "foundations_map": {
+        "worker": "ARCHON",
+        "desc": "Internal AI/math/self/intelligence foundations catalog",
+        "tags": ["platform", "models", "math", "internal"],
+        "kind": "atomic",
+    },
+    "bots_list": {
+        "worker": "ARCHON",
+        "desc": "List POCKET Bots teammates",
+        "tags": ["bots", "agents"],
+        "kind": "atomic",
+    },
+    "bots_hire": {
+        "worker": "ARCHON",
+        "desc": "Hire a Pocket bot from a plain-language job",
+        "tags": ["bots", "agents"],
+        "kind": "atomic",
+    },
+    "bots_message": {
+        "worker": "ARCHON",
+        "desc": "Message a Pocket bot like a colleague",
+        "tags": ["bots", "agents"],
+        "kind": "atomic",
+    },
+    "neuro_think": {
+        "worker": "ARCHON",
+        "desc": "Spherical neuro pass for Grok/Claude/Codex/Spark/Auro",
+        "tags": ["neuro", "engines"],
+        "kind": "atomic",
+    },
 }
 
 
@@ -1092,10 +1404,16 @@ def coherent() -> Dict[str, Any]:
             "habitat": "/v1/habitat",
             "screen": "/v1/screen",
             "work": "/v1/work",
+            "novae": "/v1/novae",
+            "imagine": "/imagine",
+            "foundations": "/v1/foundations",
+            "bots": "/bots",
+            "login": "/login",
+            "signup": "/signup",
         },
         "user_tabs_in_app": [
             "Desk", "Habitat", "Screen", "Agent OS", "Work Studio",
-            "Studio", "Voice Studio", "API · MCP", "Curiosities", "Phone", "Browser",
+            "Studio", "Imagine", "Voice Studio", "API · MCP", "Curiosities", "Phone", "Browser", "Novae",
         ],
         "agent_entry": [
             "POST /v1/skills/run {skill, prompt, params}",
@@ -1120,7 +1438,7 @@ def platform_brief(*, max_chars: int = 1800) -> str:
         "· OUR remote browser must BEAT theirs — skill remote_browser_benchmark",
         "· Phone + home IoT — pair + /v1/iot + HZ mesh (skill iot_status)",
         "· Remote always — tunnel pocket.medinatechlabs.net + LAN",
-        "· OUR computing clouds — host+deploys+Auro+NEXUS+mesh (skill computing_clouds)",
+        "· OUR computing clouds — host+deploys+Auro+NEXUS+mesh+Forge+MESIE+Engine (skill computing_clouds)",
         "· Cloud models = our perimeter when work runs here (not Connected-Apps vendor)",
         "· Fusion voice = DFW multi-domain routing (POST /v1/fusion/voice)",
         "· Life ops: food_order · flight_search · shop_search · web_browse · reservation (never auto-pay)",
@@ -1133,9 +1451,15 @@ def platform_brief(*, max_chars: int = 1800) -> str:
         "· Economy: operator + seat wallets, digital twin wallets per agent, escrow, clearing receipts, Parallax paper bridge — GET /v1/economy · skill economy_map",
         "· Protocols API: GET /v1/protocols · /v1/protocols/status · skill protocols_map · protocols_status",
         "· Identity: GET /v1/identity — every agent knows it is POCKET",
+        "· GO = live active states + 100 workflow slots (skill go / go_state · POST /v1/go · GET /v1/go)",
+        "· Power = do a goal on this host (skill power_do · POST /v1/power/do · UI /power)",
+        "· 200 MCP pack tools (60 universal) · 100 multi-workflows · Platform UI /os uses those APIs",
         "· Discover: skill platform_map / list_skills or GET /v1/platform/coherent · /v1/sovereign",
         "· Run skills: POST /v1/skills/run — enrich_prompt injects identity+tools for ALL agents",
-        "· Help users operate POCKET (desk, phone, sessions, skills, protocols).",
+        "· NOVAE: Grok Novae + Codex Novae hands live in POCKET (skill novae_activate · /v1/novae)",
+        "· IMAGINE: /imagine · skill imagine_compose (rotato_phone / macbook_web / clean) — host screenshot, not DALL·E",
+        "· FOUNDATIONS: internal math/self/world/Auro (GET /v1/foundations) — no third-party AI required",
+        "· Help users operate POCKET (desk, phone, Platform, Power, GO, sessions, skills).",
     ]
     text = "\n".join(lines)
     return text[:max_chars]
@@ -1189,6 +1513,65 @@ def run_platform_skill(
         from pocket.platform_api import health_domains
 
         return health_domains()
+
+    if sid in ("novae_list", "novae", "nova", "novae_status"):
+        from pocket.novae import list_novae
+
+        items = list_novae()
+        return {"ok": True, "novae": items, "count": len(items)}
+
+    if sid in ("novae_activate", "activate_novae", "nova_activate"):
+        from pocket.novae import activate
+
+        nid = str(params.get("id") or params.get("novae") or p or "GROK_NOVAE")
+        return activate(nid, goal=str(params.get("goal") or p or "platform activate"))
+
+    if sid in ("foundations_map", "foundations", "ai_foundations", "internal_foundations"):
+        from pocket.foundations import catalog as foundations_catalog
+
+        return foundations_catalog()
+
+    if sid in ("bots_list", "bots", "pocket_bots"):
+        from pocket.bots import catalog as bots_catalog
+
+        return bots_catalog()
+
+    if sid in ("bots_hire", "hire_bot"):
+        from pocket.bots import create_from_prompt
+
+        return create_from_prompt(p or params.get("job") or params.get("prompt") or "")
+
+    if sid in ("bots_message", "message_bot"):
+        from pocket.bots import message as bot_message
+
+        return bot_message(str(params.get("id") or params.get("bot") or ""), p or params.get("text") or "")
+
+    if sid in ("neuro_think", "neuro", "sphere", "neuro_sphere"):
+        from pocket.neuro_think import think as neuro_think
+
+        return neuro_think(p or params.get("prompt") or "", mode=str(params.get("mode") or "grok"))
+
+    if sid in ("imagine_status", "imagine", "imagine_studio"):
+        from pocket.imagine_studio import status as imagine_status
+
+        return imagine_status()
+
+    if sid in ("imagine_gallery", "imagine_stills"):
+        from pocket.imagine_studio import gallery as imagine_gallery
+
+        return imagine_gallery(limit=int(params.get("limit") or 24))
+
+    if sid in ("imagine_compose", "imagine_still", "compose_device"):
+        from pocket.imagine_studio import compose as imagine_compose
+
+        return imagine_compose(
+            mode=str(params.get("mode") or params.get("preset") or "rotato_phone"),
+            image=str(params.get("image") or params.get("path") or ""),
+            title=str(params.get("title") or "POCKET"),
+            subtitle=str(params.get("subtitle") or p or "Host co-pilot"),
+            image_b64=str(params.get("image_b64") or ""),
+            source=str(params.get("source") or "live"),
+        )
 
     if sid in ("list_agents", "agents_catalog"):
         from pocket.first_class_agents import desk_catalog, summary
@@ -1323,6 +1706,19 @@ def run_platform_skill(
         from pocket.economy import list_twins
 
         return list_twins()
+
+    if sid in ("billing_status", "revenuecat", "billing"):
+        from pocket.revenuecat import status as rc_status
+
+        return rc_status()
+
+    if sid in ("billing_sync", "revenuecat_sync"):
+        from pocket.revenuecat import apply_subscriber
+
+        uid = str(params.get("app_user_id") or params.get("user") or p or "").strip()
+        if not uid:
+            return {"ok": False, "error": "app_user_id required"}
+        return apply_subscriber(uid, source="skill")
 
     if sid == "find_feature":
         return find_feature(p or params.get("query") or "")
@@ -1794,6 +2190,43 @@ def run_platform_skill(
         planned = plan_tools(p, mode=str(params.get("mode") or ""), limit=int(params.get("limit") or 6))
         return {"ok": True, "skill": "tools_for_prompt", "planned": planned, "prompt": (p or "")[:200]}
 
+    if sid in ("multi_plan", "multiplan", "plan_exec", "agentic_plan", "task_plan"):
+        from pocket.multi_plan import run_multi_plan
+
+        r = run_multi_plan(
+            p or params.get("goal") or params.get("text") or "",
+            job_id=str(params.get("job_id") or ""),
+            session_id=str(params.get("session_id") or ""),
+            max_tasks=int(params.get("max_tasks") or 24),
+        )
+        r["skill"] = "multi_plan"
+        return r
+
+    if sid in ("mcp_stream", "mcp_rpc_stream", "protocol_stream", "jsonrpc_stream"):
+        from pocket.mcp_stream import list_frames, snapshot, format_term_view, clear as mcp_clear
+
+        action = str(params.get("action") or params.get("mode") or "").lower()
+        if action in ("clear", "reset"):
+            r = mcp_clear()
+            r["skill"] = "mcp_stream"
+            return r
+        after = int(params.get("after") or params.get("seq") or 0)
+        limit = int(params.get("limit") or 50)
+        fmt = str(params.get("format") or params.get("fmt") or "json").lower()
+        if fmt in ("term", "markdown", "md") or (p and ("term" in p.lower() or "markdown" in p.lower())):
+            return {
+                "ok": True,
+                "skill": "mcp_stream",
+                "format": "term",
+                "markdown": format_term_view(after_seq=after, limit=limit),
+            }
+        return {
+            "ok": True,
+            "skill": "mcp_stream",
+            **snapshot(),
+            "frames": list_frames(after_seq=after, limit=limit),
+        }
+
     # --- Agent mail + website UI + Python engines (models use these via MCP) ---
     if sid in (
         "mail_status", "mail_accounts", "mail_account_create",
@@ -1801,6 +2234,13 @@ def run_platform_skill(
         "web_ui_open", "web_ui_sense", "web_ui_act", "web_ui_browse",
         "web_ui_fetch", "web_ui_search", "web_ui_status",
         "python_engine", "python_engines_list",
+        "engine_uses", "engine_use",
+        "model_build", "model_list_built", "model_register", "model_suggest",
+        "build_model", "forge_model",
+        "agents_toolkit", "agents_tools", "tools_manifest",
+        "mcp_stream", "mcp_rpc_stream", "protocol_stream",
+        "call_status", "call_numbers", "call_assign",
+        "call_dial", "call_answer", "call_hangup", "call_speak", "call_list",
     ):
         from pocket.mcp_bundle import _invoke_mail_web
 
@@ -1811,7 +2251,121 @@ def run_platform_skill(
             # bare prompt with no engine → treat as goal for default engine
             if sid == "python_engine" and not merged.get("engine"):
                 merged.setdefault("prompt", p)
+            if sid in ("model_build", "build_model", "forge_model") and not merged.get("kind"):
+                # free-text build path uses model_forge auto-suggest
+                merged.setdefault("description", p)
+            if sid == "engine_use" and not merged.get("use") and not merged.get("use_id"):
+                # auto-pick use from prompt
+                from pocket.web_ui_engine import pick_use, run_use
+
+                pick = pick_use(p)
+                best = (pick.get("best") or {}).get("id") or ""
+                if best:
+                    return run_use(best, p, params=merged)
+                return pick
+            if sid in ("agents_toolkit", "agents_tools", "tools_manifest"):
+                if "md" in p.lower() or "markdown" in p.lower():
+                    merged["format"] = "markdown"
+                if "write" in p.lower() or "file" in p.lower():
+                    merged["format"] = "write"
         return _invoke_mail_web(sid, merged)
+
+    if sid in (
+        "agent_invoke",
+        "agent_roster",
+        "autonomous_status",
+        "autonomous_ensure",
+        "keep_start",
+        "keep_status",
+        "keep_stop",
+        "kernel_status",
+        "kernel_calibrate",
+        "kernel_slab",
+        "cognitive_loop",
+        "workflow_start",
+        "workflow_tick",
+        "workflow_status",
+        "workflow_stop",
+    ):
+        from pocket.agent_invoke import autonomous_status, ensure_autonomous, invoke, roster
+
+        if sid == "agent_roster":
+            return roster()
+        if sid == "autonomous_status":
+            return autonomous_status()
+        if sid == "autonomous_ensure":
+            return ensure_autonomous()
+        if sid == "kernel_status":
+            from pocket.kernels.neuro_silicon import driver_status
+
+            return driver_status()
+        if sid == "kernel_calibrate":
+            from pocket.kernels.neuro_silicon import calibrate
+
+            return calibrate(run_loop=True, goal=p)
+        if sid == "kernel_slab":
+            from pocket.kernels.slab import bench_slab, slab_status
+
+            if "bench" in (p or "").lower():
+                return bench_slab()
+            return slab_status()
+        if sid == "cognitive_loop":
+            from pocket.kernels.cognitive_loop import run_loop
+
+            return run_loop(p or "cognitive loop")
+        if sid == "workflow_start":
+            from pocket.kernels.long_workflow import start as wf_start
+
+            return wf_start(
+                p or str((params or {}).get("goal") or ""),
+                session_id=str((params or {}).get("session_id") or ""),
+                interval_sec=float((params or {}).get("interval_sec") or 90),
+                max_hours=float((params or {}).get("max_hours") or 168),
+                keep=bool((params or {}).get("keep")),
+                host_bound=(params or {}).get("host_bound", True) is not False,
+            )
+        if sid == "workflow_tick":
+            from pocket.kernels.long_workflow import tick as wf_tick
+
+            return wf_tick(str((params or {}).get("id") or p))
+        if sid == "workflow_status":
+            from pocket.kernels.long_workflow import get as wf_get, list_runs
+
+            wid = str((params or {}).get("id") or "").strip()
+            return wf_get(wid) if wid else list_runs()
+        if sid == "workflow_stop":
+            from pocket.kernels.long_workflow import pause, resume, stop as wf_stop
+
+            wid = str((params or {}).get("id") or p)
+            act = str((params or {}).get("action") or "stop").lower()
+            if act == "pause":
+                return pause(wid)
+            if act == "resume":
+                return resume(wid)
+            return wf_stop(wid)
+        if sid == "keep_status":
+            from pocket.keep_agents import status as ks
+
+            return ks()
+        if sid == "keep_stop":
+            from pocket.keep_agents import end_chat, stop as kstop
+
+            kid = str((params or {}).get("id") or (params or {}).get("keep_id") or "")
+            sid_ = str((params or {}).get("session_id") or "")
+            if sid_:
+                return end_chat(sid_)
+            if kid:
+                return kstop(kid)
+            return {"ok": False, "error": "id or session_id required"}
+        if sid == "keep_start":
+            return invoke("keep", prompt=p, session_id=str((params or {}).get("session_id") or ""), params=params)
+        return invoke(
+            str((params or {}).get("name") or (params or {}).get("agent") or p.split()[0] if p else ""),
+            prompt=p if (params or {}).get("name") or (params or {}).get("agent") else " ".join(p.split()[1:]),
+            job=str((params or {}).get("job") or (params or {}).get("action") or ""),
+            session_id=str((params or {}).get("session_id") or ""),
+            params=params,
+        )
 
     # --- Multi-Sandbox Capsule + WebGPU (PROTO-CAPSULE-WASM-009) ---
     try:

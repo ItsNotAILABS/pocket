@@ -69,6 +69,12 @@ def route_intent(text: str) -> str:
         return "vision"
     if re.search(r"\b(code|implement|refactor|bug|repo|git|pr |pull request)\b", low):
         return "codex"
+    if re.search(
+        r"\b(hit go|press go|go plane|what.?s working|active states|"
+        r"morning seatbelt|power do|do it on (the )?host|100 workflows)\b",
+        low,
+    ):
+        return "power"
     if re.search(r"\b(plan|roadmap|outline|break down|steps for)\b", low):
         return "plan"
     if re.search(r"\b(open |browse |edge |browser|navigate|go to )\b", low):
@@ -159,6 +165,17 @@ def run_assistant_turn(
 
     intent = route_intent(prompt)
     _progress(job_id, f"Digital assistant · → {eng}…", eng)
+
+    if eng == "power":
+        try:
+            from pocket.agent_tools_loop import run_tools_for_prompt
+
+            meta = run_tools_for_prompt(prompt, mode="assist")
+            body = meta.get("command_md") or meta.get("inject") or "GO/Power ran. Open /power."
+            return _pack("[engine=power · digital assistant]\n\n" + body, "power", "go_power", t0)
+        except Exception as e:
+            _progress(job_id, f"Power path failed ({e})")
+            eng = "plan"
 
     # Fast path: simple plans without multi-agent harness lag
     if eng == "plan" and len(prompt) < 280 and not re.search(

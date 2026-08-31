@@ -27,6 +27,21 @@ INVITE_ENV = "POCKET_INVITE_CODE"
 MAX_SEATS = int(os.environ.get("POCKET_MAX_SEATS") or "25")
 TOKEN_TTL_SEC = 86400 * 7
 TOKEN_IDLE_SEC = 86400 * 2
+PUBLIC_SIGNUP_ENV = "POCKET_PUBLIC_SIGNUP"
+
+
+def public_signup_enabled() -> bool:
+    """Public visitors can create their own member seat without a pk_seat_ key.
+
+    Default ON so the public URL has Sign in + Sign up. Set POCKET_PUBLIC_SIGNUP=0
+    to require invites again. Invite keys still work when provided.
+    """
+    v = (os.environ.get(PUBLIC_SIGNUP_ENV) or "").strip().lower()
+    if v in ("0", "false", "no", "off"):
+        return False
+    if v in ("1", "true", "yes", "on"):
+        return True
+    return True
 
 
 def _hash(pw: str, salt: str) -> str:
@@ -193,6 +208,9 @@ def list_users() -> List[Dict[str, Any]]:
                     "display": rec.get("display") or u,
                     "is_owner": bool(rec.get("is_owner")),
                     "created_at": rec.get("created_at"),
+                    "edition": rec.get("edition") or ("founder" if rec.get("is_owner") else "market"),
+                    "plan": rec.get("plan") or "",
+                    "channel": rec.get("channel") or "",
                 }
             )
         return out
@@ -294,35 +312,44 @@ def register(
     display: str = "",
     *,
     accepted_terms: bool = False,
+    plan: str = "",
+    channel: str = "sold",
+    email: str = "",
 ) -> Dict[str, Any]:
-    """Create a NEW member seat. Never becomes owner. Never touches owner password."""
+    """Create a NEW member seat. Never becomes owner. Never touches owner password.
+
+    Invite is optional when public signup is on (public URL /join /signup).
+    """
     user = (user or "").strip().lower()
     password = password or ""
     invite = (invite or "").strip()
-    if len(user) < 2 or len(password) < 8:
-        return {"ok": False, "error": "user min 2 chars, password min 8"}
+    email = (email or "").strip().lower()
+    if len(user) < 2:
+        return {"ok": False, "error": "username needs at least 2 characters"}
+    if not user.replace("_", "").replace("-", "").isalnum():
+        return {"ok": False, "error": "username: letters, numbers, _ and - only"}
+    if len(password) < 8:
+        return {"ok": False, "error": "password needs at least 8 characters"}
     if not accepted_terms:
-        return {"ok": False, "error": "you must accept the terms (docs/LEGAL.md)"}
-    if user in ("admin", "root", "system", "owner"):
+        return {"ok": False, "error": "accept the terms to create a seat"}
+    if user in ("admin", "root", "system", "owner", "operator", "founder"):
         return {"ok": False, "error": "reserved username"}
+    if email and ("@" not in email or "." not in email.split("@")[-1] or len(email) > 120):
+        return {"ok": False, "error": "that email does not look valid"}
     with _lock:
         data = _load()
         # block registering as existing owner username
         existing = (data.get("users") or {}).get(user)
         if existing:
-            return {"ok": False, "error": "user exists — sign in with YOUR password, do not use owner login"}
-        n_members = sum(
-            1
-            for rec in (data.get("users") or {}).values()
-            if (rec.get("role") or "member") != "admin" or not rec.get("is_owner")
-        )
-        # count all seats except we allow max total users
+            return {"ok": False, "error": "that username is taken — sign in, or pick another"}
         n = len(data.get("users") or {})
         if n >= MAX_SEATS:
             return {"ok": False, "error": f"seat limit reached ({MAX_SEATS})"}
-        inv_id = _consume_invite(data, invite)
-        if not inv_id:
-            return {"ok": False, "error": "invalid or exhausted seat invite key"}
+        inv_id = _consume_invite(data, invite) if invite else None
+        if invite and not inv_id:
+            return {"ok": False, "error": "that invite is invalid, used up, or mistyped"}
+        if not inv_id and not public_signup_enabled():
+            return {"ok": False, "error": "signup needs a seat invite (pk_seat_…) from the operator"}
         salt = secrets.token_hex(8)
         data.setdefault("users", {})[user] = {
             "user": user,
@@ -331,16 +358,177 @@ def register(
             "role": "member",
             "is_owner": False,
             "display": (display or user)[:40],
+            "email": email[:120],
             "created_at": time.time(),
             "accepted_terms_at": time.time(),
-            "seat_invite_id": inv_id,
+            "seat_invite_id": inv_id or "public",
+            "edition": "market",
+            "channel": (channel or ("public" if not inv_id else "sold"))[:24],
+            "plan": (plan or ("public" if not inv_id else ""))[:40],
         }
         _save(data)
+    tenant = ""
+    clis: Dict[str, Any] = {}
+    try:
+        from pocket.platform_space import tenant_cwd, tenant_root
+
+        tenant = str(tenant_root(user))
+        tenant_cwd(user, "files")
+    except Exception:
+        pass
+    try:
+        from pocket.model_clis import ensure_seat
+
+        clis = ensure_seat(user, install_host=False)
+    except Exception:
+        clis = {}
+    twin: Dict[str, Any] = {}
+    try:
+        from pocket.twin_mint import mint as mint_twin
+
+        twin = mint_twin(user)
+    except Exception as e:
+        twin = {"ok": False, "error": str(e)[:160]}
     return {
         "ok": True,
         "user": user,
         "role": "member",
-        "message": "Your own seat is ready. You are not the owner account.",
+        "edition": "market",
+        "channel": channel or "sold",
+        "plan": plan or "",
+        "tenant": tenant,
+        "twin": twin.get("twin") if isinstance(twin, dict) else twin,
+        "clis": clis.get("seat") if isinstance(clis, dict) else clis,
+        "message": "Your seat is minted on this PC: files, encrypted vault, Pocket vault, and CLIs inside your workspace.",
+    }
+
+
+def _safe_oauth_username(login: str) -> str:
+    raw = "".join(ch if ch.isalnum() or ch in "-_" else "" for ch in (login or "").lower())
+    raw = raw.strip("-_")[:32]
+    if len(raw) < 2:
+        raw = "user" + secrets.token_hex(3)
+    if raw in ("admin", "root", "system", "owner", "operator", "founder", "pocket"):
+        return "gh-" + raw
+    return raw
+
+
+def upsert_from_oauth(
+    provider: str,
+    subject: str,
+    *,
+    login: str = "",
+    display: str = "",
+    email: str = "",
+    avatar: str = "",
+    prefer_owner: bool = False,
+) -> Dict[str, Any]:
+    """Find or create a seat from a verified OAuth identity. Never overwrites owner password."""
+    provider = (provider or "").strip().lower()
+    subject = str(subject or "").strip()
+    if not provider or not subject:
+        return {"ok": False, "error": "provider identity missing"}
+    ident_key = f"{provider}:{subject}"
+    email = (email or "").strip().lower()
+    display = (display or login or provider)[:40]
+    with _lock:
+        data = _load()
+        idx = data.setdefault("oauth_identities", {})
+        existing_user = idx.get(ident_key)
+        users = data.setdefault("users", {})
+        if existing_user and existing_user in users:
+            rec = users[existing_user]
+        elif prefer_owner:
+            owner_name = None
+            for u, rec0 in users.items():
+                if rec0.get("is_owner") or rec0.get("role") == "admin":
+                    owner_name = u
+                    rec = rec0
+                    break
+            if not owner_name:
+                try:
+                    from pocket.auth import expected_user
+
+                    owner_name = (expected_user() or "pocket").lower()
+                except Exception:
+                    owner_name = "pocket"
+                rec = users.get(owner_name) or {
+                    "user": owner_name,
+                    "role": "admin",
+                    "is_owner": True,
+                    "display": "Owner",
+                    "created_at": time.time(),
+                }
+                users[owner_name] = rec
+            existing_user = owner_name
+        else:
+            rec = None
+            existing_user = ""
+        if rec is None:
+            base = _safe_oauth_username(login)
+            name = base
+            n = 2
+            while name in users:
+                name = f"{base}{n}"
+                n += 1
+                if n > 99:
+                    name = base + secrets.token_hex(2)
+                    break
+            salt = secrets.token_hex(8)
+            rec = {
+                "user": name,
+                "salt": salt,
+                "hash": _hash(secrets.token_urlsafe(24), salt),
+                "passwordless": True,
+                "role": "member",
+                "is_owner": False,
+                "display": display or name,
+                "email": email[:120],
+                "avatar": (avatar or "")[:240],
+                "created_at": time.time(),
+                "accepted_terms_at": time.time(),
+                "seat_invite_id": f"oauth:{provider}",
+                "edition": "market",
+                "channel": "oauth",
+                "plan": "public",
+                "identities": [],
+            }
+            users[name] = rec
+            existing_user = name
+        ids = rec.setdefault("identities", [])
+        if not any(i.get("provider") == provider and str(i.get("subject")) == subject for i in ids):
+            ids.append(
+                {
+                    "provider": provider,
+                    "subject": subject,
+                    "login": (login or "")[:80],
+                    "at": time.time(),
+                }
+            )
+        if email and not rec.get("email"):
+            rec["email"] = email[:120]
+        if display and not rec.get("display"):
+            rec["display"] = display
+        if avatar:
+            rec["avatar"] = avatar[:240]
+        idx[ident_key] = existing_user
+        _save(data)
+    clis: Dict[str, Any] = {}
+    try:
+        from pocket.model_clis import ensure_seat
+
+        clis = ensure_seat(existing_user, install_host=False)
+    except Exception:
+        clis = {}
+    return {
+        "ok": True,
+        "user": existing_user,
+        "role": rec.get("role") or "member",
+        "display": rec.get("display") or existing_user,
+        "is_owner": bool(rec.get("is_owner")),
+        "provider": provider,
+        "new": rec.get("created_at") and (time.time() - float(rec.get("created_at") or 0) < 5),
+        "clis": clis.get("seat") if isinstance(clis, dict) else clis,
     }
 
 
@@ -512,8 +700,11 @@ def user_from_token(token: str) -> Optional[Dict[str, Any]]:
             except Exception:
                 pass
             return None
-        rec["last"] = now
-        _save(data)
+        # Do not rewrite users.json on every /v1/auth/me — Edge fires several
+        # at once and a locked save made a valid login look like 401.
+        if now - last > 30:
+            rec["last"] = now
+            _save(data)
         u = rec.get("user")
         urec = (data.get("users") or {}).get(u) or {}
         role = urec.get("role") or "member"
@@ -531,4 +722,25 @@ def user_from_token(token: str) -> Optional[Dict[str, Any]]:
             "role": role,
             "display": urec.get("display") or u,
             "is_owner": bool(urec.get("is_owner")),
+            "edition": urec.get("edition") or ("founder" if urec.get("is_owner") or role == "admin" else "market"),
+            "plan": urec.get("plan") or "",
+            "channel": urec.get("channel") or "",
         }
+
+
+def set_user_plan(user: str, plan: str, *, source: str = "revenuecat") -> Dict[str, Any]:
+    """Attach a paid plan to an existing seat (RevenueCat webhook / sync)."""
+    user = (user or "").strip().lower()
+    plan = (plan or "").strip()[:40]
+    if not user:
+        return {"ok": False, "error": "user required"}
+    with _lock:
+        data = _load()
+        rec = (data.get("users") or {}).get(user)
+        if not rec:
+            return {"ok": False, "error": "no such seat"}
+        rec["plan"] = plan
+        rec["plan_source"] = source
+        rec["plan_at"] = time.time()
+        _save(data)
+    return {"ok": True, "user": user, "plan": plan, "source": source}

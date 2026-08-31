@@ -30,7 +30,7 @@ VOICE_STUDIO_HTML = r"""<!DOCTYPE html>
   --fg:#fafafa;--muted:#8b8b98;--accent:#10a37f;--emerald:#34d399;--indigo:#818cf8;
   --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --ease:cubic-bezier(.22,1,.36,1);--t:160ms var(--ease);
+  --ease:cubic-bezier(.22,1,.36,1);--t:180ms var(--ease);
   --glow:0 0 0 1px rgba(16,163,127,.3),0 8px 28px rgba(16,163,127,.15);
 }
 *{box-sizing:border-box}
@@ -47,7 +47,7 @@ button{cursor:pointer;border:0;background:none}
 .app{display:grid;grid-template-rows:52px 1fr;height:100dvh;height:100vh}
 .top{
   display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--line);
-  background:rgba(6,6,10,.9);backdrop-filter:blur(18px) saturate(1.15);z-index:5
+  background:rgba(6,6,10,.78);backdrop-filter:blur(22px) saturate(1.35);z-index:5
 }
 .brand{display:flex;align-items:center;gap:9px;font-weight:750;letter-spacing:-.04em;font-size:14px}
 .mark{

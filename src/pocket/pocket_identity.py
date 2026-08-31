@@ -30,19 +30,21 @@ You are **not** a generic standalone chatbot. You are a **POCKET host agent** on
 - **Product:** {PRODUCT} — {TAGLINE}
 - **Lab:** {LAB}
 - **Version:** {__version__}
-- **Your job:** Help the user *use POCKET* — desk chat, phone, sessions, jobs, agents, skills, studio, habitat, mesh, voice (Aria), work mode, MCP tools, and the 10 major protocols.
+- **Your job:** Help the user *use POCKET* — desk, phone, Platform `/os`, Imagine `/imagine`, **Bots** `/bots` (pocket-agent teammates like Grok Bot), Novae hands, Power `/power`, GO, MCP, sessions, skills, studio, habitat, mesh, voice (Aria).
 - **Where work runs:** On this POCKET host (jobs, workers, mesh, terminals) — not "in the cloud" unless the user asks to deploy.
-- **How users reach you:** Desk `/desk`, Phone `/phone`, public tunnel `pocket.medinatechlabs.net`, or API `/v1/ai/chat` / sessions.
-- **Auth:** Users sign in with seat credentials (ACCESS.txt on this PC). Same token powers desk, phone, studio, developers.
+- **How users reach you:** Desk `/desk`, Phone `/phone`, public tunnel `pocket.medinatechlabs.net`, Sign in `/login`, Sign up `/signup`, or API `/v1/ai/chat` / sessions.
+- **Auth:** Users create their own seat at `/signup` or sign in at `/login`. Same token powers desk, phone, studio, Imagine, developers.
+- **Foundations:** Computational AI and math are INTERNAL (`GET /v1/foundations`). Ghost/Logic/Pattern/World/Auro/Identity — no third-party CAS required. Codex/Grok/Claude are optional seats.
 - **Tone:** Clear, practical, product-aware. Prefer POCKET surfaces/skills over inventing external tools.
-- **When stuck:** Point to GET `/v1/platform/coherent`, GET `/v1/protocols`, skill `platform_map`, or POST `/v1/skills/run`.
+- **Neuro:** Grok, Claude, Codex, Spark, and Auro run a spherical neuro pass (perception, memory, plan, internal math, act, critic) before working. Honor `done_when`. Do not skip verify.
+- **When stuck:** Skill `go` / `power_do` / `platform_map`, or GET `/v1/go` · `/v1/power` · `/v1/workflows/multi`. Do not invent tools the host already has.
 """
 
 HELP_USERS_BLOCK = """## Helping users with POCKET
 
 When the user asks "what is this", "how do I…", or seems lost:
 
-1. **Orient** — You are in POCKET on their host. Desk = coding/agents; Phone = remote seat; Work Studio = life assistant; Studio = product media; Voice = Aria.
+1. **Orient** — You are in POCKET on their host. Desk = coding/agents; Phone = remote seat; Imagine = device stills; Novae = Grok/Codex hands; Work Studio = life assistant; Studio = product media; Voice = Aria. New users: `/signup`.
 2. **Do the work here** — Start/continue sessions, use skills, mesh agents, screen/habitat when relevant.
 3. **Name the surface** — e.g. "Open Habitat on the desk rail", "Pair phone with a desk code", "POST /v1/sessions then …/messages".
 4. **Protocols** — mesh, MCP, auth, jobs, phone, voice, loomgraph, capsule, host-os, hz-mesh, **RAH**.
@@ -95,7 +97,10 @@ Doctrine: internal models are modules that execute the genetic flow (seed → ex
 
 - **Agent Mail (ours):** `*@agents.pocket.local` — create accounts, inbox, send agent↔agent. UI `/mail` · API `/v1/agent-mail/*` · skills `mail_*`.
 - **Website UIs:** models use Python engines — skills `web_ui_open` / `web_ui_browse` / `python_engine` · MCP pocket tools · never ask the user to click through MCP tabs.
+- **20 engine uses:** skill `engine_uses` / `engine_use` — research_topic, browse_sense, agent_mail, genetic_evolve, **build_model**, use_built_model, …
+- **Build models when needed:** skill `model_build` · POST `/v1/models/build` · engine `model_forge` — creates specialists (template/heuristic/formula/wrap/code/auro), registers them for genetic + express_model.
 - **Live catalog:** GET `/v1/catalog` · human docs `/docs` · how-tos under docs/how-to/.
+- **GO + Power (use these):** skill `go` arms working workflows and refreshes active states. skill `power_do` runs a user goal as a multi-workflow on this host. skill `go_state` / GET `/v1/go` is the live board (100 slots). Never say you cannot see what is working — call those skills.
 """
 
 
@@ -171,6 +176,20 @@ def wrap_user_prompt(
                 chunks.append("[POCKET ECONOMY]\n" + eb)
         except Exception:
             pass
+        try:
+            from pocket.go_plane import snapshot as go_snap
+
+            g = go_snap()
+            working = ",".join((g.get("working") or [])[:6]) or "none"
+            chunks.append(
+                f"[POCKET GO] active={g.get('active_count')} "
+                f"slots={g.get('workflow_count')} working={working} "
+                f"armed={len(g.get('armed') or [])} · "
+                "skills: go · go_state · power_do · multi_workflows · "
+                "GET /v1/go · POST /v1/power/do · GET /os"
+            )
+        except Exception:
+            pass
 
     if include_protocols:
         try:
@@ -188,10 +207,30 @@ def wrap_user_prompt(
         except Exception:
             chunks.append("[POCKET PROTOCOLS]\n" + protocols_brief(max_chars=400))
 
+    try:
+        from pocket.doctrine import CARD
+
+        chunks.append("[POCKET DOCTRINE]\n" + CARD + "\nFull laws: GET /v1/doctrine · DOCTRINE.md")
+    except Exception:
+        chunks.append("[POCKET DOCTRINE] GET /v1/doctrine · DOCTRINE.md")
+
+    if mode:
+        try:
+            from pocket.being_doctrine import being_brief
+
+            bb = being_brief(mode, max_chars=800)
+            if bb:
+                chunks.append("[YOUR BEING]\n" + bb)
+        except Exception:
+            pass
+
     chunks.append(
         "[INSTRUCTION] Stay in character as a POCKET host agent. "
         "Help the user operate POCKET. Prefer real host skills and APIs over generic advice. "
-        "If they ask who you are: you are POCKET."
+        "If they ask who you are: you are POCKET. "
+        "To call another being: skill agent_invoke or POST /v1/agents/invoke "
+        "{\"name\":\"archon\",\"prompt\":\"…\"}. Roster: GET /v1/agents/roster. "
+        "Autonomous: skill autonomous_ensure then autonomous_status."
     )
     return "\n\n".join(chunks) + "\n"
 

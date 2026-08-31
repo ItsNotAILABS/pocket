@@ -8,7 +8,8 @@ set POCKET_PORT=8787
 set POCKET_HOST=127.0.0.1
 set POCKET_HEART_MS=873
 set POCKET_AURO_TRAIN=0
-set POCKET_URL=http://127.0.0.1:8787/desk
+set POCKET_URL=http://127.0.0.1:8787/desk?face=owner
+set POCKET_CLIENT_ROLE=operator
 
 set PY=%LOCALAPPDATA%\Programs\Python\Python311-arm64\python.exe
 if not exist "%PY%" set PY=python

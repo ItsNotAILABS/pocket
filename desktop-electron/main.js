@@ -15,7 +15,9 @@ const https = require("https");
 const { spawn } = require("child_process");
 const { URL } = require("url");
 
-const PORT = 8787;
+const OWNER_PORT = 8787;
+const USERS_PORT = 8788;
+const PORT = OWNER_PORT;
 /** Public demo default (not a secret). Operators can override via POCKET_PUBLIC_URL. */
 const DEFAULT_CLOUD =
   (process.env.POCKET_PUBLIC_URL || "https://pocket.medinatechlabs.net").replace(
@@ -39,7 +41,7 @@ const LAUNCH_ROLE = envRole() || "user";
 const IS_OPERATOR = LAUNCH_ROLE === "operator";
 
 if (app.setName) {
-  app.setName(IS_OPERATOR ? "POCKET Owner" : "POCKET");
+  app.setName(IS_OPERATOR ? "POCKET Owner" : "POCKET for Users");
 }
 if (process.platform === "win32" && app.setAppUserModelId) {
   app.setAppUserModelId(
@@ -73,12 +75,16 @@ function configPath() {
   return path.join(app.getPath("userData"), "pocket-client.json");
 }
 
+function localPort() {
+  return IS_OPERATOR ? OWNER_PORT : USERS_PORT;
+}
+
 function defaultConfig() {
   if (IS_OPERATOR) {
     return {
       role: "operator",
       source: "local",
-      baseUrl: `http://127.0.0.1:${PORT}`,
+      baseUrl: `http://127.0.0.1:${OWNER_PORT}`,
       onboarded: true,
     };
   }
@@ -88,6 +94,7 @@ function defaultConfig() {
     baseUrl: null,
     onboarded: false,
     defaultCloud: DEFAULT_CLOUD,
+    localUsersUrl: `http://127.0.0.1:${USERS_PORT}`,
   };
 }
 
@@ -142,7 +149,7 @@ function py() {
 function healthLocal() {
   return new Promise((resolve) => {
     const req = http.get(
-      { hostname: "127.0.0.1", port: PORT, path: "/health", timeout: 2000 },
+      { hostname: "127.0.0.1", port: localPort(), path: "/health", timeout: 2000 },
       (res) => {
         res.resume();
         resolve(res.statusCode === 200);
@@ -202,14 +209,19 @@ function ensureLocalHost() {
     if (!fs.existsSync(path.join(src, "pocket"))) {
       return false;
     }
+    const port = localPort();
     hostProc = spawn(
       py(),
-      ["-u", "-m", "pocket", "serve", "--host", "0.0.0.0", "--port", String(PORT)],
+      ["-u", "-m", "pocket", "serve", "--host", "127.0.0.1", "--port", String(port)],
       {
         cwd: r,
         env: {
           ...process.env,
           PYTHONPATH: src,
+          POCKET_PORT: String(port),
+          POCKET_PRODUCT: IS_OPERATOR ? "owner" : "users",
+          POCKET_EDITION: IS_OPERATOR ? "founder" : "public",
+          POCKET_PUBLIC_URL: `http://127.0.0.1:${port}`,
           POCKET_MESH_HOOK: "0",
           POCKET_ALWAYS_MESH: "0",
           POCKET_HEADLESS_AUTO: "0",
@@ -236,7 +248,8 @@ async function waitLocal(ms) {
 }
 
 function deskUrl(cfg) {
-  const base = (cfg.baseUrl || `http://127.0.0.1:${PORT}`).replace(/\/$/, "");
+  const fallback = `http://127.0.0.1:${localPort()}`;
+  const base = (cfg.baseUrl || fallback).replace(/\/$/, "");
   return base + "/desk";
 }
 
@@ -269,10 +282,10 @@ async function openDesk(cfg) {
 
 function originBase(cfg) {
   try {
-    const b = (cfg && cfg.baseUrl) || `http://127.0.0.1:${PORT}`;
+    const b = (cfg && cfg.baseUrl) || `http://127.0.0.1:${localPort()}`;
     return new URL(b).origin;
   } catch {
-    return `http://127.0.0.1:${PORT}`;
+    return `http://127.0.0.1:${localPort()}`;
   }
 }
 
@@ -295,7 +308,7 @@ function isAllowedNav(url, cfg) {
     // always allow loopback host health while switching
     if (
       (u.hostname === "127.0.0.1" || u.hostname === "localhost") &&
-      (u.port === String(PORT) || u.port === "")
+      (u.port === String(OWNER_PORT) || u.port === String(USERS_PORT) || u.port === "")
     ) {
       return true;
     }
@@ -349,8 +362,12 @@ function buildMenu(cfg) {
           },
         },
         {
-          label: IS_OPERATOR ? "Role: Owner / Operator (sovereign host)" : "Role: User seat",
+          label: IS_OPERATOR ? "YOUR POCKET · Owner / this machine" : "USER FACING · Seat client",
           enabled: false,
+        },
+        {
+          label: "Which POCKET?",
+          click: () => openPath(readConfig(), "/which"),
         },
         {
           label: "Reset user onboarding (this profile)",
@@ -422,6 +439,7 @@ function buildMenu(cfg) {
 ipcMain.handle("pocket:getConfig", () => readConfig());
 ipcMain.handle("pocket:defaults", () => ({
   defaultCloud: DEFAULT_CLOUD,
+  localUsersUrl: `http://127.0.0.1:${USERS_PORT}`,
   role: LAUNCH_ROLE,
   isOperator: IS_OPERATOR,
 }));
@@ -432,10 +450,10 @@ ipcMain.handle("pocket:completeOnboarding", async (_e, payload) => {
   const source = (payload && payload.source) || "cloud";
   let baseUrl = (payload && payload.baseUrl) || "";
   if (source === "local") {
-    baseUrl = `http://127.0.0.1:${PORT}`;
+    baseUrl = `http://127.0.0.1:${USERS_PORT}`;
     const ok = await ensureLocalHost();
     if (!ok) {
-      return { ok: false, error: "Could not start local POCKET host on this PC" };
+      return { ok: false, error: "Could not start POCKET for Users on :8788" };
     }
   } else {
     baseUrl = String(baseUrl || "").replace(/\/$/, "");
@@ -471,7 +489,7 @@ ipcMain.handle("pocket:completeOnboarding", async (_e, payload) => {
 
 app.whenReady().then(async () => {
   mainWindow = new BrowserWindow({
-    title: IS_OPERATOR ? "POCKET Owner" : "POCKET",
+    title: IS_OPERATOR ? "POCKET Owner — your machine" : "POCKET Seat — user facing",
     width: 1360,
     height: 880,
     minWidth: 960,
@@ -521,8 +539,9 @@ app.whenReady().then(async () => {
       "data:text/html," +
         encodeURIComponent(
           `<body style="background:#09090b;color:#e4e4e7;font-family:system-ui;padding:48px">
-          <h1 style="color:#10a37f">POCKET Owner</h1>
-          <p>Starting local host…</p></body>`
+          <p style="letter-spacing:.12em;text-transform:uppercase;color:#fbbf24;font-weight:800;font-size:12px">YOUR POCKET</p>
+          <h1 style="color:#eab308">POCKET Owner</h1>
+          <p>POCKET Owner on :8787. Users is a different product on :8788. Starting your host…</p></body>`
         )
     );
     mainWindow.show();

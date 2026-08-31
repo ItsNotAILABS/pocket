@@ -133,7 +133,7 @@ def render_doc_page(rel: str) -> Optional[str]:
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f}}
 *{{box-sizing:border-box}}
-body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 400px at 0% 0%,rgba(16,163,127,.08),transparent 50%),var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}}
 a{{color:var(--accent)}}
 .wrap{{max-width:820px;margin:0 auto;padding:28px 18px 80px}}
 nav{{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}}
@@ -215,7 +215,7 @@ def docs_hub_html() -> str:
 <style>
 :root{{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f}}
 *{{box-sizing:border-box}}
-body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 400px at 0% 0%,rgba(16,163,127,.08),transparent 50%),var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}}
 a{{color:var(--accent);text-decoration:none}}
 .wrap{{max-width:1040px;margin:0 auto;padding:36px 18px 80px}}
 h1{{letter-spacing:-.03em;color:var(--fg);margin:0 0 8px;font-size:1.75rem}}
@@ -269,6 +269,7 @@ code{{background:#0a0a0a;padding:1px 6px;border-radius:5px;font-size:12px}}
     <a class="card" href="/download"><h2>Downloads</h2><p>Windows packages after Researcher License. Id: {html.escape(str(lic.get("id") or ""))}</p></a>
     <a class="card" href="/license/text"><h2>Researcher License</h2><p>Non-commercial research &amp; evaluation.</p></a>
     <a class="card" href="/v1/catalog"><h2>Live JSON catalog</h2><p>Systems · skills · engines · agent mail status.</p></a>
+    <a class="card" href="/docs/view/DOCTRINE"><h2>Doctrine</h2><p>30 laws · oath · forbidden · GET /v1/doctrine</p></a>
     <a class="card" href="/docs/view/SECURITY"><h2>Security</h2><p>Founder host ≠ market seat.</p></a>
   </div>
 </main>
@@ -286,7 +287,7 @@ def license_page_html() -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>{html.escape(str(lic.get("title") or "License"))}</title>
 <style>
-body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#09090b;color:#e4e4e7;line-height:1.55}}
+body{{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(800px 360px at 0% 0%,rgba(16,163,127,.08),transparent 50%),#09090b;color:#e4e4e7;line-height:1.55;-webkit-font-smoothing:antialiased}}
 .wrap{{max-width:720px;margin:0 auto;padding:40px 20px}}
 h1{{color:#fafafa;letter-spacing:-.03em}}
 a{{color:#10a37f}}

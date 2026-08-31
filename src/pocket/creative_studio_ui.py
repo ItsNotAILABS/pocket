@@ -22,6 +22,7 @@ CREATIVE_HTML = r"""<!DOCTYPE html>
   --font:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,Consolas,monospace;
   --radius:16px;--shadow:0 20px 50px rgba(0,0,0,.45);
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -33,7 +34,7 @@ a{color:var(--accent2);text-decoration:none}
 a:hover{text-decoration:underline}
 
 /* nav */
-.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.55);backdrop-filter:blur(14px);position:sticky;top:0;z-index:40}
+.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.55);backdrop-filter:blur(22px) saturate(1.3);position:sticky;top:0;z-index:40}
 .pnav .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.03em;font-size:14px;color:var(--text);text-decoration:none}
 .pnav .brand i{width:26px;height:26px;border-radius:8px;background:linear-gradient(145deg,#10a37f,#0a7a5f);display:grid;place-items:center;font-size:12px;font-weight:800;color:#041;font-style:normal}
 .pnav .links{display:flex;gap:2px;flex-wrap:wrap}
@@ -83,6 +84,7 @@ a:hover{text-decoration:underline}
 .msg .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .art{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);font-size:12px;color:var(--muted)}
 .art b{color:var(--text)}
+.art img{display:block;max-width:100%;max-height:360px;object-fit:contain;margin-top:8px;border-radius:10px;background:#050506}
 .empty{flex:1;display:grid;place-items:center;padding:40px 20px;text-align:center;color:var(--muted)}
 .empty .card{max-width:520px;padding:28px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent),var(--panel);box-shadow:var(--shadow)}
 .empty h2{margin:0 0 8px;color:var(--text);font-size:20px;letter-spacing:-.03em}
@@ -126,6 +128,7 @@ a:hover{text-decoration:underline}
   <nav class="links">
     <a href="/desk">Desk</a>
     <a href="/studio">Product Studio</a>
+    <a href="/imagine">Imagine</a>
     <a class="on" href="/studio/create">Creative</a>
     <a href="/studio/voice">Voice</a>
     <a href="/work">Work</a>
@@ -310,8 +313,14 @@ function renderMessages(){
     row.className = 'msg ' + (m.role==='user'?'user':'assistant');
     const av = m.role==='user' ? 'You' : 'P';
     let arts = '';
+    const imgUrl = m.media && m.media.image && m.media.image.file_url;
+    if(imgUrl){
+      arts += `<div class="art"><b>Imagine still</b><img src="${esc(imgUrl)}" alt="compose"/></div>`;
+    } else if(m.media && m.media.image && m.media.image.error){
+      arts += `<div class="art"><b>Imagine</b> · ${esc(m.media.image.error)}</div>`;
+    }
     if(m.artifacts && m.artifacts.length){
-      arts = m.artifacts.map(a=>`<div class="art"><b>${esc(a.kind)}</b> · ${esc(a.title||a.id)}</div>`).join('');
+      arts += m.artifacts.map(a=>`<div class="art"><b>${esc(a.kind)}</b> · ${esc(a.title||a.id)}</div>`).join('');
     }
     let actions = '';
     if(m.role==='assistant'){
@@ -412,7 +421,16 @@ async function send(){
     lastShareHint = j.share_hint || { title:text.slice(0,80), kind:mode, body:j.reply||'' };
     // replace tmp
     messages = messages.filter(m=>!m._tmp);
-    if(j.message) messages.push(j.message);
+    if(j.message){
+      if(j.media && !j.message.media) j.message.media = {
+        image: j.media.image ? {
+          ok: j.media.image.ok,
+          file_url: (j.media.image.result||{}).file_url,
+          error: j.media.image.error || (j.media.image.result||{}).error
+        } : undefined
+      };
+      messages.push(j.message);
+    }
     else messages.push({role:'assistant', content:j.reply||'(no reply)', mode});
     renderMessages();
     loadSessions();

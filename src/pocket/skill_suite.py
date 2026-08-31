@@ -16,7 +16,17 @@ def _s(id: str, worker: str, desc: str, kind: str = "atomic", tags: str = "") ->
 SUITE: List[Dict[str, Any]] = [
     # --- Platform coherence (discoverable · agent skills · one product) ---
     _s("platform_map", "ARCHON", "Full coherent platform map (Habitat→Phone→Fusion→MCP)", tags="platform discover"),
-    _s("platform_health", "ARCHON", "Domain health habitat/screen/work/fusion/mcp", tags="platform health"),
+    _s("platform_health", "ARCHON", "Domain health habitat/screen/work/fusion/mcp/novae", tags="platform health"),
+    _s("novae_list", "ARCHON", "List Grok Novae + Codex Novae hands", tags="platform novae agents"),
+    _s("novae_status", "ARCHON", "Novae activation status", tags="platform novae"),
+    _s("novae_activate", "ARCHON", "Activate Novae hands in POCKET workspace", tags="platform novae agents"),
+    _s("imagine_status", "STUDIO", "Imagine Studio status + /imagine UI", tags="imagine studio"),
+    _s("imagine_gallery", "STUDIO", "Imagine stills and fusion remakes", tags="imagine studio"),
+    _s("foundations_map", "ARCHON", "Internal AI + math + self + world catalog", tags="platform models math internal"),
+    _s("bots_list", "ARCHON", "List POCKET Bots teammates", tags="bots agents"),
+    _s("bots_hire", "ARCHON", "Hire a Pocket bot from a job description", tags="bots agents"),
+    _s("bots_message", "ARCHON", "Message a Pocket bot", tags="bots agents"),
+    _s("neuro_think", "ARCHON", "Spherical neuro pass for primary engines", tags="neuro engines"),
     _s("find_feature", "ARCHON", "Find desk tab / phone / API / skill for a feature", tags="platform discover"),
     _s("list_agents", "ARCHON", "First-class desk + phone agents", tags="platform agents"),
     _s("habitat_status", "ARCHON", "Habitat residents + rooms", tags="habitat"),

@@ -143,10 +143,10 @@ def install_hub_html(host_base: str = "") -> str:
 <title>Install POCKET · slices</title>
 <style>
   :root {{ --bg:#07070a; --card:#121218; --fg:#fafafa; --muted:#a1a1aa; --accent:#10a37f; --line:rgba(255,255,255,.1); }}
-  body {{ margin:0; font-family:ui-sans-serif,system-ui,sans-serif; background:var(--bg); color:var(--fg); padding:32px 20px 64px; }}
+  body {{ margin:0; font-family:ui-sans-serif,system-ui,sans-serif; background:radial-gradient(800px 360px at 0% 0%,rgba(16,163,127,.1),transparent 50%),var(--bg); color:var(--fg); padding:32px 20px 64px; -webkit-font-smoothing:antialiased; }}
   h1 {{ font-size:1.75rem; letter-spacing:-.03em; margin:0 0 8px; }}
   .sub {{ color:var(--muted); margin:0 0 28px; line-height:1.5; max-width:640px; }}
-  .card {{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin:0 0 16px; max-width:720px; }}
+  .card {{ background:linear-gradient(165deg,rgba(255,255,255,.04),transparent 48%),var(--card); border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin:0 0 16px; max-width:720px; transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s; }}
   h2 {{ margin:0 0 8px; font-size:1.1rem; }}
   .muted {{ color:var(--muted); font-size:13px; margin:0 0 12px; }}
   label {{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:10px 0 6px; font-weight:700; }}

@@ -19,13 +19,14 @@ HTML = r"""<!DOCTYPE html>
 :root{
   --bg:#07070b;--panel:#12121a;--line:rgba(255,255,255,.08);--text:#f4f4f5;--muted:#a1a1aa;
   --accent:#34d399;--violet:#a78bfa;--blue:#60a5fa;--font:ui-sans-serif,system-ui,sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--font);background:
   radial-gradient(800px 400px at 0% 0%,rgba(52,211,153,.12),transparent 50%),
   radial-gradient(700px 400px at 100% 0%,rgba(167,139,250,.1),transparent 45%),
   var(--bg);color:var(--text);min-height:100vh}
-.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.55);backdrop-filter:blur(12px);position:sticky;top:0;z-index:20}
+.pnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.55);backdrop-filter:blur(22px) saturate(1.3);position:sticky;top:0;z-index:20}
 .pnav a{color:#a1a1aa;text-decoration:none;font-size:13px;padding:7px 11px;border-radius:8px}
 .pnav a:hover,.pnav a.on{color:#fff;background:#1a1a22}
 .brand{font-weight:800;letter-spacing:-.03em;display:flex;gap:8px;align-items:center;margin-right:8px;color:#fff;text-decoration:none}
@@ -37,7 +38,7 @@ aside,section{padding:16px;border-right:1px solid var(--line);min-height:0}
 aside:last-child{border-right:0;border-left:1px solid var(--line)}
 h1{margin:0 0 6px;font-size:22px;letter-spacing:-.04em}
 .tag{font-size:11px;color:var(--muted);line-height:1.45}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.card{background:linear-gradient(165deg,rgba(255,255,255,.04),transparent 50%),var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;transition:border-color .2s var(--ease),transform .2s var(--ease)}
 .card h3{margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .gbtn{display:block;width:100%;text-align:left;padding:10px;border-radius:12px;border:1px solid transparent;background:transparent;color:inherit;cursor:pointer;margin-bottom:4px}
 .gbtn:hover,.gbtn.on{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.08)}
@@ -62,6 +63,7 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:1px solid var(--li
   <a href="/desk">Desk</a>
   <a class="on" href="/loomgraph">LOOMGRAPH</a>
   <a href="/studio/create">Creative</a>
+  <a href="/imagine">Imagine</a>
   <a href="/community">Community</a>
   <a href="/studio">Studio</a>
   <div class="sp"></div>

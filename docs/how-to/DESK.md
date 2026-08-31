@@ -21,6 +21,7 @@ Codex · Grok · Claude · Assistant · Muse Spark · Auro · Aria · Plan · Bu
 | codex / grok / claude | Coding |
 | assist | Digital life |
 | genetic | Internal model evolution |
+| **multi_plan** | **Reason → tasks + sub-agents → live sovereign terminal box in chat** |
 | voice | Aria talk-back |
 | browser | Real Edge + tags |
 | work | Working board / life ops |

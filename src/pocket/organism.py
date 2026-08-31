@@ -116,6 +116,18 @@ def snapshot(
         grok=grok,
         recent_modes=modes,
     )
+    motto = "Brain plans. Heart stays on. Agents ship."
+    doctrine = {}
+    try:
+        from pocket.being_doctrine import being_payload
+
+        doctrine = {
+            "host": being_payload("pocket-organism").get("being"),
+            "heart": being_payload("mini-heart").get("being"),
+            "brain": being_payload("mini-brain").get("being"),
+        }
+    except Exception:
+        pass
     return {
         "ok": True,
         "schema": "pocket.organism.v1",
@@ -124,7 +136,8 @@ def snapshot(
         "always_on": True,
         "heart": h,
         "brain": b,
-        "motto": "Brain plans. Heart stays on. Agents ship.",
+        "motto": motto,
+        "doctrine": doctrine,
     }
 
 

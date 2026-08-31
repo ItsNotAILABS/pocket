@@ -197,6 +197,13 @@ def ensure_embedded_worker() -> None:
         except Exception:
             pass
         try:
+            from pocket.agent_hook import ensure_mesh_hook
+
+            ensure_mesh_hook()
+            print("[POCKET] mesh hook armed — @mentions + headless pack", flush=True)
+        except Exception as e:
+            print(f"[POCKET] mesh hook skipped: {e}", flush=True)
+        try:
             from pocket.always_on_swarm import ensure_running as ensure_swarm
 
             # Always-on swarm — continuous multi-agent pulses
@@ -204,6 +211,13 @@ def ensure_embedded_worker() -> None:
             print("[POCKET] always-on swarm armed", flush=True)
         except Exception as e:
             print(f"[POCKET] swarm arm skipped: {e}", flush=True)
+        try:
+            from pocket.kernels.long_workflow import ensure_running as ensure_wfs
+
+            wst = ensure_wfs()
+            print(f"[POCKET] long workflows armed n={len(wst.get('armed') or [])}", flush=True)
+        except Exception as e:
+            print(f"[POCKET] long workflows skipped: {e}", flush=True)
         try:
             from pocket.damian_fleet import ensure_running as ensure_damians
 
@@ -440,7 +454,8 @@ class Handler(BaseHTTPRequestHandler):
     def _reject_unauthorized(self, reason: str = "authentication required"):
         raw = json.dumps({"error": reason, "auth": True}).encode("utf-8")
         self.send_response(401)
-        self.send_header("WWW-Authenticate", 'Basic realm="POCKET", charset="UTF-8"')
+        # Do not send WWW-Authenticate: Basic — Edge/Chrome intercept it with a
+        # native password dialog and the web/Edge app never finishes sign-in.
         self.send_header("Content-Type", "application/json")
         self._sec_headers()
         self.send_header("Content-Length", str(len(raw)))
@@ -580,6 +595,12 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def _html(self, html: str):
+        try:
+            from pocket.ui_kit import enhance
+
+            html = enhance(html)
+        except Exception:
+            pass
         raw = html.encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -633,11 +654,49 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         path = u.path.rstrip("/") or "/"
         q = parse_qs(u.query)
+        # Fluid kit is public — lock page + every module share one CSS/JS layer
+        if path in ("/ui/kit.css", "/assets/ui-kit.css"):
+            from pocket.ui_kit import KIT_CSS
+
+            raw = KIT_CSS.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/css; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=120")
+            self.send_header("Content-Length", str(len(raw)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+        if path in ("/ui/kit.js", "/assets/ui-kit.js"):
+            from pocket.ui_kit import KIT_JS
+
+            raw = KIT_JS.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=120")
+            self.send_header("Content-Length", str(len(raw)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(raw)
+            return
         if not self._require_auth(path):
             return
 
+        if path in ("/which", "/which/", "/which-pocket", "/faces"):
+            from pocket.which_pocket import which_html
+
+            return self._html(which_html(self.headers.get("Host", "")))
         if path in ("/", "/tour", "/product", "/present", "/landing", "/home"):
-            # Full marketing landing for Desktop + API + Studio bundle
+            # Loopback = YOUR POCKET map. Public host = user-facing marketing.
+            try:
+                from pocket.which_pocket import is_operator_face
+
+                if is_operator_face(self.headers.get("Host", "")):
+                    from pocket.which_pocket import which_html
+
+                    return self._html(which_html(self.headers.get("Host", "")))
+            except Exception:
+                pass
             try:
                 from pocket.marketing_landing import landing_html
 
@@ -716,10 +775,283 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.mail_ui import mail_html
 
             return self._html(mail_html())
+        if path in ("/billing", "/billing/", "/subscribe", "/pay"):
+            from pocket.revenuecat import billing_html
+
+            return self._html(billing_html())
+        if path in ("/pricing", "/pricing/", "/plans"):
+            from pocket.market_ui import join_html
+
+            return self._html(join_html())
+        if path in ("/join", "/sold", "/create-seat", "/signup", "/sign-up", "/register"):
+            from pocket.market_ui import join_html
+
+            return self._html(join_html())
+        if path in ("/login", "/signin", "/sign-in"):
+            return self._html(public_gate_html(reason="login"))
+        if path in ("/v1/auth/desktop/enter", "/enter-desk"):
+            ip = self._client_ip()
+            if ip not in ("127.0.0.1", "::1", "localhost"):
+                return self._json(403, {"ok": False, "error": "open this on the Pocket PC"})
+            from pocket.auth import expected_user
+            from pocket.oauth_login import finish_html
+            from pocket.users import issue_token
+
+            user = (expected_user() or "pocket").lower()
+            tok = issue_token(user)
+            html = finish_html(ok=True, token=tok, next_path="/desk")
+            raw = html.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Set-Cookie", self._session_cookie(tok))
+            self.send_header("Content-Length", str(len(raw)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(raw)
+            return None
+        if path in ("/ecosystem", "/ecosystem/", "/repos", "/family"):
+            from pocket.ecosystem import ecosystem_html
+
+            return self._html(ecosystem_html())
+        if path in ("/v1/twin", "/api/twin"):
+            from pocket.twin_mint import snapshot as twin_snap
+            from pocket.rbac import principal as rbac_p
+
+            q = parse_qs(urlparse(self.path).query)
+            p = rbac_p(self.headers)
+            user = (q.get("user") or [p.get("user") or "phoneai"])[0]
+            if (p.get("role") or "none") not in ("admin", "member", "none"):
+                user = p.get("user") or user
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            return self._json(200, twin_snap(str(user)))
+        if path in ("/network", "/network/", "/v1/network"):
+            from pocket.agent_network import html as network_html, snapshot as network_snap
+
+            accept = (self.headers.get("Accept") or "").lower()
+            if "json" in accept or path.startswith("/v1/"):
+                return self._json(200, network_snap())
+            return self._html(network_html())
+        if path in ("/studio/agents", "/studio/develop", "/agents/studio"):
+            from pocket.agent_network import html as network_html
+
+            return self._html(network_html())
+        if path in ("/studio/ship", "/studio/ship-agents", "/agents/ship"):
+            from pocket.agent_network import ship_html
+
+            return self._html(ship_html())
+        if path in ("/phoneai", "/phoneai/", "/kernel", "/kernel/os"):
+            from pocket.phoneai_os_ui import phoneai_os_html
+
+            return self._html(phoneai_os_html())
+        if path in ("/tech", "/tech/", "/atlas", "/technology"):
+            from pocket.tech_atlas import tech_html
+
+            return self._html(tech_html())
+        if path in ("/v1/tech", "/v1/atlas", "/v1/technology"):
+            from pocket.tech_atlas import catalog as tech_catalog
+
+            return self._json(200, tech_catalog())
+        if path in ("/v1/companion/status", "/v1/live/status"):
+            from pocket.live_companion import status as live_status
+
+            return self._json(200, live_status())
+        if path in ("/v1/phoneai/kernel", "/v1/kernel"):
+            from pocket.phoneai_os_ui import kernel_manifest
+
+            return self._json(200, kernel_manifest())
+        if path in ("/v1/phoneai/desk", "/v1/live-desk"):
+            from pocket.live_desk import desk as live_desk
+
+            return self._json(200, live_desk())
+        if path in ("/v1/phoneai/sessions", "/api/phoneai/sessions"):
+            from pocket.agent_runtime import list_phoneai_sessions
+
+            return self._json(200, list_phoneai_sessions())
+        if path in ("/v1/phoneai/personas",):
+            from pocket.agent_runtime import personas
+
+            return self._json(200, {"ok": True, "personas": personas()})
+        if path in ("/v1/phoneai/space", "/api/phoneai/space"):
+            from pocket.phoneai_space import snapshot as phoneai_space
+
+            return self._json(200, phoneai_space())
+        if path in ("/v1/phoneai/life", "/api/phoneai/life"):
+            from pocket.phone_life import snapshot as phone_life_snap
+
+            return self._json(200, phone_life_snap())
+        if path in ("/phoneai/manifest.json", "/phoneai/manifest"):
+            return self._json(
+                200,
+                {
+                    "name": "PhoneAI",
+                    "short_name": "PhoneAI",
+                    "start_url": "/phoneai",
+                    "display": "standalone",
+                    "background_color": "#05060a",
+                    "theme_color": "#05060a",
+                },
+            )
+        if path == "/v1/phoneai/photo":
+            from pocket.phone_life import PHOTOS
+
+            q = parse_qs(urlparse(self.path).query)
+            name = Path((q.get("name") or [""])[0]).name
+            fp = PHOTOS / name
+            if not name.endswith(".jpg") or not fp.is_file():
+                return self._json(404, {"error": "photo not found"})
+            data = fp.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "private, max-age=60")
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return None
+        if path in ("/phoneai/how", "/phoneai/use", "/how-phoneai"):
+            from pocket.phoneai_bridge import how_html
+
+            return self._html(how_html())
+        if path in ("/phoneai/work", "/phoneai/twin", "/twin", "/phoneai/desk-code"):
+            from pocket.phoneai_os_ui import phoneai_twin_html
+
+            return self._html(phoneai_twin_html())
+        if path in ("/phoneai/anti", "/phoneai/antigravity"):
+            from pocket.phoneai_os_ui import phoneai_anti_html
+
+            return self._html(phoneai_anti_html())
+        if path in ("/v1/phoneai/settings", "/api/phoneai/settings"):
+            from pocket.phoneai_settings import snapshot as phoneai_settings
+
+            return self._json(200, phoneai_settings())
+        if path in ("/v1/phoneai/anti", "/api/phoneai/anti"):
+            from pocket.antigravity_chat import read_thread
+
+            return self._json(200, read_thread())
+        if path in ("/webmcp", "/web-mcp", "/v1/webmcp"):
+            from pocket.webmcp import catalog as webmcp_catalog, html as webmcp_html
+
+            accept = (self.headers.get("Accept") or "").lower()
+            if "json" in accept or path.startswith("/v1/"):
+                q = parse_qs(urlparse(self.path).query)
+                return self._json(
+                    200,
+                    webmcp_catalog(
+                        refresh=(q.get("refresh") or [""])[0] in ("1", "true"),
+                        url=(q.get("url") or [""])[0],
+                        fusion=(q.get("fusion") or [""])[0] in ("1", "true"),
+                    ),
+                )
+            return self._html(webmcp_html())
+        if path in ("/api/health",):
+            from pocket.phoneai_bridge import health as phoneai_health
+
+            return self._json(200, phoneai_health())
+        if path == "/api/substrate":
+            from pocket.phoneai_bridge import session_from_bearer, substrate as phoneai_sub
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            return self._json(200, {"substrate": phoneai_sub(), "session_id": sess.get("session_id")})
+        if path == "/api/tools":
+            from pocket.phoneai_bridge import TOOLS, session_from_bearer
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            return self._json(200, {"session_id": sess.get("session_id"), "tools": TOOLS})
+        if path in ("/api/sessions/history", "/api/executions"):
+            from pocket.phoneai_bridge import history, session_from_bearer
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            return self._json(200, history(sess))
+        if path.startswith("/api/executions/"):
+            from pocket.phoneai_bridge import execution_detail, session_from_bearer
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            eid = path.rsplit("/", 1)[-1]
+            doc = execution_detail(sess, eid)
+            return self._json(404 if doc.get("error") else 200, doc)
+        if path in ("/v1/ecosystem", "/v1/repos", "/v1/family"):
+            from pocket.ecosystem import catalog
+
+            return self._json(200, catalog())
+        if path in ("/v1/clis", "/v1/auth/clis", "/v1/model-clis"):
+            from pocket.model_clis import inventory
+
+            return self._json(200, inventory())
+        if path == "/v1/auth/providers":
+            from pocket.oauth_login import list_providers
+
+            ip = self._client_ip()
+            loop = ip in ("127.0.0.1", "::1", "localhost")
+            return self._json(200, list_providers(loopback=loop))
+        if path.startswith("/v1/auth/oauth/") and path.endswith("/start"):
+            from pocket.oauth_login import start_oauth
+
+            provider = path.split("/v1/auth/oauth/", 1)[-1].split("/")[0]
+            q = parse_qs(urlparse(self.path).query)
+            nxt = (q.get("next") or ["/desk"])[0]
+            host = self.headers.get("Host") or "127.0.0.1:8787"
+            xf = (self.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip()
+            scheme = xf or ("https" if "medinatech" in host.lower() else "http")
+            res = start_oauth(provider, base=f"{scheme}://{host}", next_path=nxt)
+            return self._json(200 if res.get("ok") else 400, res)
+        if path.startswith("/v1/auth/oauth/") and path.endswith("/callback"):
+            from pocket.oauth_login import finish_html, finish_oauth
+
+            provider = path.split("/v1/auth/oauth/", 1)[-1].split("/")[0]
+            q = parse_qs(urlparse(self.path).query)
+            res = finish_oauth(
+                provider,
+                code=(q.get("code") or [""])[0],
+                state=(q.get("state") or [""])[0],
+            )
+            if res.get("ok") and res.get("token"):
+                html = finish_html(ok=True, token=res["token"], next_path=res.get("next") or "/desk")
+                raw = html.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Set-Cookie", self._session_cookie(res["token"]))
+                self.send_header("Content-Length", str(len(raw)))
+                self._sec_headers()
+                self.end_headers()
+                self.wfile.write(raw)
+                return
+            return self._html(finish_html(ok=False, error=res.get("error") or "oauth failed"))
+        if path in ("/seats", "/seats/", "/admin/seats", "/sell"):
+            from pocket.market_ui import seats_html
+
+            return self._html(seats_html())
+        if path in ("/v1/product/sold", "/v1/sold", "/v1/market"):
+            from pocket.market import catalog
+
+            return self._json(200, catalog())
         if path in ("/v1/catalog", "/v1/platform/catalog", "/v1/platform-catalog"):
             from pocket.platform_catalog import catalog
 
             return self._json(200, catalog())
+        if path in (
+            "/v1/agents/tools",
+            "/v1/agent/tools",
+            "/v1/agents/toolkit",
+            "/v1/mcp/tools",
+            "/v1/tools/manifest",
+        ):
+            from pocket.agents_toolkit import manifest, markdown, write_docs_file
+
+            fmt = (q.get("format") or q.get("fmt") or [""])[0].lower()
+            if fmt in ("md", "markdown"):
+                return self._text(200, markdown(), content_type="text/markdown; charset=utf-8")
+            if fmt in ("write", "file"):
+                return self._json(200, write_docs_file())
+            return self._json(200, manifest())
         if path in ("/license", "/license/"):
             from pocket.docs_hub import license_page_html
 
@@ -817,6 +1149,30 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(data)
             return
+        if path in ("/ui/kit.css", "/assets/ui-kit.css"):
+            from pocket.ui_kit import KIT_CSS
+
+            raw = KIT_CSS.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/css; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=120")
+            self.send_header("Content-Length", str(len(raw)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+        if path in ("/ui/kit.js", "/assets/ui-kit.js"):
+            from pocket.ui_kit import KIT_JS
+
+            raw = KIT_JS.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Cache-Control", "public, max-age=120")
+            self.send_header("Content-Length", str(len(raw)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(raw)
+            return
         if path in ("/desk", "/app", "/desktop", "/chat"):
             return self._html(HTML)
         if path in ("/os", "/agent-os", "/systems", "/os/", "/agent-os/", "/systems/"):
@@ -829,6 +1185,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(lab_html())
         if path in ("/work", "/work-studio", "/studio/work", "/work/", "/work-studio/"):
             return self._html(work_studio_html())
+        if path in ("/power", "/power/", "/command", "/v1/power/ui"):
+            from pocket.power_ui import power_html
+
+            return self._html(power_html())
         if path in ("/curiosities", "/lab", "/weird", "/curiosities/"):
             return self._html(curiosities_html())
         if path in ("/phone/manifest.webmanifest", "/m/manifest.webmanifest"):
@@ -850,6 +1210,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(loomgraph_html())
         if path in ("/studio", "/studio/"):
             return self._html(STUDIO_HTML)
+        if path in (
+            "/imagine",
+            "/imagine/",
+            "/studio/imagine",
+            "/imagine-studio",
+            "/imagine-studio/",
+            "/visual",
+        ):
+            from pocket.imagine_studio_ui import imagine_studio_html
+
+            return self._html(imagine_studio_html())
+        if path in ("/bots", "/bots/", "/bot", "/teammates"):
+            from pocket.bots_ui import bots_html
+
+            return self._html(bots_html())
         if path in (
             "/studio/create",
             "/studio/creative",
@@ -1161,6 +1536,12 @@ class Handler(BaseHTTPRequestHandler):
             u = rbac_principal(self.headers)
             if (u.get("role") or "none") == "none":
                 return self._json(401, {"ok": False, "error": "auth required"})
+            try:
+                from pocket.market import seat_flags
+
+                u = {**u, **seat_flags(u)}
+            except Exception:
+                pass
             return self._json(200, {"ok": True, "user": u})
         if path in ("/v1/admin/invites", "/v1/auth/invites"):
             from pocket.users import list_invites, list_users
@@ -1423,16 +1804,52 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/v1/vision/observe", "/v1/observe"):
             from pocket.vision_core import observe
 
-            return self._json(200, observe(with_ui_map=True, with_ocr=True, with_understand=True))
+            force = (q.get("force") or ["0"])[0] in ("1", "true", "yes")
+            return self._json(
+                200,
+                observe(with_ui_map=True, with_ocr=True, with_understand=True, force=force),
+            )
         if path == "/v1/vision/ui_map":
             from pocket.vision_core import build_ui_map
 
             return self._json(200, build_ui_map())
         if path in ("/v1/vision/understand", "/v1/pixel/understand", "/v1/pixel/translate"):
+            force = (q.get("force") or ["0"])[0] in ("1", "true", "yes")
+            if not force:
+                from pocket.vision_core import last_observation
+
+                cached = last_observation(max_age=1e9)
+                return self._json(
+                    200,
+                    {
+                        "ok": bool(cached.get("ok")),
+                        "cached": True,
+                        "source": "last_observation",
+                        "brief": cached.get("brief"),
+                        "page_hint": cached.get("page_hint"),
+                        "error": cached.get("error"),
+                        "hint": "GET ?force=1 to walk; default is cache-only",
+                    },
+                )
             from pocket.pixel_translator import understand
 
             return self._json(200, understand(include_image=False))
         if path in ("/v1/pixel/text", "/v1/vision/ocr"):
+            force = (q.get("force") or ["0"])[0] in ("1", "true", "yes")
+            if not force:
+                from pocket.vision_core import last_observation
+
+                cached = last_observation(max_age=1e9)
+                return self._json(
+                    200,
+                    {
+                        "ok": bool(cached.get("ok")),
+                        "cached": True,
+                        "plain_text": cached.get("ocr_plain") or "",
+                        "lines": cached.get("ocr_lines") or [],
+                        "error": cached.get("error"),
+                    },
+                )
             from pocket.pixel_translator import translate_to_text_only
 
             return self._json(200, translate_to_text_only())
@@ -1443,6 +1860,7 @@ class Handler(BaseHTTPRequestHandler):
             max_ui = int((q.get("max_ui") or ["800"])[0] or 800)
             grid = int((q.get("grid") or ["5"])[0] or 5)
             want_img = (q.get("image") or ["0"])[0] == "1"
+            force = (q.get("force") or ["0"])[0] in ("1", "true", "yes")
             return self._json(
                 200,
                 render_full_page(
@@ -1451,6 +1869,7 @@ class Handler(BaseHTTPRequestHandler):
                     include_visual=True,
                     include_image=want_img,
                     visual_grid=grid,
+                    force=force,
                 ),
             )
         if path in ("/v1/vision/stream", "/v1/vision/stream/latest"):
@@ -1513,8 +1932,11 @@ class Handler(BaseHTTPRequestHandler):
                             "batch": "POST /v1/studio/batch",
                         },
                         "imagine": {
+                            "ui": "GET /imagine",
                             "status": "GET /v1/imagine",
-                            "compose": "POST /v1/imagine/compose  body:{mode:rotato_phone|macbook_web|clean}",
+                            "gallery": "GET /v1/imagine/gallery",
+                            "compose": "POST /v1/imagine/compose  body:{mode:rotato_phone|macbook_web|clean, source:live|last, image_b64?}",
+                            "file": "GET /v1/imagine/file?name=",
                             "product_dir": "OneDrive/imagine-studio (Creative Muse seed)",
                         },
                         "fusion": {
@@ -1673,6 +2095,25 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.pocket_identity import agent_self_description
 
             return self._json(200, agent_self_description())
+        if path in ("/v1/doctrine", "/v1/pocket/doctrine", "/v1/laws"):
+            from pocket.doctrine import manifesto
+
+            return self._json(200, manifesto())
+        if path in ("/v1/doctrine/beings", "/v1/beings", "/v1/doctrine/agents", "/v1/doctrine/organisms"):
+            from pocket.being_doctrine import catalog
+
+            return self._json(200, catalog())
+        if path.startswith("/v1/doctrine/") and path.count("/") >= 3:
+            from pocket.being_doctrine import being_payload
+
+            slug = path.split("/v1/doctrine/", 1)[-1].strip("/")
+            if slug and slug not in ("beings", "agents", "organisms"):
+                payload = being_payload(slug)
+                return self._json(200 if payload.get("ok") else 404, payload)
+        if path in ("/v1/which", "/v1/which-pocket"):
+            from pocket.which_pocket import summary
+
+            return self._json(200, summary(self.headers.get("Host", "")))
         # --- Recursive Agent Harnesses (RAH) ---
         if path in ("/v1/rah", "/v1/rah/status", "/v1/recursive-harness", "/v1/rah/health"):
             from pocket.rah import status as rah_status, list_runs, manifest as rah_manifest
@@ -1693,6 +2134,16 @@ class Handler(BaseHTTPRequestHandler):
             if not run:
                 return self._json(404, {"ok": False, "error": "rah run not found", "run_id": rid})
             return self._json(200, run)
+        if path in ("/v1/neuro", "/v1/neuro/think", "/v1/neuro-think"):
+            from pocket.neuro_think import think as neuro_think
+
+            qg = (q.get("q") or q.get("prompt") or [""])[0]
+            mode = (q.get("mode") or [""])[0]
+            return self._json(200, neuro_think(qg or "status", mode=mode or "grok"))
+        if path in ("/v1/foundations", "/v1/ai/foundations", "/v1/models/foundations"):
+            from pocket.foundations import catalog as foundations_catalog
+
+            return self._json(200, foundations_catalog())
         # --- Internal models as modules + genetic flow ---
         if path in (
             "/v1/internal-models",
@@ -1738,6 +2189,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.economy import snapshot
 
             return self._json(200, snapshot())
+        if path in ("/v1/billing", "/v1/revenuecat", "/v1/billing/status"):
+            from pocket.revenuecat import status as rc_status
+
+            return self._json(200, rc_status())
         if path in ("/v1/economy/protocols", "/v1/economy/protocol"):
             from pocket.economy import protocols as econ_protocols
 
@@ -1845,6 +2300,45 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.coding_swarm import list_roster
 
             return self._json(200, list_roster())
+        if path in ("/v1/workflows", "/v1/kernels/workflows"):
+            from pocket.kernels.long_workflow import list_runs
+
+            q = parse_qs(urlparse(self.path).query)
+            return self._json(200, list_runs(limit=int((q.get("limit") or ["40"])[0] or 40)))
+        if path.startswith("/v1/workflows/") and path.count("/") == 3:
+            from pocket.kernels.long_workflow import get as wf_get
+
+            return self._json(200, wf_get(path.rsplit("/", 1)[-1]))
+        if path in ("/v1/kernels", "/v1/neuro-silicon", "/v1/kernels/status"):
+            from pocket.kernels.neuro_silicon import driver_status
+
+            return self._json(200, driver_status())
+        if path in ("/v1/kernels/probe",):
+            from pocket.kernels.probe import probe_host
+
+            return self._json(200, probe_host())
+        if path in ("/v1/kernels/slab",):
+            from pocket.kernels.slab import slab_status
+
+            return self._json(200, slab_status())
+        if path in ("/v1/kernels/calibrate", "/v1/neuro-silicon/calibrate"):
+            from pocket.kernels.neuro_silicon import calibrate
+
+            return self._json(200, calibrate(run_loop=True))
+        if path in ("/v1/kernels/loop", "/v1/cognitive/loop"):
+            from pocket.kernels.cognitive_loop import run_loop
+
+            q = parse_qs(urlparse(self.path).query)
+            goal = (q.get("goal") or q.get("q") or ["status"])[0]
+            return self._json(200, run_loop(goal))
+        if path in ("/v1/agents/roster", "/v1/agents/invocable"):
+            from pocket.agent_invoke import roster
+
+            return self._json(200, roster())
+        if path in ("/v1/agents/autonomous", "/v1/autonomous"):
+            from pocket.agent_invoke import autonomous_status
+
+            return self._json(200, autonomous_status())
         if path in ("/v1/agents/first-class", "/v1/first-class/agents", "/v1/agents"):
             from pocket.first_class_agents import build_registry, ensure_modes_aligned, summary
 
@@ -1980,6 +2474,47 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.imagine_studio import status as imagine_status
 
             return self._json(200, imagine_status())
+        if path in ("/v1/imagine/gallery", "/v1/imagine/composites"):
+            from pocket.imagine_studio import gallery as imagine_gallery
+
+            q = parse_qs(urlparse(self.path).query)
+            try:
+                lim = int((q.get("limit") or ["24"])[0] or 24)
+            except Exception:
+                lim = 24
+            return self._json(200, imagine_gallery(limit=lim))
+        if path in ("/v1/imagine/modes",):
+            from pocket.imagine_studio import list_modes
+
+            return self._json(200, list_modes())
+        if path == "/v1/imagine/file":
+            from pocket.imagine_studio import resolve_file
+
+            q = parse_qs(urlparse(self.path).query)
+            name = (q.get("name") or [""])[0]
+            kind = (q.get("kind") or [""])[0]
+            fp = resolve_file(name, kind=kind)
+            if not fp:
+                return self._json(404, {"error": "file not found", "name": name})
+            data = fp.read_bytes()
+            suf = fp.suffix.lower()
+            ctype = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".webp": "image/webp",
+                ".html": "text/html; charset=utf-8",
+                ".json": "application/json; charset=utf-8",
+            }.get(suf, "application/octet-stream")
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Disposition", f'inline; filename="{fp.name}"')
+            self.send_header("Cache-Control", "private, max-age=60")
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if path in ("/v1/rfe", "/v1/rfe/status"):
             from pocket.rfe_kernel import status as rfe_status
 
@@ -2070,6 +2605,38 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.mcp_bundle import list_tools
 
             return self._json(200, list_tools())
+        if path in ("/v1/mcp/fifty", "/v1/mcp/universal", "/v1/tools/fifty"):
+            from pocket.mcp_fifty import catalog as fifty_catalog
+
+            return self._json(200, fifty_catalog())
+        # Live MCP JSON-RPC Protocol Stream
+        if path in ("/v1/mcp/stream", "/v1/mcp/rpc/stream", "/v1/protocol/stream"):
+            from pocket.mcp_stream import list_frames, snapshot
+
+            after = int((q.get("after") or q.get("seq") or ["0"])[0] or 0)
+            limit = int((q.get("limit") or ["100"])[0] or 100)
+            fmt = (q.get("format") or q.get("fmt") or [""])[0].lower()
+            if fmt in ("ndjson", "nd"):
+                from pocket.mcp_stream import format_ndjson
+
+                return self._text(200, format_ndjson(after_seq=after, limit=limit), ctype="application/x-ndjson; charset=utf-8")
+            if fmt in ("term", "markdown", "md"):
+                from pocket.mcp_stream import format_term_view
+
+                return self._text(200, format_term_view(after_seq=after, limit=limit), ctype="text/markdown; charset=utf-8")
+            snap = snapshot()
+            return self._json(
+                200,
+                {
+                    **snap,
+                    "after": after,
+                    "frames": list_frames(after_seq=after, limit=limit),
+                },
+            )
+        if path in ("/v1/mcp/stream/page", "/mcp/stream", "/mcp/stream/", "/protocol/stream"):
+            from pocket.mcp_stream import stream_page_html
+
+            return self._html(stream_page_html())
         if path in ("/v1/work", "/v1/work-mode", "/v1/working"):
             from pocket.work_mode import status as work_status
 
@@ -2197,8 +2764,31 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, m)
         if path in ("/v1/workflows", "/v1/workflows/catalog"):
             from pocket.workflows_alpha import catalog
+            from pocket.multi_workflows import catalog as multi_catalog
 
-            return self._json(200, {"workflows": catalog(), "alpha": True})
+            return self._json(200, {"workflows": catalog(), "alpha": True, "multi": multi_catalog()})
+        if path in ("/v1/go", "/v1/go/state"):
+            from pocket.go_plane import snapshot
+
+            return self._json(200, snapshot())
+        if path in ("/v1/power", "/v1/power/pulse"):
+            from pocket.power import pulse
+
+            return self._json(200, pulse())
+        if path in ("/v1/power/vs", "/v1/power/theirs"):
+            from pocket.power import vs_theirs
+
+            return self._json(200, vs_theirs())
+        if path in ("/v1/power/recall",):
+            from pocket.power import recall
+
+            lim = int((q.get("limit") or ["8"])[0] or 8)
+            return self._json(200, recall(limit=lim))
+        if path in ("/v1/workflows/multi", "/v1/multi-workflows"):
+            from pocket.multi_workflows import catalog as multi_catalog
+
+            fam = (q.get("family") or [""])[0]
+            return self._json(200, multi_catalog(family=fam))
         # LOOMGRAPH — Loop-Orchestrated Multi-agent Graph (default harness forever)
         if path in ("/v1/loomgraph", "/v1/loomgraph/catalog", "/v1/graph", "/v1/harness/loomgraph"):
             from pocket.loomgraph import catalog as loomgraph_catalog
@@ -2304,6 +2894,35 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.web_ui_engine import list_engines
 
             return self._json(200, list_engines())
+        if path in ("/v1/engine-uses", "/v1/engines/uses", "/v1/web-ui/uses"):
+            from pocket.web_ui_engine import list_uses
+
+            return self._json(200, list_uses())
+        if path in ("/v1/models/built", "/v1/model-forge", "/v1/models/forge"):
+            from pocket.model_forge import list_built, status as forge_status
+
+            if path.endswith("/built"):
+                return self._json(200, list_built())
+            return self._json(200, forge_status())
+        # Agent virtual numbers + calls
+        if path in ("/v1/calls", "/v1/calls/status", "/v1/agent-calls"):
+            from pocket.agent_calls import status as calls_status, list_calls
+
+            if path == "/v1/calls":
+                st = (q.get("status") or [""])[0]
+                return self._json(200, list_calls(status=st))
+            return self._json(200, calls_status())
+        if path in ("/v1/calls/numbers", "/v1/agent-calls/numbers"):
+            from pocket.agent_calls import list_numbers
+
+            return self._json(200, list_numbers())
+        if path.startswith("/v1/calls/") and path.count("/") >= 3:
+            # GET /v1/calls/{id}
+            cid = path.split("/v1/calls/", 1)[-1].strip("/")
+            if cid and cid not in ("dial", "answer", "hangup", "speak", "numbers", "status"):
+                from pocket.agent_calls import get_call
+
+                return self._json(200, get_call(cid))
         if path in ("/v1/mail/templates",):
             from pocket.pocket_mail import templates as mail_templates
 
@@ -2872,6 +3491,20 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.custom_agents import list_agents, tools_catalog
 
             return self._json(200, {"ok": True, "agents": list_agents(), "tools": tools_catalog().get("tools")})
+        if path in ("/v1/bots", "/v1/bots/"):
+            from pocket.bots import catalog as bots_catalog
+
+            p = rbac_principal(self.headers)
+            data = bots_catalog()
+            data["bots"] = [b for b in data.get("bots") or [] if not p.get("user") or b.get("owner") in ("", p.get("user"), "pocket")]
+            return self._json(200, data)
+        if path.startswith("/v1/bots/"):
+            from pocket.bots import thread as bot_thread
+
+            bid = path.split("/v1/bots/", 1)[-1].strip("/").split("/")[0]
+            if bid in ("hire", "pulse", "message"):
+                return self._json(404, {"ok": False, "error": "use POST"})
+            return self._json(200, bot_thread(bid))
         if path in ("/v1/novae", "/v1/novae/status", "/v1/novae/list"):
             from pocket.novae import status as novae_status
 
@@ -3154,20 +3787,44 @@ class Handler(BaseHTTPRequestHandler):
                     401,
                     {
                         "ok": False,
-                        "error": "bad credentials — try username pocket + password from ACCESS.txt",
-                        "hint": "aliases: owner, admin → pocket",
+                        "error": "Username or password is wrong. Create an account on Sign up if you are new.",
+                        "signup": "/signup",
                     },
                 )
             clear_auth_failures(ip)
             tok = issue_token(u["user"])
+            clis = {}
+            try:
+                from pocket.model_clis import ensure_seat
+
+                clis = ensure_seat(u["user"], install_host=False)
+            except Exception:
+                clis = {}
             return self._json(
                 200,
-                {"ok": True, "token": tok, "user": u, "session": True},
+                {
+                    "ok": True,
+                    "token": tok,
+                    "user": u,
+                    "session": True,
+                    "clis": (clis.get("seat") if isinstance(clis, dict) else clis) or {},
+                },
                 extra_headers=[("Set-Cookie", self._session_cookie(tok))],
             )
 
         # Desktop-only: trusted local auto-login (127.0.0.1 only). Real apps embed runtime.
         if path in ("/v1/auth/desktop", "/v1/auth/local"):
+            from pocket.edition import product_id
+
+            if product_id() == "users":
+                return self._json(
+                    403,
+                    {
+                        "ok": False,
+                        "error": "POCKET for Users has no owner unlock. Sign in as a seat, or open Owner on :8787.",
+                        "product": "users",
+                    },
+                )
             ip = self._client_ip()
             if ip not in ("127.0.0.1", "::1", "localhost"):
                 return self._json(403, {"ok": False, "error": "desktop login only on localhost"})
@@ -3192,6 +3849,198 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)[:200]})
 
+        if path in ("/v1/webmcp/scan", "/api/webmcp/scan"):
+            from pocket.webmcp import scan as webmcp_scan
+
+            return self._json(
+                200,
+                webmcp_scan(url=str(body.get("url") or ""), fusion=bool(body.get("fusion") or body.get("screen"))),
+            )
+        if path in ("/v1/webmcp/use", "/api/webmcp/use"):
+            from pocket.webmcp import use_action
+
+            return self._json(
+                200,
+                use_action(str(body.get("name") or body.get("id") or body.get("action") or ""), prompt=str(body.get("prompt") or body.get("text") or "")),
+            )
+        if path in ("/v1/webmcp/find",):
+            from pocket.webmcp import find_actions
+
+            return self._json(200, {"ok": True, "hits": find_actions(str(body.get("q") or body.get("query") or ""))})
+
+        if path in ("/v1/phoneai/settings", "/api/phoneai/settings"):
+            from pocket.phoneai_settings import apply as phoneai_settings_apply
+
+            return self._json(200, phoneai_settings_apply(body if isinstance(body, dict) else {}))
+        if path in ("/v1/phoneai/anti", "/api/phoneai/anti"):
+            from pocket.antigravity_chat import handle as anti_handle
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            action = str(body.get("action") or body.get("kind") or "send")
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            cwd = str(body.get("cwd") or "")
+            return self._json(200, anti_handle(action, text, cwd=cwd))
+
+        if path in ("/v1/phoneai/life", "/api/phoneai/life"):
+            from pocket.phone_life import act as phone_life_act
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            kind = str(body.get("kind") or body.get("engine") or "auto")
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            extra = body.get("extra") if isinstance(body.get("extra"), dict) else {}
+            if body.get("image") and "image" not in extra:
+                extra["image"] = body.get("image")
+            return self._json(200, phone_life_act(kind, text, extra=extra))
+        if path in ("/v1/phoneai/sessions", "/api/phoneai/sessions"):
+            from pocket.agent_runtime import create_phoneai_session
+
+            return self._json(
+                200,
+                create_phoneai_session(
+                    persona_id=str(body.get("persona") or body.get("persona_id") or "researcher"),
+                    title=str(body.get("title") or ""),
+                    kind=str(body.get("kind") or "both"),
+                    long_term=body.get("long_term"),
+                ),
+            )
+        if path in ("/v1/phoneai/talk", "/api/phoneai/talk"):
+            from pocket.agent_runtime import talk
+
+            return self._json(
+                200,
+                talk(
+                    str(body.get("from") or body.get("from_agent") or "phoneai"),
+                    str(body.get("to") or body.get("to_agent") or "grok"),
+                    str(body.get("text") or body.get("body") or body.get("message") or ""),
+                    subject=str(body.get("subject") or "talk"),
+                ),
+            )
+        if path in ("/v1/phoneai/work", "/api/phoneai/work"):
+            from pocket.phoneai_bridge import work as phoneai_work
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            engine = str(body.get("engine") or "auto")
+            thread_id = str(body.get("thread_id") or body.get("session_id") or "")
+            return self._json(200, phoneai_work(text, engine=engine, thread_id=thread_id))
+        if path in ("/v1/phoneai/work/stream", "/api/phoneai/work/stream"):
+            from pocket.phoneai_bridge import work_stream_chunks
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("phoneai_work", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            engine = str(body.get("engine") or "auto")
+            thread_id = str(body.get("thread_id") or body.get("session_id") or "")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            for ev, payload in work_stream_chunks(text, engine=engine, thread_id=thread_id):
+                data = payload if isinstance(payload, str) else json.dumps(payload, default=str)
+                chunk = f"event: {ev}\ndata: {data}\n\n".encode("utf-8")
+                self.wfile.write(chunk)
+                try:
+                    self.wfile.flush()
+                except Exception:
+                    break
+            self.close_connection = True
+            return None
+
+        if path == "/api/pair/init":
+            from pocket.phoneai_bridge import pair_init
+
+            return self._json(200, pair_init())
+        if path == "/api/pair/confirm":
+            from pocket.phoneai_bridge import pair_confirm
+
+            res = pair_confirm(str(body.get("pairing_code") or ""), str(body.get("device_label") or "phone"))
+            return self._json(int(res.get("http") or 200), res)
+        if path == "/api/pair/auto":
+            from pocket.phoneai_bridge import pair_auto
+
+            res = pair_auto(allow=True)
+            return self._json(int(res.get("http") or 200), res)
+        if path == "/api/pair/revoke":
+            from pocket.phoneai_bridge import pair_revoke, session_from_bearer
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            return self._json(200, pair_revoke(sess))
+        if path == "/api/execute":
+            from pocket.phoneai_bridge import execute as phoneai_execute, session_from_bearer
+
+            sess = session_from_bearer(self.headers.get("Authorization") or self.headers.get("authorization") or "")
+            if not sess:
+                return self._json(401, {"ok": False, "detail": "missing_bearer_token"})
+            doc = phoneai_execute(sess, body)
+            return self._json(int(doc.get("http") or 200), doc)
+
+        if path in ("/v1/companion/chat", "/v1/live/chat"):
+            from pocket.live_companion import chat as live_chat
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("companion", ip, kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            text = str(body.get("text") or body.get("message") or body.get("q") or "")
+            hist = body.get("history") if isinstance(body.get("history"), list) else []
+            return self._json(200, live_chat(text, history=hist))
+
+        if path == "/v1/auth/github/local":
+            from pocket.oauth_login import github_local_login
+
+            res = github_local_login(client_ip=self._client_ip())
+            if not res.get("ok"):
+                return self._json(401, res)
+            return self._json(
+                200,
+                res,
+                extra_headers=[("Set-Cookie", self._session_cookie(res["token"]))],
+            )
+
+        if path == "/v1/auth/code/mint":
+            from pocket.oauth_login import mint_login_code
+
+            res = mint_login_code(client_ip=self._client_ip())
+            return self._json(200 if res.get("ok") else 403, res)
+
+        if path == "/v1/auth/code":
+            from pocket.oauth_login import redeem_login_code
+            from pocket.ratelimit import hit
+
+            ip = self._client_ip()
+            ok_rl, reason = hit("login", ip, kind="login")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            res = redeem_login_code(str(body.get("code") or ""))
+            if not res.get("ok"):
+                record_auth_failure(ip)
+                return self._json(401, res)
+            clear_auth_failures(ip)
+            return self._json(
+                200,
+                res,
+                extra_headers=[("Set-Cookie", self._session_cookie(res["token"]))],
+            )
+
         if path == "/v1/auth/register":
             from pocket.ratelimit import hit
             from pocket.users import issue_token, register
@@ -3203,9 +4052,12 @@ class Handler(BaseHTTPRequestHandler):
             res = register(
                 body.get("user") or body.get("username") or "",
                 body.get("password") or "",
-                body.get("invite") or "",
-                display=body.get("display") or "",
+                body.get("invite") or body.get("invite_code") or "",
+                display=body.get("display") or body.get("name") or "",
                 accepted_terms=bool(body.get("accepted_terms") or body.get("terms")),
+                plan=str(body.get("plan") or ""),
+                channel=str(body.get("channel") or "public"),
+                email=str(body.get("email") or ""),
             )
             if not res.get("ok"):
                 record_auth_failure(ip)
@@ -3623,6 +4475,145 @@ class Handler(BaseHTTPRequestHandler):
                     str(b.get("prompt") or b.get("text") or b.get("goal") or ""),
                     params=b if isinstance(b, dict) else {},
                 ),
+            )
+        if path in ("/v1/multi-plan", "/v1/multi-plan/run", "/v1/multiplan/run", "/v1/plan/exec"):
+            from pocket.multi_plan import run_multi_plan
+
+            b = body or {}
+            return self._json(
+                200,
+                run_multi_plan(
+                    str(b.get("goal") or b.get("prompt") or b.get("text") or b.get("task") or ""),
+                    job_id=str(b.get("job_id") or ""),
+                    session_id=str(b.get("session_id") or ""),
+                    max_tasks=int(b.get("max_tasks") or 24),
+                ),
+            )
+        # Agent calls — virtual numbers + softphone / optional PSTN
+        if path in ("/v1/calls/numbers", "/v1/agent-calls/numbers", "/v1/calls/assign"):
+            from pocket.agent_calls import assign_number, list_numbers
+
+            b = body or {}
+            if b.get("agent") or b.get("agent_id") or path.endswith("/assign"):
+                return self._json(
+                    200,
+                    assign_number(
+                        str(b.get("agent") or b.get("agent_id") or b.get("id") or ""),
+                        name=str(b.get("name") or ""),
+                        area=str(b.get("area") or "201"),
+                        line=str(b.get("line") or ""),
+                    ),
+                )
+            return self._json(200, list_numbers())
+        if path in ("/v1/calls/dial", "/v1/agent-calls/dial"):
+            from pocket.agent_calls import dial
+
+            b = body or {}
+            return self._json(
+                200,
+                dial(
+                    from_agent=str(b.get("from") or b.get("from_agent") or b.get("agent") or "phone_agent"),
+                    to=str(b.get("to") or b.get("number") or ""),
+                    purpose=str(b.get("purpose") or b.get("reason") or ""),
+                    text=str(b.get("text") or b.get("prompt") or ""),
+                    mode=str(b.get("mode") or "soft"),
+                    session_id=str(b.get("session_id") or ""),
+                ),
+            )
+        if path in ("/v1/calls/answer", "/v1/agent-calls/answer"):
+            from pocket.agent_calls import answer
+
+            b = body or {}
+            return self._json(
+                200,
+                answer(
+                    str(b.get("id") or b.get("call_id") or ""),
+                    by=str(b.get("by") or b.get("agent") or "user"),
+                ),
+            )
+        if path in ("/v1/calls/hangup", "/v1/agent-calls/hangup"):
+            from pocket.agent_calls import hangup
+
+            b = body or {}
+            return self._json(
+                200,
+                hangup(
+                    str(b.get("id") or b.get("call_id") or ""),
+                    reason=str(b.get("reason") or "hangup"),
+                ),
+            )
+        if path in ("/v1/calls/speak", "/v1/agent-calls/speak"):
+            from pocket.agent_calls import speak
+
+            b = body or {}
+            return self._json(
+                200,
+                speak(
+                    str(b.get("id") or b.get("call_id") or ""),
+                    str(b.get("text") or b.get("message") or ""),
+                    role=str(b.get("role") or "agent"),
+                ),
+            )
+        if path in ("/v1/engine-uses", "/v1/engines/uses"):
+            from pocket.web_ui_engine import list_uses, pick_use, run_use
+
+            b = body or {}
+            if b.get("use") or b.get("use_id"):
+                return self._json(
+                    200,
+                    run_use(
+                        str(b.get("use") or b.get("use_id") or ""),
+                        str(b.get("prompt") or b.get("text") or b.get("goal") or ""),
+                        params=b,
+                    ),
+                )
+            if b.get("goal") or b.get("prompt") or b.get("text"):
+                return self._json(
+                    200,
+                    pick_use(str(b.get("goal") or b.get("prompt") or b.get("text") or "")),
+                )
+            return self._json(200, list_uses())
+        # Model Forge — AI builds models and registers on platform
+        if path in ("/v1/models/build", "/v1/model-forge/build"):
+            from pocket.model_forge import build_model
+
+            b = body or {}
+            return self._json(
+                200,
+                build_model(
+                    model_id=str(b.get("model_id") or b.get("id") or ""),
+                    name=str(b.get("name") or ""),
+                    kind=str(b.get("kind") or "template"),
+                    description=str(b.get("description") or b.get("text") or b.get("prompt") or ""),
+                    tags=b.get("tags") if isinstance(b.get("tags"), list) else None,
+                    template=str(b.get("template") or ""),
+                    rules=b.get("rules") if isinstance(b.get("rules"), list) else None,
+                    default=str(b.get("default") or ""),
+                    formula=str(b.get("formula") or ""),
+                    wrap_engine=str(b.get("wrap_engine") or ""),
+                    wrap_params=b.get("wrap_params") if isinstance(b.get("wrap_params"), dict) else None,
+                    code=str(b.get("code") or ""),
+                    system=str(b.get("system") or ""),
+                    fit_keywords=b.get("fit_keywords") if isinstance(b.get("fit_keywords"), list) else None,
+                    register_now=b.get("register_now", True) is not False,
+                    author=str(b.get("author") or "agent"),
+                ),
+            )
+        if path in ("/v1/models/register", "/v1/model-forge/register"):
+            from pocket.model_forge import register_built
+
+            b = body or {}
+            return self._json(
+                200,
+                register_built(str(b.get("model") or b.get("model_id") or b.get("id") or "")),
+            )
+        if path in ("/v1/models/suggest", "/v1/model-forge/suggest"):
+            from pocket.model_forge import suggest_from_goal
+
+            b = body or {}
+            return self._json(
+                200,
+                suggest_from_goal(str(b.get("goal") or b.get("prompt") or b.get("text") or "")),
             )
 
         # LOOMGRAPH run — default multi-step graph loop
@@ -4352,6 +5343,55 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, search_profiles(body.get("q") or body.get("query") or ""))
             return self._json(404, {"error": "wiki route"})
 
+        if path in ("/v1/bots", "/v1/bots/"):
+            from pocket.bots import create_bot
+
+            p = rbac_principal(self.headers)
+            if (p.get("role") or "none") == "none":
+                return self._json(401, {"ok": False, "error": "auth required"})
+            return self._json(
+                200,
+                create_bot(
+                    name=body.get("name") or "Teammate",
+                    job=body.get("job") or body.get("role") or "",
+                    color=body.get("color") or "",
+                    engine=body.get("engine") or "genetic",
+                    always_on=bool(body.get("always_on")),
+                    owner=p.get("user") or "pocket",
+                    system=body.get("system") or "",
+                ),
+            )
+        if path in ("/v1/bots/hire", "/v1/bots/from-prompt"):
+            from pocket.bots import create_from_prompt
+
+            p = rbac_principal(self.headers)
+            if (p.get("role") or "none") == "none":
+                return self._json(401, {"ok": False, "error": "auth required"})
+            return self._json(
+                200,
+                create_from_prompt(body.get("prompt") or body.get("text") or body.get("job") or "", owner=p.get("user") or "pocket"),
+            )
+        if path.startswith("/v1/bots/") and path.endswith("/message"):
+            from pocket.bots import message as bot_message
+
+            p = rbac_principal(self.headers)
+            if (p.get("role") or "none") == "none":
+                return self._json(401, {"ok": False, "error": "auth required"})
+            bid = path.split("/v1/bots/", 1)[-1].split("/")[0]
+            return self._json(
+                200,
+                bot_message(bid, body.get("text") or body.get("prompt") or body.get("message") or "", owner=p.get("user") or ""),
+            )
+        if path.startswith("/v1/bots/") and path.endswith("/pulse"):
+            from pocket.bots import start_pulse, stop_pulse
+
+            p = rbac_principal(self.headers)
+            if (p.get("role") or "none") == "none":
+                return self._json(401, {"ok": False, "error": "auth required"})
+            bid = path.split("/v1/bots/", 1)[-1].split("/")[0]
+            if body.get("on") is False or body.get("stop"):
+                return self._json(200, stop_pulse(bid))
+            return self._json(200, start_pulse(bid, interval_sec=int(body.get("interval_sec") or 180)))
         if path in ("/v1/custom-agents", "/v1/agents/custom"):
             from pocket.custom_agents import create_agent, run_custom_agent
 
@@ -4961,6 +6001,23 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
 
+        # RevenueCat — webhook is public (verified by REVENUECAT_WEBHOOK_AUTH)
+        if path in ("/v1/billing/webhook", "/v1/billing/revenuecat", "/v1/revenuecat/webhook"):
+            from pocket.revenuecat import handle_webhook
+
+            authz = self.headers.get("Authorization") or self.headers.get("authorization") or ""
+            result = handle_webhook(body if isinstance(body, dict) else {}, authorization=authz)
+            code = int(result.pop("status", 200) or 200)
+            if not result.get("ok") and code == 200:
+                code = 400
+            return self._json(code, result)
+        if path in ("/v1/billing/sync", "/v1/revenuecat/sync"):
+            from pocket.revenuecat import apply_subscriber
+
+            uid = str(body.get("app_user_id") or body.get("user") or "").strip()
+            if not uid:
+                return self._json(400, {"ok": False, "error": "app_user_id required"})
+            return self._json(200, apply_subscriber(uid, source="api"))
         # Economy mutations
         if path in ("/v1/economy/transfer", "/v1/wallet/transfer"):
             from pocket.economy import transfer
@@ -5261,6 +6318,7 @@ class Handler(BaseHTTPRequestHandler):
                     with_ui_map=bool(body.get("ui_map", True)),
                     with_ocr=bool(body.get("ocr", True)),
                     with_understand=bool(body.get("understand", True)),
+                    force=bool(body.get("force", False)),
                 ),
             )
         if path in ("/v1/vision/understand", "/v1/pixel/understand", "/v1/pixel/translate"):
@@ -5409,6 +6467,78 @@ class Handler(BaseHTTPRequestHandler):
                     brand=body.get("brand") or "ItsNotAI Labs",
                 ),
             )
+        if path in ("/v1/twin/mint", "/api/twin/mint"):
+            from pocket.twin_mint import mint as twin_mint
+            from pocket.rbac import principal as rbac_p
+
+            p = rbac_p(self.headers)
+            user = str(body.get("user") or p.get("user") or "phoneai")
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            return self._json(200, twin_mint(user))
+        if path in ("/v1/twin/open", "/api/twin/open"):
+            from pocket.twin_mint import open_on_pc
+            from pocket.rbac import principal as rbac_p
+
+            p = rbac_p(self.headers)
+            user = str(body.get("user") or p.get("user") or "phoneai")
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            return self._json(200, open_on_pc(user))
+        if path in ("/v1/twin/vault", "/api/twin/vault"):
+            from pocket.twin_mint import vault_get, vault_put
+            from pocket.rbac import principal as rbac_p
+
+            p = rbac_p(self.headers)
+            user = str(body.get("user") or p.get("user") or "phoneai")
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            name = str(body.get("name") or body.get("path") or "note.md")
+            if body.get("text") is not None or body.get("content") is not None:
+                return self._json(
+                    200,
+                    vault_put(user, name, str(body.get("text") or body.get("content") or ""), to_pocket=body.get("to_pocket", True)),
+                )
+            return self._json(200, vault_get(user, name))
+        if path in ("/v1/twin/agent", "/api/twin/agent"):
+            from pocket.twin_mint import create_agent
+            from pocket.rbac import principal as rbac_p
+
+            p = rbac_p(self.headers)
+            user = str(body.get("user") or p.get("user") or "phoneai")
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            return self._json(200, create_agent(user, body if isinstance(body, dict) else {}))
+        if path in ("/v1/twin/agent/run", "/api/twin/agent/run"):
+            from pocket.twin_mint import run_agent as twin_run
+            from pocket.rbac import principal as rbac_p
+
+            p = rbac_p(self.headers)
+            user = str(body.get("user") or p.get("user") or "phoneai")
+            if p.get("role") == "member":
+                user = p.get("user") or user
+            return self._json(
+                200,
+                twin_run(user, str(body.get("id") or body.get("agent") or ""), str(body.get("prompt") or body.get("text") or "")),
+            )
+        if path in ("/v1/network/agents",):
+            from pocket.agent_network import develop as network_develop
+
+            return self._json(200, network_develop(body if isinstance(body, dict) else {}))
+        if path in ("/v1/network/agents/run",):
+            from pocket.agent_network import run_developed
+
+            return self._json(
+                200,
+                run_developed(str(body.get("id") or body.get("agent") or ""), str(body.get("prompt") or body.get("text") or "")),
+            )
+        if path in ("/v1/network/agents/ship",):
+            from pocket.agent_network import ship as network_ship
+
+            return self._json(
+                200,
+                network_ship(str(body.get("id") or body.get("agent") or ""), str(body.get("target") or "git")),
+            )
         if path in ("/v1/studio/ship",):
             from pocket.studio_core import ship
 
@@ -5450,6 +6580,8 @@ class Handler(BaseHTTPRequestHandler):
                 subtitle=body.get("subtitle") or "Host co-pilot",
                 width=int(body.get("width") or 0),
                 height=int(body.get("height") or 0),
+                image_b64=body.get("image_b64") or body.get("b64") or "",
+                source=body.get("source") or "live",
             )
             return self._json(200 if r.get("ok") else 400, r)
         if path in ("/v1/fusion/remake", "/v1/vision/remake", "/v1/imagine/remake"):
@@ -5741,6 +6873,10 @@ class Handler(BaseHTTPRequestHandler):
                     }),
                 ),
             )
+        if path in ("/v1/mcp/stream/clear", "/v1/mcp/stream/reset"):
+            from pocket.mcp_stream import clear as mcp_stream_clear
+
+            return self._json(200, mcp_stream_clear())
         if path in ("/v1/cli/run", "/v1/tools/cli"):
             from pocket.cli_tools import run_cli
 
@@ -5941,6 +7077,44 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, stop_mission(body.get("id") or body.get("mission_id") or ""))
 
         # --- Alpha workflows ---
+        if path in ("/v1/go", "/v1/go/start"):
+            from pocket.go_plane import go as go_start
+
+            return self._json(
+                200,
+                go_start(
+                    arm_daily=body.get("arm_daily", True) is not False,
+                    run_morning=bool(body.get("morning") or body.get("run_morning")),
+                ),
+            )
+        if path in ("/v1/go/tick", "/v1/go/sync"):
+            from pocket.go_plane import tick as go_tick
+
+            return self._json(200, go_tick())
+        if path in ("/v1/power/do", "/v1/power/run"):
+            from pocket.power import do as power_do, morning
+
+            if body.get("morning"):
+                return self._json(200, morning())
+            return self._json(
+                200,
+                power_do(
+                    body.get("goal") or body.get("text") or body.get("prompt") or "",
+                    dry=bool(body.get("dry")),
+                    workflow_id=str(body.get("workflow_id") or body.get("id") or ""),
+                ),
+            )
+        if path in ("/v1/workflows/multi/run", "/v1/multi-workflows/run"):
+            from pocket.multi_workflows import run as run_multi
+
+            return self._json(
+                200,
+                run_multi(
+                    body.get("id") or body.get("workflow") or body.get("name") or "",
+                    dry=bool(body.get("dry")),
+                    params=body if isinstance(body, dict) else {},
+                ),
+            )
         if path in ("/v1/workflows/run", "/v1/workflow/run"):
             from pocket.workflows_alpha import run_workflow, run_all
 
@@ -6005,6 +7179,75 @@ class Handler(BaseHTTPRequestHandler):
             )
             return self._json(200 if r.get("ok", True) else 400, r)
 
+        if path in ("/v1/workflows/start", "/v1/kernels/workflows/start"):
+            from pocket.kernels.long_workflow import start as wf_start
+
+            return self._json(
+                200,
+                wf_start(
+                    str(body.get("goal") or body.get("prompt") or ""),
+                    session_id=str(body.get("session_id") or ""),
+                    interval_sec=float(body.get("interval_sec") or 90),
+                    max_hours=float(body.get("max_hours") or 168),
+                    keep=bool(body.get("keep")),
+                    agents=body.get("agents"),
+                    label=str(body.get("label") or ""),
+                    host_bound=body.get("host_bound", True) is not False,
+                ),
+            )
+        if path in ("/v1/workflows/tick",):
+            from pocket.kernels.long_workflow import tick as wf_tick
+
+            return self._json(200, wf_tick(str(body.get("id") or body.get("workflow_id") or "")))
+        if path in ("/v1/workflows/pause",):
+            from pocket.kernels.long_workflow import pause as wf_pause
+
+            return self._json(200, wf_pause(str(body.get("id") or "")))
+        if path in ("/v1/workflows/resume",):
+            from pocket.kernels.long_workflow import resume as wf_resume
+
+            return self._json(200, wf_resume(str(body.get("id") or "")))
+        if path in ("/v1/workflows/stop",):
+            from pocket.kernels.long_workflow import stop as wf_stop
+
+            return self._json(200, wf_stop(str(body.get("id") or ""), reason=str(body.get("reason") or "stop")))
+        if path in ("/v1/kernels/calibrate", "/v1/neuro-silicon/calibrate"):
+            from pocket.kernels.neuro_silicon import calibrate
+
+            return self._json(
+                200,
+                calibrate(
+                    run_loop=bool(body.get("loop", True)),
+                    goal=str(body.get("goal") or body.get("prompt") or ""),
+                ),
+            )
+        if path in ("/v1/kernels/loop", "/v1/cognitive/loop"):
+            from pocket.kernels.cognitive_loop import run_loop
+
+            return self._json(
+                200,
+                run_loop(
+                    str(body.get("goal") or body.get("prompt") or ""),
+                    parallel=bool(body.get("parallel", True)),
+                ),
+            )
+        if path in ("/v1/agents/invoke", "/v1/agent/invoke", "/v1/beings/invoke"):
+            from pocket.agent_invoke import invoke
+
+            return self._json(
+                200,
+                invoke(
+                    str(body.get("name") or body.get("agent") or body.get("id") or ""),
+                    prompt=str(body.get("prompt") or body.get("message") or body.get("text") or ""),
+                    job=str(body.get("job") or body.get("action") or ""),
+                    session_id=str(body.get("session_id") or ""),
+                    params=body if isinstance(body, dict) else {},
+                ),
+            )
+        if path in ("/v1/agents/autonomous/ensure", "/v1/autonomous/ensure"):
+            from pocket.agent_invoke import ensure_autonomous
+
+            return self._json(200, ensure_autonomous())
         if path in ("/v1/subagents/dispatch", "/v1/agents/dispatch"):
             from pocket.agent_hook import ensure_mesh_hook
             from pocket.subagent_dispatch import dispatch
@@ -6585,6 +7828,12 @@ def serve(host: str = "0.0.0.0", port: int = PORT) -> None:
             print(f"[POCKET] voice ensure skip: {e}", flush=True)
 
     threading.Thread(target=_wake_voice, name="pocket-voice-wake", daemon=True).start()
+    try:
+        from pocket.model_clis import start_host_cli_install_bg
+
+        start_host_cli_install_bg()
+    except Exception as e:
+        print(f"[POCKET] model cli bg skip: {e}", flush=True)
     stop_heart = threading.Event()
     threading.Thread(
         target=_serve_heartbeat_loop,

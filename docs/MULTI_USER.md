@@ -8,7 +8,8 @@
 | **Member** | Invited user | **Their** username + password they chose at register |
 
 Register **never** puts someone on the owner account.  
-A seat invite key only proves “owner allowed a new seat.” The new person picks identity + password.
+Public URL (`/login`, `/signup`, `/join`) can create a member seat **without** an invite (`POCKET_PUBLIC_SIGNUP=1`, default on).  
+A seat invite key still works when you have one. The new person picks identity + password.
 
 ## Seat invite keys (cryptographic)
 

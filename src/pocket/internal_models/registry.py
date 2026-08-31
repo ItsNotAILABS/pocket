@@ -22,7 +22,14 @@ def _boot() -> None:
             _REGISTRY[inst.id] = inst
         except Exception:
             continue
+    # Mark booted before loading forge models (register() re-enters _boot)
     _BOOTED = True
+    try:
+        from pocket.model_forge import boot_user_models
+
+        boot_user_models()
+    except Exception:
+        pass
 
 
 def register(model: InternalModel) -> None:

@@ -7,16 +7,16 @@ HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>POCKET · Curiosities</title>
 <style>
-:root{--bg:#07070a;--panel:#121218;--line:rgba(255,255,255,.08);--text:#e8e8ed;--muted:#8b8b9a;--fg:#fafafa;--accent:#10a37f;--violet:#a78bfa;--pink:#f472b6;--amber:#fbbf24}
-*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+:root{--bg:#07070a;--panel:#121218;--line:rgba(255,255,255,.08);--text:#e8e8ed;--muted:#8b8b9a;--fg:#fafafa;--accent:#10a37f;--violet:#a78bfa;--pink:#f472b6;--amber:#fbbf24;--ease:cubic-bezier(.22,1,.36,1)}
+*{box-sizing:border-box}body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(800px 400px at 20% -10%,rgba(167,139,250,.1),transparent 50%),var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}
-.top{display:flex;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.top{display:flex;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(7,7,10,.78);backdrop-filter:blur(22px);position:sticky;top:0;z-index:10}
 .mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(145deg,#10a37f,#7c3aed);color:#041;display:grid;place-items:center;font-weight:800}
 .wrap{max-width:1100px;margin:0 auto;padding:22px 18px 80px}
 h1{letter-spacing:-.04em;color:var(--fg);margin:0 0 8px}
 .lead{color:var(--muted);max-width:640px;line-height:1.5}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:22px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card{background:linear-gradient(165deg,rgba(255,255,255,.04),transparent 48%),var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;transition:transform .2s var(--ease),box-shadow .2s,border-color .2s}
 .card h2{margin:0 0 6px;font-size:15px;color:var(--fg)}
 .card p{margin:0 0 12px;font-size:13px;color:var(--muted);line-height:1.45}
 .btn{border:0;border-radius:10px;padding:9px 12px;font-weight:700;font-size:12.5px;cursor:pointer;margin:0 6px 6px 0}

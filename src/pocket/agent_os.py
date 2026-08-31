@@ -221,9 +221,69 @@ SYSTEMS: List[Dict[str, Any]] = [
         "kind": "infra",
         "route": "/desk",
         "mode": "mcp",
-        "api": ["/v1/mcp", "/v1/mcp/invoke", "/v1/cli", "/v1/cli/run"],
+        "api": ["/v1/mcp", "/v1/mcp/invoke", "/v1/mcp/fifty", "/v1/cli", "/v1/cli/run"],
         "parity": ["claude_code", "antigravity"],
-        "blurb": "3 internal + 7 external MCPs · agent CLI (no user tabs)",
+        "blurb": "10 MCP servers · 200-tool pack · 60 universal · no user tabs",
+        "tier": "class",
+    },
+    {
+        "id": "power",
+        "name": "Power",
+        "kind": "command",
+        "route": "/power",
+        "api": ["/v1/power", "/v1/power/do", "/v1/power/vs"],
+        "parity": ["claude_code", "emergent"],
+        "blurb": "One goal → route a multi-workflow → receipt on this host",
+        "tier": "core",
+    },
+    {
+        "id": "go",
+        "name": "GO plane",
+        "kind": "state",
+        "route": "/power",
+        "api": ["/v1/go", "/v1/go/tick"],
+        "parity": ["emergent", "antigravity"],
+        "blurb": "Active states + working slots for all 100 workflows",
+        "tier": "core",
+    },
+    {
+        "id": "multi_workflows",
+        "name": "Multi workflows",
+        "kind": "workflow",
+        "route": "/power",
+        "api": ["/v1/workflows/multi", "/v1/workflows/multi/run"],
+        "parity": ["emergent", "claude_code"],
+        "blurb": "100 named multi-agent DAGs on the host",
+        "tier": "class",
+    },
+    {
+        "id": "forge",
+        "name": "SovereignForge",
+        "kind": "cloud",
+        "route": "/power",
+        "api": ["/v1/computing-clouds"],
+        "parity": ["emergent"],
+        "blurb": "Trading envelope on :8789 · MESIE + PARALLAX",
+        "tier": "edge",
+    },
+    {
+        "id": "engine",
+        "name": "Sovereign Engine",
+        "kind": "cloud",
+        "route": "/power",
+        "api": ["/v1/computing-clouds"],
+        "parity": ["replit"],
+        "blurb": "XFIN AURA PULSE MINT GRID NEXS · shared billing",
+        "tier": "edge",
+    },
+    {
+        "id": "mesie",
+        "name": "MESIE SDK",
+        "kind": "science",
+        "route": "/os",
+        "api": ["/v1/mcp/fifty"],
+        "parity": ["claude_code"],
+        "blurb": "Spectral embed / match on-host science substrate",
         "tier": "class",
     },
     {
@@ -466,10 +526,48 @@ def _probe_system(sys: Dict[str, Any]) -> Dict[str, Any]:
             detail = f"live={w.get('live')}"
         elif sid == "mcp_bundle":
             from pocket.mcp_bundle import catalog as mc
+            from pocket.mcp_fifty import catalog as fifty
 
             c = mc()
+            f = fifty()
             ok = True
-            detail = f"{c.get('total')} servers"
+            detail = f"{c.get('total')} servers · {f.get('count')} pack tools"
+        elif sid == "power":
+            from pocket.power import pulse
+
+            p = pulse()
+            ok = bool(p.get("ok"))
+            detail = f"{p.get('tools')} tools · {p.get('workflows')} workflows"
+        elif sid == "go":
+            from pocket.go_plane import snapshot
+
+            g = snapshot()
+            ok = bool(g.get("ok"))
+            detail = f"{g.get('active_count')} active · {len(g.get('working') or [])} working · {g.get('workflow_count')} slots"
+        elif sid == "multi_workflows":
+            from pocket.multi_workflows import catalog as mw
+
+            m = mw()
+            ok = m.get("total") == 100
+            detail = f"{m.get('total')} workflows · {len(m.get('families') or {})} families"
+        elif sid == "forge":
+            from pocket.sovereign_stack import computing_clouds
+
+            c = next((x for x in (computing_clouds().get("clouds") or []) if x.get("id") == "sovereign_forge"), {})
+            ok = c.get("status") in ("ready", "listening", "primary")
+            detail = f"{c.get('status')} · {c.get('url') or ''}"
+        elif sid == "engine":
+            from pocket.sovereign_stack import computing_clouds
+
+            c = next((x for x in (computing_clouds().get("clouds") or []) if x.get("id") == "sovereign_engine"), {})
+            ok = c.get("status") in ("ready", "listening", "primary")
+            detail = f"{c.get('status')} · {c.get('url') or ''}"
+        elif sid == "mesie":
+            from pocket.sovereign_stack import computing_clouds
+
+            c = next((x for x in (computing_clouds().get("clouds") or []) if x.get("id") == "mesie_sdk"), {})
+            ok = c.get("status") in ("ready", "listening")
+            detail = str(c.get("version") or c.get("status") or "mesie")
         elif sid == "sandbox":
             from pocket.agent_sandbox import list_profiles
 
@@ -522,6 +620,7 @@ def list_systems(*, live: bool = True) -> Dict[str, Any]:
         ),
         "screens": {
             "os": "/os",
+            "power": "/power",
             "desk": "/desk",
             "work": "/work",
             "studio": "/studio",
@@ -958,6 +1057,7 @@ def dashboard() -> Dict[str, Any]:
         "open": {
             "desk": "/desk",
             "os": "/os",
+            "power": "/power",
             "work": "/work",
             "studio": "/studio",
             "phone": "/phone",

@@ -25,7 +25,10 @@ ACCESS_ENV = HOME / "access.env"
 # Public product face (customers / marketing) — not where you work day to day
 PUBLIC_GITHUB = "https://github.com/ItsNotAILABS/pocket"
 PUBLIC_MARKETING_HOST = "https://pocket.medinatechlabs.net"
-LOCAL_APP = "http://127.0.0.1:8787"
+OWNER_PORT = int(os.environ.get("POCKET_OWNER_PORT", "8787") or "8787")
+USERS_PORT = int(os.environ.get("POCKET_USERS_PORT", "8788") or "8788")
+LOCAL_APP = f"http://127.0.0.1:{OWNER_PORT}"
+USERS_LOCAL = f"http://127.0.0.1:{USERS_PORT}"
 
 
 def _load_env_file(path: Path) -> None:
@@ -85,6 +88,24 @@ def is_public_face() -> bool:
     return not is_founder()
 
 
+def product_id() -> str:
+    """Two products. Never one process pretending to be both."""
+    raw = (os.environ.get("POCKET_PRODUCT") or "").strip().lower()
+    if raw in ("users", "user", "seat", "market", "public"):
+        return "users"
+    if raw in ("owner", "founder", "operator", "lab"):
+        return "owner"
+    return "users" if is_public_face() else "owner"
+
+
+def owner_url() -> str:
+    return f"http://127.0.0.1:{OWNER_PORT}"
+
+
+def users_local_url() -> str:
+    return f"http://127.0.0.1:{USERS_PORT}"
+
+
 def app_url() -> str:
     """Where THIS running instance is (founder desk = almost always localhost)."""
     return (os.environ.get("POCKET_PUBLIC_URL") or LOCAL_APP).strip().rstrip("/") or LOCAL_APP
@@ -115,17 +136,33 @@ def desk_url() -> str:
 
 
 def summary() -> Dict[str, Any]:
+    try:
+        from pocket.market import SOLD_VERSION, catalog
+
+        sold = {
+            "sku": "pocket-sold",
+            "version": SOLD_VERSION,
+            "join": "/join",
+            "plans": [p["id"] for p in catalog()["plans"]],
+        }
+    except Exception:
+        sold = {"sku": "pocket-sold", "join": "/join"}
     return {
         "ok": True,
+        "product": product_id(),
         "edition": "founder" if is_founder() else "public",
+        "owner_url": owner_url(),
+        "users_local_url": users_local_url(),
         "app_url": app_url(),
         "desk_url": desk_url(),
         "marketing_url": marketing_url(),
         "public_github": public_github(),
         "public_github_visible": public_github() is not None,
         "founder_env": str(FOUNDER_ENV),
+        "sold": sold,
         "doctrine": (
             "Founder tree = your daily product. "
+            "Sold SKU = /join seats + RevenueCat + tenant space. "
             "Public GitHub + marketing host = customer face only. "
             "Ship is deliberate; daily work is not auto-published."
         ),

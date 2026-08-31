@@ -28,7 +28,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
   --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --r:14px;--glow:0 0 0 1px rgba(16,163,127,.25),0 8px 28px rgba(16,163,127,.12);
-  --ease:cubic-bezier(.22,1,.36,1);--t:160ms var(--ease);
+  --ease:cubic-bezier(.22,1,.36,1);--t:180ms var(--ease);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
@@ -46,7 +46,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .app{min-height:100%;display:flex;flex-direction:column}
 .top{
   display:flex;align-items:center;gap:12px;padding:11px 18px;flex-wrap:wrap;
-  border-bottom:1px solid var(--line);background:rgba(7,7,10,.92);backdrop-filter:blur(18px);position:sticky;top:0;z-index:20
+  border-bottom:1px solid var(--line);background:rgba(7,7,10,.78);backdrop-filter:blur(22px) saturate(1.3);position:sticky;top:0;z-index:20
 }
 .mark{
   width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:13px;color:#041;
@@ -218,6 +218,7 @@ label{display:block;font-size:11px;font-weight:650;color:var(--muted);margin:10p
       <a href="/desk">Desk</a>
       <a href="/work" class="on">Work Studio</a>
       <a href="/studio">Product Studio</a>
+      <a href="/imagine">Imagine</a>
       <a href="/phone">Phone</a>
       <a href="/updates">Updates</a>
     </nav>

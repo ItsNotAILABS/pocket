@@ -4,9 +4,11 @@
 
 | Shortcut | Who | First open |
 |----------|-----|------------|
-| **POCKET Owner** | You / operator | Local host only — **no** source wizard |
-| **POCKET User Test** | Members / download users | **Source picker** → cloud / local / custom → desk → Create my seat |
-| **POCKET** (Edge) | You on this PC | Edge app → local desk (ensure-if-down) |
+| **POCKET Owner** | **YOUR POCKET** — you / operator | Local host only — **no** source wizard |
+| **POCKET Seat (test)** | **USER FACING** — members / download users | **Source picker** → cloud / local / custom → desk → Create my seat |
+| **POCKET Edge (this machine)** | You on this PC | Edge app → local desk (ribbon says which face) |
+
+See [WHICH_POCKET.md](WHICH_POCKET.md).
 
 Owner and User use **separate Electron profiles** (`%APPDATA%\POCKET-Owner` vs `POCKET-User`) so testing one never overwrites the other.
 
@@ -35,6 +37,8 @@ Owner path never runs steps 2a–2b.
 | **Edge app (local)** | You / same Wi‑Fi | Desktop **POCKET** |
 | **Electron .exe** | Download users | User hub / Releases — first-run picker |
 | **Cloudflare URL** | Phone / remote | https://pocket.medinatechlabs.net/desk |
+
+Desk agents are POCKET agents: identity + GO board inject on every turn. They run `go` / `power_do` when the user says hit GO, what’s working, or morning seatbelt.
 
 **Rule for agents/operators:** never kill a healthy host or cloudflared. Only start if **down**.
 

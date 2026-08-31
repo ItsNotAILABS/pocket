@@ -1,44 +1,30 @@
-# How to promote POCKET to users
+# Promote: internal → public
 
-## What you are selling
+Founder tree (`OneDrive/pocket-os`) never auto-publishes.
 
-**Not** “another ChatGPT.”  
-**A multi-agent desk that runs on the operator’s machine**, using CLIs they already pay for (Codex / Grok / Claude), with phone access, deploys, metering, and invite-based multi-user.
+## When to promote
 
-## Positioning (one line)
+Charter: ship to `ItsNotAILABS/pocket` only when
 
-> POCKET is Cursor/Claude-desk energy for **your own PC agents** — parallel sessions, live terminals, local deploys, remote phone control.
+> Open app → Codex or Grok → work → summary makes sense → team invite works.
 
-## Who it’s for
+## Path
 
-1. Solo builders who already use Codex/Grok  
-2. Small teams that want a shared agent desk (invite code)  
-3. Operators who need phone kickoff while away  
+1. Work on Owner `:8787`. Keep WIP on this disk.
+2. Test **POCKET for Users** on `:8788` (`scripts\Open-POCKET-User.cmd`). Separate profile, separate login.
+3. Confirm `/desk` login, one Grok/Codex turn, readable summary, `/join` seat.
+4. Copy a clean tree (no `.data/`, no `ACCESS.txt`, no `~/.pocket` secrets).
+5. Push that copy to the public repo. Tag the version (`3.7.0`).
+6. Marketing uses [README.md](../README.md) and [DEMO_60S.md](DEMO_60S.md) only.
 
-## Launch path (practical)
+## Ports (do not mix)
 
-1. **Stabilize** — `Start-POCKET.ps1` always on; Cloudflare hostname green  
-2. **Demo video** (60–90s): open phone → Plan chat → Codex ship → deploy static  
-3. **Landing** one page: problem / product / screenshots / waitlist  
-4. **Invite-only beta**: share `~/.pocket/INVITE.txt` code with 5–20 users  
-5. **Channels**: X/Twitter builders, Discord coding servers, HN Show, Indie Hackers  
-6. **Price later**: free self-host; paid hosted seat when multi-tenant is real  
+| Port | Product |
+|------|---------|
+| 8787 | Owner |
+| 8788 | Users |
+| 8789 | SovereignForge (lab) |
 
-## What NOT to claim
+## Do not promote
 
-- Not multi-tenant SaaS isolation yet  
-- Not a replacement for Codex/Grok subscriptions  
-- PC must stay on for remote access  
-
-## Metrics that matter
-
-- Sessions started / week  
-- Agent jobs completed  
-- Public uptime  
-- Invite conversions  
-
-## Assets you already have
-
-- Public: `https://pocket.medinatechlabs.net/`  
-- Papers: `/v1/docs/ship`, platform, tokenomics  
-- Multi-user register + invite  
+Internal GO/Power experiment notes, MESIE paths, founder shortcuts, untested vision dumps.

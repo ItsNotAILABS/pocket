@@ -23,7 +23,7 @@ DEVELOPERS_HTML = r"""<!DOCTYPE html>
   --accent:#10a37f;--accent2:#1a7f64;--danger:#ef4444;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
 }
-*{box-sizing:border-box}body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.5}
+*{box-sizing:border-box}body{margin:0;font-family:var(--sans);background:radial-gradient(900px 480px at 0% -10%,rgba(16,163,127,.08),transparent 50%),var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 __SHELL_CSS__
 .wrap{max-width:880px;margin:0 auto;padding:48px 24px 96px}
@@ -31,7 +31,7 @@ h1{font-size:40px;letter-spacing:-.04em;font-weight:600;margin:0 0 12px;line-hei
 .sub{font-size:17px;color:var(--muted);max-width:560px;margin:0 0 32px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0 40px}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
-.card{border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--panel)}
+.card{border:1px solid var(--line);border-radius:14px;padding:18px;background:linear-gradient(165deg,rgba(255,255,255,.035),transparent 50%),var(--panel);transition:border-color .2s,transform .2s,box-shadow .2s}
 .card h3{margin:0 0 6px;font-size:14px;font-weight:600}
 .card p{margin:0;font-size:13px;color:var(--muted)}
 .card code{display:block;margin-top:10px;font-size:11px;font-family:var(--mono);color:#c4c4c4;background:#0a0a0a;padding:10px;border-radius:8px;overflow:auto}
@@ -139,13 +139,13 @@ curl -s $BASE/v1/api -H "Authorization: Bearer $KEY"
 <div class="toast" id="toast"></div>
 <div class="gate" id="gate">
   <div class="box">
-    <h3 style="margin:0 0 8px;font-size:16px">Operator sign-in</h3>
-    <p style="margin:0;font-size:13px;color:var(--muted)">Required to create keys</p>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Same credentials as Desktop: <code style="color:var(--accent)">%USERPROFILE%\.pocket\ACCESS.txt</code></p>
+    <h3 style="margin:0 0 8px;font-size:16px">Sign in</h3>
+    <p style="margin:0;font-size:13px;color:var(--muted)">Required to create keys. Use your POCKET username.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 8px">New here? <a href="/signup" style="color:var(--accent)">Create an account</a>.</p>
     <label>Username</label>
-    <input id="u" value="pocket" autocomplete="username"/>
-    <label>Password (ACCESS.txt)</label>
-    <input id="p" type="password" autocomplete="current-password" placeholder="from ACCESS.txt"/>
+    <input id="u" value="" autocomplete="username" placeholder="your username"/>
+    <label>Password</label>
+    <input id="p" type="password" autocomplete="current-password" placeholder="your password"/>
     <div class="btnrow" style="margin-top:14px">
       <button class="btn p" type="button" onclick="doLogin()">Continue</button>
       <button class="btn" type="button" onclick="closeGate()">Cancel</button>
@@ -159,8 +159,7 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.sty
 function openGate(){document.getElementById('gate').style.display='flex'}
 function closeGate(){document.getElementById('gate').style.display='none'}
 async function doLogin(){
-  let user=(document.getElementById('u').value||'').trim()||'pocket';
-  if(!(document.getElementById('u').value||'').trim()) document.getElementById('u').value='pocket';
+  let user=(document.getElementById('u').value||'').trim();
   const pass=document.getElementById('p').value||'';
   let tok='';
   if(window.PocketAuth&&PocketAuth.login){

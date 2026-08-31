@@ -5,18 +5,30 @@
 
 This is the **master map** of everything built and wired. How-to recipes: [HOW_TO.md](HOW_TO.md) · Live hub: `/docs`
 
+**Binding doctrine (read first):** [../DOCTRINE.md](../DOCTRINE.md) · [DOCTRINE.md](DOCTRINE.md) · live `GET /v1/doctrine`
+
 ---
+
+## Which POCKET?
+
+| Face | Open |
+|------|------|
+| **YOUR POCKET** | http://127.0.0.1:8787/which · shortcut **POCKET Owner** |
+| **USER FACING** | https://pocket.medinatechlabs.net · shortcut **POCKET Seat (test)** |
+
+[WHICH_POCKET.md](WHICH_POCKET.md) — gold OWNER vs green SEAT.
 
 ## Start here
 
 | Step | Action |
 |------|--------|
 | 1 | `PYTHONPATH=src python -m pocket serve --host 0.0.0.0 --port 8787` |
-| 2 | Open http://127.0.0.1:8787/desk — login from `~/.pocket/ACCESS.txt` |
-| 3 | Browse http://127.0.0.1:8787/docs |
-| 4 | Agent mail http://127.0.0.1:8787/mail |
-| 5 | Install slices http://127.0.0.1:8787/install |
-| 6 | MCP: `PYTHONPATH=src python -m pocket.mcp_server` |
+| 2 | Open http://127.0.0.1:8787/which then `/desk` — Owner login from `~/.pocket/ACCESS.txt` |
+| 3 | **Agents toolkit (all MCP tools + uses):** [AGENTS_MCP_TOOLS.md](AGENTS_MCP_TOOLS.md) · live `GET /v1/agents/tools` |
+| 4 | Browse http://127.0.0.1:8787/docs |
+| 5 | Agent mail http://127.0.0.1:8787/mail |
+| 6 | Install slices http://127.0.0.1:8787/install |
+| 7 | MCP: `PYTHONPATH=src python -m pocket.mcp_server` |
 
 ---
 
@@ -76,6 +88,8 @@ This is the **master map** of everything built and wired. How-to recipes: [HOW_T
 
 ## Related docs
 
+- [../DOCTRINE.md](../DOCTRINE.md) — binding laws, oath, faces, forbidden, amendment  
+- [doctrine/BEINGS.md](doctrine/BEINGS.md) — every AI + organism: oaths, vows, laws · `GET /v1/doctrine/beings`  
 - [HOW_TO.md](HOW_TO.md) — recipe index  
 - [PLATFORM_SURFACE.md](PLATFORM_SURFACE.md) — surfaces  
 - [API_QUICKSTART.md](API_QUICKSTART.md) — API  

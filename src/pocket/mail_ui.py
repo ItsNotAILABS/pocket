@@ -12,11 +12,11 @@ def mail_html() -> str:
 <title>POCKET Agent Mail</title>
 <meta name="theme-color" content="#09090b"/>
 <style>
-:root{--bg:#09090b;--panel:#141416;--panel2:#1c1c1f;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--warn:#f59e0b}
+:root{--bg:#09090b;--panel:#141416;--panel2:#1c1c1f;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f;--warn:#f59e0b;--ease:cubic-bezier(.22,1,.36,1)}
 *{box-sizing:border-box}
-body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(900px 400px at 0% 0%,rgba(16,163,127,.08),transparent 50%),var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}
-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(9,9,11,.92);backdrop-filter:blur(10px);z-index:5}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(9,9,11,.78);backdrop-filter:blur(22px) saturate(1.3);z-index:5}
 header .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#10a37f,#0b6e4f);display:grid;place-items:center;font-weight:800;color:#fff;font-size:13px}
 header h1{margin:0;font-size:15px;color:var(--fg);letter-spacing:-.02em}
 header nav{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
@@ -24,7 +24,7 @@ header nav a{font-size:12px;font-weight:600;color:var(--muted);border:1px solid 
 header nav a:hover{color:var(--fg)}
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 80px;display:grid;grid-template-columns:240px 1fr;gap:16px}
 @media(max-width:800px){.wrap{grid-template-columns:1fr}}
-.card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px}
+.card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(165deg,rgba(255,255,255,.035),transparent 48%),var(--panel);padding:14px;transition:border-color .2s var(--ease),transform .2s var(--ease)}
 .card h2{margin:0 0 10px;font-size:13px;color:var(--fg);letter-spacing:.02em;text-transform:uppercase}
 .sub{font-size:12px;color:var(--muted);margin:0 0 10px}
 .acct{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px;border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:12.5px}

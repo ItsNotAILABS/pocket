@@ -227,6 +227,23 @@ def pillars() -> List[Dict[str, Any]]:
     items.append(_ok("Phone surface", True, "/phone", tier="edge"))
     items.append(_ok("Work Studio surface", True, "/work", tier="edge"))
     items.append(_ok("Sellable AI API", True, "/v1/ai/chat + keys", tier="edge"))
+    items.append(_ok("Imagine Studio", True, "/imagine", tier="class"))
+    items.append(_ok("Novae hands", True, "/v1/novae Grok+Codex", tier="class"))
+    items.append(_ok("Public signup", True, "/login /signup", tier="edge"))
+    try:
+        from pocket.foundations import ready as foundations_ready
+
+        fr = foundations_ready()
+        items.append(
+            _ok(
+                "Internal AI foundations",
+                bool(fr.get("ok")),
+                f"models={fr.get('models')} math={fr.get('math_ready')} third_party={fr.get('third_party_required')}",
+                tier="class",
+            )
+        )
+    except Exception as e:
+        items.append(_ok("Internal AI foundations", False, str(e)[:80], tier="class"))
     items.append(_ok("Researcher license gate", True, "/download + LICENSE-RESEARCHER", tier="edge"))
 
     # Security

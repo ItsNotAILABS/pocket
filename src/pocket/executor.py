@@ -292,6 +292,10 @@ def available_engines() -> Dict[str, object]:
         "genetic": True,
         "genetic_flow": True,
         "internal_models": True,
+        "multi_plan": True,
+        "multiplan": True,
+        "plan_exec": True,
+        "agentic_plan": True,
         "browser": True,
         "capture": True,
         "vision": True,
@@ -408,6 +412,15 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
                     "" if rr.get("ok") else "rah tool path failures",
                     "rah",
                 )
+            # Assist/Power: host already ran GO/Power — return that, don't overwrite with a generic plan
+            if mode in ("assist", "assistant", "digital", "life", "plan", "power") and tool_meta.get("command_md"):
+                skills = [str(r.get("skill") or "") for r in (tool_meta.get("results") or [])]
+                if any(s in ("go", "go_state", "power_do", "power_vs", "multi_workflows") for s in skills):
+                    return (
+                        "[engine=power via host tools]\n\n" + str(tool_meta.get("command_md") or ""),
+                        "",
+                        "power",
+                    )
             if jid and tool_meta.get("ran"):
                 try:
                     from pocket.stream_util import update_progress
@@ -757,10 +770,51 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         from pocket.sovereign_git import run_git_job
 
         return run_git_job(prompt)
+    if mode in ("bot", "bots", "teammate"):
+        from pocket.bots import create_from_prompt, list_bots, message as bot_message
+
+        low = (prompt or "").lower()
+        if low.startswith("hire ") or low.startswith("create bot"):
+            return str(create_from_prompt(prompt)), "", "bots"
+        bots = list_bots()
+        if bots:
+            r = bot_message(bots[0]["id"], prompt or "")
+            return r.get("reply") or "", "", "bots"
+        r = create_from_prompt(prompt or "general teammate")
+        if r.get("id"):
+            m = bot_message(r["id"], prompt or "hello")
+            return m.get("reply") or r.get("job") or "", "", "bots"
+        return "No bots yet — open /bots to hire a teammate.", "", "bots"
     if mode in ("ghost", "ghost-math", "math"):
         from pocket.ghost_math import run_ghost
 
         return run_ghost(prompt)
+    if mode in ("logic", "logic_prover", "prove"):
+        from pocket.internal_models import express_one
+
+        r = express_one("logic", prompt or "")
+        return (r.text or r.error or ""), "", "logic-internal"
+    if mode in ("pattern", "pattern_forge", "xray"):
+        from pocket.internal_models import express_one
+
+        r = express_one("pattern", prompt or "")
+        return (r.text or r.error or ""), "", "pattern-internal"
+    if mode in ("world", "world_model", "intelligence_world"):
+        from pocket.internal_models import express_one
+
+        r = express_one("world", prompt or "")
+        return (r.text or r.error or ""), "", "world-model"
+    if mode in ("imagine", "imagine_studio", "visua"):
+        from pocket.imagine_studio import compose as imagine_compose
+
+        out = imagine_compose(mode="rotato_phone", source="live", subtitle=prompt or "Host co-pilot")
+        if not out.get("ok"):
+            return out.get("error") or "imagine failed", "", "imagine"
+        return (
+            f"Imagine still `{out.get('name')}` → {out.get('file_url')} (source={out.get('source_kind')})",
+            "",
+            "imagine",
+        )
     if mode in (
         "genetic",
         "genetic_flow",
@@ -769,10 +823,23 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         "internal_models",
         "internal-models",
         "eugenetic",
+        "foundations",
     ):
         from pocket.internal_models import run_job as run_genetic_job
 
         return run_genetic_job(prompt, cwd=cwd, job=job)
+    if mode in (
+        "multi_plan",
+        "multiplan",
+        "multi-plan",
+        "plan_exec",
+        "plan_execute",
+        "agentic_plan",
+        "task_plan",
+    ):
+        from pocket.multi_plan import run_job as run_multi_plan_job
+
+        return run_multi_plan_job(prompt, cwd=cwd, job=job)
     if mode in ("term", "python", "python_wsl", "py"):
         return _run_agent_console(prompt, mode=mode, session_id=sid, job_id=jid, cwd=cwd)
     return _run_codex(prompt, cwd, job_id=jid, job=job)

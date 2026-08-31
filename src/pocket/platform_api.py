@@ -71,6 +71,39 @@ SURFACE: Dict[str, List[Dict[str, str]]] = {
         {"path": "/v1/github/create", "method": "POST", "summary": "Create repo"},
         {"path": "/v1/github/pr", "method": "POST", "summary": "Open PR"},
     ],
+    "novae": [
+        {"path": "/v1/novae", "method": "GET", "summary": "Novae catalog (Grok + Codex hands)"},
+        {"path": "/v1/novae/list", "method": "GET", "summary": "List Novae instances"},
+        {"path": "/v1/novae/status", "method": "GET", "summary": "Activation + last goal"},
+        {"path": "/v1/novae/activate", "method": "POST", "summary": "Seat Novae in platform workspace"},
+    ],
+    "bots": [
+        {"path": "/bots", "method": "GET", "summary": "POCKET Bots UI (Grok-Bot-style teammates)"},
+        {"path": "/v1/bots", "method": "GET", "summary": "List bots + starters"},
+        {"path": "/v1/bots/hire", "method": "POST", "summary": "Hire from a plain-language job"},
+        {"path": "/v1/bots/{id}/message", "method": "POST", "summary": "Message a teammate"},
+        {"path": "/v1/bots/{id}/pulse", "method": "POST", "summary": "Always-on pulse"},
+    ],
+    "foundations": [
+        {"path": "/v1/foundations", "method": "GET", "summary": "Internal AI/math/self/intelligence catalog"},
+        {"path": "/v1/internal-models", "method": "GET", "summary": "Internal model modules"},
+        {"path": "/v1/internal-models/express", "method": "POST", "summary": "Express one internal model"},
+        {"path": "/v1/genetic/run", "method": "POST", "summary": "Genetic flow over internal models"},
+    ],
+    "imagine": [
+        {"path": "/imagine", "method": "GET", "summary": "Imagine Studio UI"},
+        {"path": "/v1/imagine", "method": "GET", "summary": "Imagine status + recent stills"},
+        {"path": "/v1/imagine/gallery", "method": "GET", "summary": "Composites + remakes"},
+        {"path": "/v1/imagine/modes", "method": "GET", "summary": "rotato_phone / macbook_web / clean"},
+        {"path": "/v1/imagine/compose", "method": "POST", "summary": "Compose letterboxed device still"},
+        {"path": "/v1/imagine/file", "method": "GET", "summary": "Serve a still or remake file"},
+    ],
+    "auth_public": [
+        {"path": "/login", "method": "GET", "summary": "Public sign in"},
+        {"path": "/signup", "method": "GET", "summary": "Public sign up"},
+        {"path": "/v1/auth/login", "method": "POST", "summary": "Session login"},
+        {"path": "/v1/auth/register", "method": "POST", "summary": "Public account create"},
+    ],
     "agents_jobs": [
         {"path": "/v1/sessions", "method": "GET", "summary": "List sessions"},
         {"path": "/v1/sessions", "method": "POST", "summary": "Create session"},
@@ -273,6 +306,34 @@ def health_domains() -> Dict[str, Any]:
         out["phone_pair"] = {"ok": True, "node_id": h.get("node_id"), "label": h.get("label")}
     except Exception as e:
         out["phone_pair"] = {"ok": False, "error": str(e)[:80]}
+    try:
+        from pocket.novae import list_novae
+
+        items = list_novae()
+        out["novae"] = {
+            "ok": True,
+            "count": len(items),
+            "active": [n.get("id") for n in items if n.get("active")],
+        }
+    except Exception as e:
+        out["novae"] = {"ok": False, "error": str(e)[:80]}
+    try:
+        from pocket.users import public_signup_enabled
+
+        out["public_signup"] = {"ok": True, "enabled": public_signup_enabled()}
+    except Exception as e:
+        out["public_signup"] = {"ok": False, "error": str(e)[:80]}
+    try:
+        from pocket.imagine_studio import status as imagine_status
+
+        st = imagine_status()
+        out["imagine"] = {
+            "ok": True,
+            "ui": st.get("ui"),
+            "composites": (st.get("counts") or {}).get("composites"),
+        }
+    except Exception as e:
+        out["imagine"] = {"ok": False, "error": str(e)[:80]}
     return {"ok": True, "domains": out}
 
 

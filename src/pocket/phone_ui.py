@@ -25,9 +25,16 @@ PHONE_HTML = r"""<!DOCTYPE html>
   --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
   --font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --ease:cubic-bezier(.22,1,.36,1);--t:160ms var(--ease);
+  --ease:cubic-bezier(.22,1,.36,1);--t:180ms var(--ease);
   --glow:0 0 0 1px rgba(16,163,127,.25),0 8px 24px rgba(16,163,127,.15);
 }
+.top,.composer,.dock,.tabbar{
+  backdrop-filter:blur(22px) saturate(1.3);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3)
+}
+.modes button{transition:transform var(--t),background var(--t),border-color var(--t),color var(--t),box-shadow var(--t)}
+.modes button:active{transform:scale(.96)}
+.chat{scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{
@@ -40,6 +47,11 @@ button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
 button:disabled{opacity:.4}
 .app{display:flex;flex-direction:column;height:100dvh;height:100vh;max-width:520px;margin:0 auto;position:relative}
+.face-ribbon{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.face-ribbon.owner{background:rgba(234,179,8,.16);color:#fbbf24}
+.face-ribbon.seat{background:rgba(16,163,127,.14);color:#6ee7b7}
+.face-ribbon.local{background:rgba(255,255,255,.04);color:var(--muted)}
+.face-ribbon a{color:inherit;margin-left:auto}
 .top{
   flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 16px 10px;
   border-bottom:1px solid var(--line);background:rgba(6,6,10,.9);backdrop-filter:blur(20px) saturate(1.15);z-index:5
@@ -273,8 +285,9 @@ button:disabled{opacity:.4}
 </head>
 <body>
 <div class="app">
+  <div class="face-ribbon local" id="faceRibbon">POCKET · <a href="/which">two products</a></div>
   <header class="top">
-    <div class="brand"><div class="mark">P</div>POCKET</div>
+    <div class="brand"><div class="mark">P</div><span id="brandName">POCKET</span></div>
     <span class="chip on" id="modeChip" title="Active agent">Aria</span>
     <span class="chip" id="pairChip" title="Desk pair status">Unpaired</span>
     <span class="chip" id="hostChip" title="Host path" style="max-width:7.5rem;overflow:hidden;text-overflow:ellipsis">…</span>
@@ -345,17 +358,35 @@ button:disabled{opacity:.4}
 
 <div class="gate" id="gate">
   <div class="card">
-    <h2>Unlock phone</h2>
-    <p id="gateHint">Same seat as the desk — pair with a desk code, then sign in for agents. Works on LAN or <b style="color:var(--fg)">pocket.medinatechlabs.net</b>.</p>
+    <h2 id="phoneAuthTitle">Unlock phone</h2>
+    <p id="gateHint">Same seat as the desk — pair with a desk code, then sign in. New? Sign up. Works on LAN or <b style="color:var(--fg)">pocket.medinatechlabs.net</b>.</p>
     <label>Pair code (from desk → Workspace → Get pair code)</label>
     <input id="gatePairCode" autocomplete="one-time-code" placeholder="6-char code" style="text-transform:uppercase;letter-spacing:.12em"/>
     <button class="primary" type="button" id="gatePairBtn" style="margin-top:10px;background:var(--panel2);color:var(--fg);border:1px solid var(--line)">Pair with desk</button>
     <button class="primary" type="button" id="gateSeatBtn" style="margin-top:8px;display:none">Continue as linked phone</button>
-    <label>Username</label>
-    <input id="loginUser" autocomplete="username" placeholder="pocket or your seat"/>
-    <label>Password</label>
-    <input id="loginPass" type="password" autocomplete="current-password"/>
-    <button class="primary" type="button" id="loginBtn">Sign in with password</button>
+    <div class="tabs" style="display:flex;gap:6px;margin:14px 0 10px">
+      <button type="button" class="on" id="phoneTabLogin">Sign in</button>
+      <button type="button" id="phoneTabSignup">Sign up</button>
+    </div>
+    <div id="phoneLoginPane">
+      <label>Username</label>
+      <input id="loginUser" autocomplete="username" placeholder="your username"/>
+      <label>Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password"/>
+      <button class="primary" type="button" id="loginBtn">Sign in</button>
+    </div>
+    <div id="phoneSignupPane" style="display:none">
+      <label>Username</label>
+      <input id="regUser" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="pick a username"/>
+      <label>Password (min 8)</label>
+      <input id="regPass" type="password" autocomplete="new-password"/>
+      <label>Confirm password</label>
+      <input id="regPass2" type="password" autocomplete="new-password"/>
+      <label>Invite (optional)</label>
+      <input id="regInvite" autocomplete="off" placeholder="pk_seat_… if you have one"/>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin-top:8px;text-transform:none;letter-spacing:0"><input type="checkbox" id="regTerms"/> I accept the terms</label>
+      <button class="primary" type="button" id="regBtn">Create account</button>
+    </div>
     <div class="err" id="loginErr"></div>
   </div>
 </div>
@@ -413,6 +444,8 @@ button:disabled{opacity:.4}
       <div class="row">
         <button type="button" class="go" onclick="location.href='/desk'">Desk</button>
         <button type="button" onclick="location.href='/studio'">Studio</button>
+        <button type="button" onclick="location.href='/imagine'">Imagine</button>
+        <button type="button" onclick="location.href='/bots'">Bots</button>
       </div>
       <div class="row" style="margin-top:8px">
         <button type="button" onclick="location.href='/studio/voice'">Voice Studio</button>
@@ -547,6 +580,20 @@ async function tryMe(){
       const user = me.user || me;
       $('userChip').textContent = (user.display || user.user || 'signed in');
       $('userChip').classList.add('on');
+      try{
+        const users = String(location.port||'')==='8788';
+        const ribbon=$('faceRibbon');
+        const brand=$('brandName');
+        if(users){
+          if(brand) brand.textContent='POCKET for Users';
+          if(ribbon){ ribbon.className='face-ribbon seat'; ribbon.innerHTML='Users product · :8788 · <a href="/which">two products</a>'; }
+          document.title='POCKET for Users · Phone';
+        }else{
+          if(brand) brand.textContent='POCKET Owner';
+          if(ribbon){ ribbon.className='face-ribbon owner'; ribbon.innerHTML='Owner · :8787 · <a href="/which">two products</a>'; }
+          document.title='POCKET Owner · Phone';
+        }
+      }catch(_){}
       unlockUi();
       await refreshStatus();
       await loadNovae();
@@ -565,11 +612,54 @@ async function tryMe(){
   return false;
 }
 
+function setPhoneAuthTab(t){
+  const join=t==='register';
+  const tl=$('phoneTabLogin'), tr=$('phoneTabSignup');
+  if(tl) tl.classList.toggle('on', !join);
+  if(tr) tr.classList.toggle('on', join);
+  const lp=$('phoneLoginPane'), rp=$('phoneSignupPane');
+  if(lp) lp.style.display=join?'none':'block';
+  if(rp) rp.style.display=join?'block':'none';
+  const title=$('phoneAuthTitle');
+  if(title) title.textContent=join?'Create your account':'Unlock phone';
+  if($('loginErr')) $('loginErr').textContent='';
+}
+if($('phoneTabLogin')) $('phoneTabLogin').onclick=()=>setPhoneAuthTab('login');
+if($('phoneTabSignup')) $('phoneTabSignup').onclick=()=>setPhoneAuthTab('register');
+async function phoneSignup(){
+  if($('loginErr')) $('loginErr').textContent='Creating account…';
+  try{
+    let res;
+    if(window.PocketAuth && PocketAuth.register){
+      res=await PocketAuth.register({
+        user:($('regUser')&&$('regUser').value)||'',
+        password:($('regPass')&&$('regPass').value)||'',
+        password2:($('regPass2')&&$('regPass2').value)||'',
+        invite:($('regInvite')&&$('regInvite').value)||'',
+        accepted_terms:!!($('regTerms')&&$('regTerms').checked),
+        device:'phone',
+        channel:'public'
+      });
+      if(!res.ok) throw new Error(res.error||'Sign up failed');
+      token=res.token||'';
+    }else{
+      throw new Error('Sign-up client missing — refresh');
+    }
+    if(token) localStorage.setItem('pocket_token', token);
+    try{ sessionStorage.setItem('pocket_token', token); }catch(_){}
+    if($('loginErr')) $('loginErr').textContent='';
+    toast('Account ready');
+    await tryMe();
+    showEmpty();
+  }catch(e){
+    if($('loginErr')) $('loginErr').textContent=e.message||String(e);
+  }
+}
+if($('regBtn')) $('regBtn').onclick=phoneSignup;
 async function phonePasswordLogin(){
   $('loginErr').textContent='Signing in…';
   try{
-    let u=($('loginUser').value||'').trim()||'pocket';
-    if(!$('loginUser').value.trim()) $('loginUser').value='pocket';
+    let u=($('loginUser').value||'').trim();
     const p=$('loginPass').value||'';
     let res;
     if(window.PocketAuth && PocketAuth.login){
@@ -599,7 +689,7 @@ async function phonePasswordLogin(){
 $('loginBtn').onclick = phonePasswordLogin;
 if($('loginPass')) $('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); phonePasswordLogin(); }});
 if($('loginUser')) $('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); ($('loginPass')||{}).focus&&$('loginPass').focus(); }});
-try{ if($('loginUser') && !$('loginUser').value) $('loginUser').value='pocket'; }catch(_){}
+try{ if(window.PocketAuth && PocketAuth.wantsJoinTab && PocketAuth.wantsJoinTab()) setPhoneAuthTab('register'); }catch(_){}
 
 async function seatFromPair(){
   if(!pairToken){ toast('Pair with desk first'); return; }

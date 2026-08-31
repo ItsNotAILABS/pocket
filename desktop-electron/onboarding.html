@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>POCKET — Get started</title>
+<title>POCKET Seat — user facing</title>
 <style>
 :root{--bg:#09090b;--panel:#141416;--line:rgba(255,255,255,.1);--text:#e4e4e7;--muted:#a1a1aa;--fg:#fafafa;--accent:#10a37f}
+.banner{position:fixed;top:0;left:0;right:0;padding:8px 16px;background:rgba(16,163,127,.16);color:#6ee7b7;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-align:center}
 *{box-sizing:border-box}
 body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .card{width:100%;max-width:460px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px 26px}
@@ -33,19 +34,20 @@ code{font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radi
 </style>
 </head>
 <body>
-<div class="card">
+<div class="banner">User-facing client · not the operator desk</div>
+<div class="card" style="margin-top:36px">
   <div class="mark">P</div>
   <div class="steps" id="progress"><span class="on"></span><span></span><span></span></div>
   <div id="step1">
-    <h1>Welcome to POCKET</h1>
-    <p class="sub">Sovereign desktop client: choose <b style="color:var(--fg)">where your desk lives</b>. You create <b style="color:var(--fg)">your own seat</b> — never the owner password. Work stays on your host or your team’s host.</p>
+    <h1>POCKET Seat</h1>
+    <p class="sub">This is the <b style="color:var(--fg)">user-facing</b> client — not the operator desk. Choose where your seat lives. Create <b style="color:var(--fg)">your own account</b>. Never use the owner password.</p>
     <button type="button" class="opt on" data-src="cloud" id="oCloud">
       <b>1 · Team / cloud desk</b>
       <small>Connect to your operator’s public URL (Cloudflare). Most people pick this.</small>
     </button>
     <button type="button" class="opt" data-src="local" id="oLocal">
-      <b>2 · This computer hosts POCKET</b>
-      <small>Sovereign local host on this PC — data stays here.</small>
+      <b>2 · This computer — POCKET for Users (:8788)</b>
+      <small>Starts the customer product on port 8788. Not the Owner desk on :8787.</small>
     </button>
     <button type="button" class="opt" data-src="custom" id="oCustom">
       <b>3 · Custom URL</b>
@@ -54,7 +56,7 @@ code{font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radi
     <div class="row">
       <button type="button" class="primary" id="btnNext">Continue</button>
     </div>
-    <p class="hint">After the desk loads: <b>Create my seat</b> with a <code>pk_seat_…</code> key → pick <em>your</em> username and password. Next opens reuse this source until you change it (menu → Change desk source).</p>
+    <p class="hint">After the desk loads open <b>/join</b> and create <em>your</em> seat with a <code>pk_seat_…</code> key. Never use the owner password. Next launch skips this picker.</p>
   </div>
   <div id="step2">
     <h1 id="s2title">Connect</h1>
@@ -64,7 +66,7 @@ code{font-size:11px;background:rgba(255,255,255,.06);padding:1px 5px;border-radi
     <div class="err" id="err"></div>
     <div class="row">
       <button type="button" class="ghost" id="btnBack">Back</button>
-      <button type="button" class="primary" id="btnGo">Open POCKET</button>
+      <button type="button" class="primary" id="btnGo">Open user seat</button>
     </div>
     <p class="hint">We only store the desk URL on this device — never your password or seat key.</p>
   </div>
@@ -104,7 +106,7 @@ document.getElementById('btnNext').onclick = async () => {
     try {
       const r = await window.pocketClient.completeOnboarding({
         source: 'local',
-        baseUrl: 'http://127.0.0.1:8787'
+        baseUrl: 'http://127.0.0.1:8788'
       });
       if (!r || !r.ok) {
         document.getElementById('btnNext').disabled = false;
