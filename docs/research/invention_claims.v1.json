@@ -31,6 +31,8 @@
     {"n": 7, "title": "Antigravity as a separate desktop-app surface", "independent": true},
     {"n": 8, "title": "Nested-session exclusion", "independent": true},
     {"n": 9, "title": "Dual write explorer + git + GitHub", "independent": true},
-    {"n": 10, "title": "Combined first-class system", "independent": true}
+    {"n": 10, "title": "Combined first-class system", "independent": true},
+    {"n": 11, "title": "HWND-attached Antigravity stream with window-local touch", "independent": true},
+    {"n": 12, "title": "Agent eyes on Portal and Antigravity frames", "independent": true}
   ]
 }

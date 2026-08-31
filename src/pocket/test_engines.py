@@ -19,6 +19,16 @@ def test_internal_reply_runs():
     assert len(r.get("reply") or "") > 20
 
 
+def test_agent_eyes_catalog():
+    from pocket.agent_eyes import catalog
+
+    c = catalog()
+    assert c["ok"] is True
+    ids = {u["id"] for u in c["uses"]}
+    assert "eyes_see_portal" in ids
+    assert "eyes_see_anti" in ids
+
+
 def test_route_think_picks_local_math():
     assert route_think("run the logic prover on this theorem")["engine"] == "logic"
     assert route_think("touch the pc from my phone")["engine"] == "portal"

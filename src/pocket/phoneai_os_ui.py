@@ -423,19 +423,19 @@ textarea{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);
 <div class="top"><a href="/phoneai">Home</a><b style="flex:1">Antigravity</b><a href="/phoneai/portal">Portal</a></div>
 <div class="now" id="now"><b>Antigravity desktop app</b>Named threads, send, continue. The PC stream is Portal — a separate first-class surface.</div>
 <div class="chips" id="chips"></div>
-<div class="view" id="win" style="min-height:120px;margin:0 12px 8px;padding:12px;border-radius:14px;border:1px solid var(--line);background:#0c0c0e;color:#a1a1aa;font-size:13px">Antigravity is a desktop app on this PC. Named threads load below. Live window is optional — tap Watch window after the app is open.</div>
-<img id="frame" alt="" style="display:none;width:calc(100% - 24px);margin:0 12px 8px;border-radius:14px;background:#000"/>
+<img id="frame" alt="Antigravity" src="/v1/phoneai/anti/frame?t=1" style="width:calc(100% - 24px);margin:0 12px 8px;border-radius:14px;background:#000;touch-action:none;max-height:42vh;object-fit:contain"/>
 <div class="row">
   <button type="button" id="o">Open app</button>
-  <button type="button" id="w">Watch window</button>
+  <button type="button" id="touch" class="g">Touch</button>
   <button type="button" id="n">New chat</button>
-  <button type="button" id="c" class="g">Continue</button>
+  <button type="button" id="c">Continue</button>
 </div>
 <form class="form" id="f"><textarea id="t" placeholder="Type into the real Antigravity chat…"></textarea><button>Send</button></form>
 <script>
 const now=document.getElementById('now');
 const chips=document.getElementById('chips');
 const frame=document.getElementById('frame');
+let mode='watch', down=false, busy=false, lastDrag=0;
 async function anti(action,text){
   const r=await fetch('/v1/phoneai/anti',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,text})});
   return r.json();
@@ -444,28 +444,44 @@ function paint(j){
   const y=j.you_are_building||{};
   const title=y.title||j.title||'Antigravity';
   const cwd=y.cwd||j.cwd||'';
-  now.innerHTML='<b>'+title.replace(/</g,'')+'</b>'+(cwd?cwd+' · ':'')+'Antigravity desktop app (not the PC portal).';
+  now.innerHTML='<b>'+title.replace(/</g,'')+'</b>'+(cwd?cwd+' · ':'')+'Attached to the Antigravity desktop app. Touch maps onto that window.';
   const th=j.threads||[];
   chips.innerHTML=th.map(t=>'<button type="button" data-id="'+t.id+'">'+(t.title||t.app||t.id).slice(0,42)+'</button>').join('');
 }
 fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{ now.innerHTML='<b>Host unreachable</b>'; });
-let watching=false, antiBusy=false;
-function antiFrame(){
-  if(!watching || document.hidden || antiBusy){ if(watching) setTimeout(antiFrame, 1200); return; }
-  antiBusy=true;
-  frame.style.display='block';
-  frame.onload=()=>{ antiBusy=false; setTimeout(antiFrame, 1800); };
-  frame.onerror=()=>{ antiBusy=false; watching=false; document.getElementById('win').textContent='Window not visible. Open Antigravity on the PC, then Watch window.'; setTimeout(antiFrame, 4000); };
+function tick(){
+  if(document.hidden || busy){ setTimeout(tick, 500); return; }
+  busy=true;
+  const done=()=>{ busy=false; setTimeout(tick, 900); };
+  frame.onload=done; frame.onerror=done;
   frame.src='/v1/phoneai/anti/frame?t='+Date.now();
 }
+tick();
+function clamp(v){return Math.max(0,Math.min(1,v))}
+function norm(ev){
+  const r=frame.getBoundingClientRect();
+  const src=ev.touches&&ev.touches[0]?ev.touches[0]:(ev.changedTouches&&ev.changedTouches[0]?ev.changedTouches[0]:ev);
+  return {nx:clamp((src.clientX-r.left)/Math.max(1,r.width)), ny:clamp((src.clientY-r.top)/Math.max(1,r.height))};
+}
+function sendTouch(kind, nx, ny, extra){
+  if(mode!=='touch' && kind!=='type') return;
+  fetch('/v1/phoneai/anti/touch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny}, extra||{}))}).catch(()=>{});
+}
+document.getElementById('touch').onclick=()=>{
+  mode=mode==='touch'?'watch':'touch';
+  document.getElementById('touch').textContent=mode==='touch'?'Touch on':'Touch';
+  document.getElementById('touch').classList.toggle('g', mode==='touch');
+};
+frame.addEventListener('pointerdown', ev=>{ if(mode!=='touch') return; ev.preventDefault(); down=true; const p=norm(ev); sendTouch('down', p.nx, p.ny); }, {passive:false});
+frame.addEventListener('pointermove', ev=>{ if(!down||mode!=='touch') return; ev.preventDefault(); const n=Date.now(); if(n-lastDrag<50) return; lastDrag=n; const p=norm(ev); sendTouch('drag', p.nx, p.ny); }, {passive:false});
+frame.addEventListener('pointerup', ev=>{ if(mode!=='touch') return; ev.preventDefault(); const p=norm(ev); sendTouch('up', p.nx, p.ny); down=false; }, {passive:false});
 setInterval(()=>{ if(!document.hidden) fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{}); }, 12000);
 document.getElementById('o').onclick=()=>anti('open','');
-document.getElementById('w').onclick=()=>{ watching=true; antiFrame(); };
 document.getElementById('n').onclick=async()=>{ paint(await anti('new','')); };
 document.getElementById('c').onclick=async()=>{ paint(await anti('continue','')); };
 document.getElementById('f').onsubmit=async ev=>{
   ev.preventDefault(); const t=document.getElementById('t'); const text=t.value.trim(); if(!text) return;
-  t.value=''; await anti('send',text); paint(await fetch('/v1/phoneai/anti').then(r=>r.json()));
+  t.value=''; if(mode==='touch') sendTouch('type', 0.5, 0.85, {text}); else { await anti('send',text); paint(await fetch('/v1/phoneai/anti').then(r=>r.json())); }
 };
 </script>
 </body></html>

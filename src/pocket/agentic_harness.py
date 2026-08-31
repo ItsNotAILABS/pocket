@@ -43,7 +43,7 @@ AUTO_RULES: List[Tuple[re.Pattern, List[str]]] = [
     # Cloud / GitHub
     (re.compile(r"\b(github|pull request|\bpr\b|push|clone|repo)\b", re.I), ["SHIP_HEADLESS"]),
     # Hardware / embodiment
-    (re.compile(r"\b(screenshot|click|desktop app|open notepad|vision|ui map)\b", re.I), ["ARCHON"]),
+    (re.compile(r"\b(screenshot|click|desktop app|open notepad|vision|ui map|portal|touch the pc|eyes)\b", re.I), ["ARCHON"]),
     # Draft / simulation before commit
     (re.compile(r"\b(draft|simulate|simulation|sandbox preview|before commit)\b", re.I), ["DESIGN"]),
     # Platform coherence surfaces

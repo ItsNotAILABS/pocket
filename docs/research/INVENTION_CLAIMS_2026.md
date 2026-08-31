@@ -54,6 +54,10 @@ Those six are claimed below as a system and as independent methods.
 
 **Claim 10. Combined system.** A host computer running POCKET that simultaneously exposes: Claim 1 seat, Claim 5 Portal, Claim 7 Antigravity view, Claim 3 routing, and Claim 4 WebMCP, as separately addressable first-class surfaces (`/phoneai`, `/phoneai/portal`, `/phoneai/anti`) on one local HTTP host.
 
+**Claim 11. HWND-attached Antigravity stream with window-local touch.** A method comprising: locating a live Antigravity top-level window by title; capturing a JPEG of that window rectangle only (not the full desktop); serving the frame to a phone; and mapping normalized touch coordinates onto that window’s screen rectangle so taps act inside Antigravity.
+
+**Claim 12. Agent eyes.** A method comprising: exposing the Portal primary-screen frame and the Antigravity window frame as invocable agent tools (`eyes_see`, `eyes_touch`) on the same host catalog (HTTP, WebMCP, MCP) so coding agents receive visual state and may tap without a human Screen column.
+
 ---
 
 ## Dependent claims (selected)

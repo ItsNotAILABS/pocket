@@ -33,6 +33,7 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             "habitat_status", "habitat_pulse", "habitat_assign",
             "screen_status", "screen_set", "screen_sense", "screen_act",
             "vcomp_open", "vcomp_sense", "vcomp_act", "vcomp_shell",
+            "eyes_see", "eyes_touch", "eyes_catalog",
             "work_start", "work_tick", "work_package", "work_handoff", "work_status",
             "fusion_voice", "fusion_schema", "aria_turn",
             "phone_surface", "pair_mint", "pair_status",
@@ -790,6 +791,20 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
             params.get("action") or "sense",
             agent=params.get("agent") or "mcp",
             **{k: v for k, v in params.items() if k not in ("action", "agent")},
+        )
+    if t in ("eyes_see", "eyes_touch", "eyes_catalog"):
+        from pocket.agent_eyes import act as eyes_act, catalog as eyes_cat, see as eyes_see
+
+        if t == "eyes_catalog":
+            return eyes_cat()
+        if t == "eyes_see":
+            return eyes_see(which=str(params.get("which") or "portal"))
+        return eyes_act(
+            str(params.get("kind") or "tap"),
+            which=str(params.get("which") or "portal"),
+            nx=float(params.get("nx") or 0.5),
+            ny=float(params.get("ny") or 0.5),
+            text=str(params.get("text") or ""),
         )
     if t.startswith("vcomp") or t in ("open", "shell"):
         from pocket import virtual_computer as vc

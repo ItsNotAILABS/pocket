@@ -46,6 +46,40 @@ def primary_screen() -> Dict[str, int]:
     }
 
 
+def find_app_window(*needles: str) -> Optional[Dict[str, Any]]:
+    from pocket.screen_share import list_windows
+
+    wants = [n.lower() for n in (needles or ("antigravity",)) if n]
+    for w in list_windows(limit=60):
+        title = (w.get("title") or "").lower()
+        if "portal" in title:
+            continue
+        if not any(n in title for n in wants):
+            continue
+        hwnd = int(w.get("hwnd") or 0)
+        if hwnd <= 0:
+            continue
+        import ctypes
+        from ctypes import wintypes
+
+        rect = wintypes.RECT()
+        if not _user32().GetWindowRect(hwnd, ctypes.byref(rect)):
+            continue
+        ww = int(rect.right - rect.left)
+        hh = int(rect.bottom - rect.top)
+        if ww < 80 or hh < 80:
+            continue
+        return {
+            "hwnd": hwnd,
+            "x": int(rect.left),
+            "y": int(rect.top),
+            "w": ww,
+            "h": hh,
+            "title": w.get("title") or "",
+        }
+    return None
+
+
 def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
     from pocket.screen_share import list_windows
 
@@ -77,7 +111,7 @@ def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
 def geom(target: str = "desktop") -> Dict[str, Any]:
     t = (target or "desktop").lower()
     if t in ("window", "anti", "antigravity", "app"):
-        wr = window_rect("Antigravity") or window_rect("anti")
+        wr = find_app_window("antigravity", "anti gravity") or window_rect("Antigravity") or window_rect("anti")
         if wr:
             return {"ok": True, "target": "window", **wr}
     ps = primary_screen()
@@ -101,6 +135,12 @@ def _capture_primary():
 
     ps = primary_screen()
     return ImageGrab.grab(bbox=(0, 0, ps["w"], ps["h"]))
+
+
+def _capture_rect(x: int, y: int, w: int, h: int):
+    from PIL import ImageGrab
+
+    return ImageGrab.grab(bbox=(int(x), int(y), int(x + w), int(y + h)))
 
 
 _SKIP_TITLES = ("portal · phoneai", "phoneai portal", "/phoneai/portal")
@@ -152,29 +192,44 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
     except Exception:
         g.update({"x": 0, "y": 0, "w": 1920, "h": 1080})
     img = None
-    try:
-        from pocket.live_vision import FRAME_PATH, ensure_vision
+    tlow = (target or "desktop").lower()
+    if tlow in ("window", "anti", "antigravity", "app"):
+        wr = find_app_window("antigravity", "anti gravity")
+        if wr and wr.get("w", 0) > 80:
+            g.update({"ok": True, "target": "window", **wr})
+            try:
+                img = _ex.submit(_capture_rect, wr["x"], wr["y"], wr["w"], wr["h"]).result(timeout=1.6)
+            except (FutTimeout, Exception):
+                img = None
+    if img is None and tlow in ("desktop", "", "primary"):
+        try:
+            from pocket.live_vision import FRAME_PATH, ensure_vision
 
-        ensure_vision(interval=0.9)
-        if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
-            data = FRAME_PATH.read_bytes()
-            if len(data) > 800:
-                meta = {**g, "via": "live_vision", "bytes": len(data)}
-                with _grab_lock:
-                    _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
-                return data, meta
-    except Exception:
-        pass
-    try:
-        img = _ex.submit(_capture_primary).result(timeout=1.6)
-    except (FutTimeout, Exception):
-        img = None
+            ensure_vision(interval=0.9)
+            if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
+                data = FRAME_PATH.read_bytes()
+                if len(data) > 800:
+                    meta = {**g, "via": "live_vision", "bytes": len(data)}
+                    with _grab_lock:
+                        _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
+                    return data, meta
+        except Exception:
+            pass
+        try:
+            img = _ex.submit(_capture_primary).result(timeout=1.6)
+        except (FutTimeout, Exception):
+            img = None
+    if img is None and tlow not in ("desktop", "", "primary"):
+        data = _placeholder("Open Antigravity on this PC to attach the stream.")
+        meta = {**g, "via": "placeholder", "bytes": len(data), "attached": False}
+        return data, meta
     if img is None:
         data = _last_jpeg.get("data") or _placeholder("Waiting for desktop frame…")
         meta = {**g, "via": "placeholder", "bytes": len(data)}
         return data, meta
     img = img.convert("RGB")
-    _blackout_self(img)
+    if tlow in ("desktop", "", "primary"):
+        _blackout_self(img)
     if img.width > max_w:
         ratio = max_w / float(img.width)
         img = img.resize((max_w, max(1, int(img.height * ratio))))
@@ -184,7 +239,8 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
     g["frame_w"] = img.width
     g["frame_h"] = img.height
     g["bytes"] = len(data)
-    g["via"] = "primary"
+    g["via"] = "antigravity" if tlow in ("window", "anti", "antigravity", "app") else "primary"
+    g["attached"] = tlow not in ("desktop", "", "primary")
     with _grab_lock:
         _last_jpeg.update({"t": now, "key": key, "data": data, "meta": g})
     return data, g

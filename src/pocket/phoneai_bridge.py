@@ -62,6 +62,7 @@ TOOLS: List[Dict[str, Any]] = [
     {"id": "github_status", "name": "GitHub status", "category": "VCS", "icon": "logo-github", "description": "Where PhoneAI writes on GitHub.", "risk": "read", "params": []},
     {"id": "shell_exec", "name": "Shell", "category": "System", "icon": "terminal", "description": "Bounded PowerShell in Pocket/PhoneAI/sovereign workspaces.", "risk": "write", "danger": True, "confirmation_required": True, "params": [{"key": "command", "label": "Command", "type": "text", "placeholder": "python -m pytest -q"}, {"key": "cwd", "label": "Cwd", "type": "text", "placeholder": ""}]},
     {"id": "harness_run", "name": "Work harness", "category": "Agents", "icon": "git-network", "description": "Think → shell → one engine → receipt.", "risk": "write", "params": [{"key": "goal", "label": "Goal", "type": "textarea"}, {"key": "shell", "label": "Shell (optional)", "type": "text"}]},
+    {"id": "eyes_see", "name": "Eyes", "category": "Vision", "icon": "eye", "description": "See Portal or Antigravity frame.", "risk": "read", "params": [{"key": "which", "label": "portal or anti", "type": "text"}]},
 ]
 
 
@@ -292,6 +293,12 @@ def execute_local(tool_id: str, params: Dict[str, Any]) -> Tuple[str, List[str],
         from pocket.phoneai_github import snapshot as gh_snap
 
         data = gh_snap()
+        return "succeeded", [data.get("url") or ""], data
+    if tool_id == "eyes_see":
+        from pocket.agent_eyes import see as eyes_see
+
+        data = eyes_see(which=str(params.get("which") or "portal"))
+        data.pop("base64", None)
         return "succeeded", [data.get("url") or ""], data
     if tool_id == "shell_exec":
         from pocket.shell_exec import run as sh_run

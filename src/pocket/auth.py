@@ -48,6 +48,8 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/claims",
     "/v1/invention",
     "/v1/engines",
+    "/v1/eyes",
+    "/v1/eyes/touch",
     "/v1/production",
     "/v1/prod/status",
     "/v1/hardware",

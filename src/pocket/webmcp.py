@@ -293,6 +293,9 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Portal stream", "portal_open", "GET /phoneai/portal", "First-class Watch/Touch of the real desktop."),
         ("Bounded shell", "shell_exec", "POST /v1/phoneai/shell", "PowerShell in Pocket/PhoneAI/sovereign workspaces."),
         ("Work harness", "harness_run", "POST /v1/phoneai/harness", "Think → shell → one engine → receipt."),
+        ("Agent eyes portal", "eyes_see_portal", "GET /v1/eyes?which=portal", "Give agents a JPEG of the primary screen."),
+        ("Agent eyes Antigravity", "eyes_see_anti", "GET /v1/eyes?which=anti", "Give agents a JPEG of the Antigravity window."),
+        ("Agent eyes touch", "eyes_touch", "POST /v1/eyes/touch", "Tap/drag/type on portal or Antigravity from an agent."),
         ("Agent talk", "agent_talk", "POST /v1/phoneai/talk", "Agent mail + encrypted mesh so agents talk to each other."),
     ]
     out = []

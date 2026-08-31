@@ -193,30 +193,21 @@ def real_app() -> Dict[str, Any]:
 
 
 def live_frame_jpeg() -> bytes:
-    """JPEG of the real Antigravity window. Cached so the phone cannot flood grabs."""
-    import io
+    """JPEG attached to the real Antigravity HWND — not the whole desktop."""
+    from pocket.phoneai_portal import grab_jpeg
 
-    from pocket.screen_share import _grab_window_image
+    data, _meta = grab_jpeg(target="antigravity", max_w=960)
+    return data or b""
 
-    now = time.time()
-    with _frame_lock:
-        if now - float(_frame_cache.get("t") or 0) < 0.4 and _frame_cache.get("data"):
-            return _frame_cache["data"]
-        img = None
-        for needle in ("Antigravity", "anti"):
-            img, _hwnd = _grab_window_image(0, needle)
-            if img is not None:
-                break
-        if img is None:
-            _frame_cache.update({"t": now, "data": b""})
-            return b""
-        img = img.convert("RGB")
-        img.thumbnail((960, 700))
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=48)
-        data = buf.getvalue()
-        _frame_cache.update({"t": now, "data": data})
-        return data
+
+def anti_touch(kind: str = "tap", *, nx: float = 0.5, ny: float = 0.5, dy: float = 0.0, text: str = "") -> Dict[str, Any]:
+    """Touch maps onto the Antigravity window rectangle."""
+    from pocket.phoneai_portal import touch as portal_touch
+    from pocket.ui_maneuver import focus_window_title
+
+    if kind in ("tap", "down", "click", "type"):
+        focus_window_title("Antigravity")
+    return portal_touch(kind, nx=nx, ny=ny, dy=dy, text=text, target="antigravity")
 
 
 def handle(action: str, text: str = "", *, cwd: str = "") -> Dict[str, Any]:

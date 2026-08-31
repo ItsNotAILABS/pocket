@@ -1322,6 +1322,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.engines import catalog as engines_catalog
 
             return self._json(200, engines_catalog())
+        if path in ("/v1/eyes", "/api/eyes"):
+            from pocket.agent_eyes import catalog as eyes_cat, see as eyes_see
+
+            q = parse_qs(urlparse(self.path).query)
+            which = (q.get("which") or [""])[0]
+            if which:
+                return self._json(200, eyes_see(which=which))
+            return self._json(200, eyes_cat())
         if path in ("/v1/phoneai/shell", "/api/phoneai/shell", "/v1/shell"):
             from pocket.shell_exec import allowed_roots
 
@@ -4000,6 +4008,43 @@ class Handler(BaseHTTPRequestHandler):
                     engine=str(body.get("engine") or "auto"),
                     shell=str(body.get("shell") or body.get("command") or ""),
                     cwd=str(body.get("cwd") or ""),
+                ),
+            )
+        if path in ("/v1/phoneai/anti/touch", "/api/phoneai/anti/touch"):
+            from pocket.antigravity_chat import anti_touch
+            from pocket.auth import is_home_lan_client
+            from pocket.ratelimit import hit as rl_hit
+
+            ip = self._client_ip()
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "touch is LAN-only"})
+            ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            return self._json(
+                200,
+                anti_touch(
+                    str(body.get("kind") or "tap"),
+                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                    dy=float(body.get("dy") or 0),
+                    text=str(body.get("text") or ""),
+                ),
+            )
+        if path in ("/v1/eyes/touch", "/api/eyes/touch"):
+            from pocket.agent_eyes import act as eyes_act
+            from pocket.auth import is_home_lan_client
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "touch is LAN-only"})
+            return self._json(
+                200,
+                eyes_act(
+                    str(body.get("kind") or "tap"),
+                    which=str(body.get("which") or "portal"),
+                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                    text=str(body.get("text") or ""),
                 ),
             )
         if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
