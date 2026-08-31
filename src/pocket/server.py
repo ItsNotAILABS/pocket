@@ -4068,15 +4068,9 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/phoneai/wear", "/api/phoneai/wear", "/v1/wear"):
-            from pocket.wear import command as wear_command
+            from pocket.wear import ingest as wear_ingest
 
-            return self._json(
-                200,
-                wear_command(
-                    str(body.get("text") or body.get("prompt") or body.get("say") or ""),
-                    which=str(body.get("which") or "portal"),
-                ),
-            )
+            return self._json(200, wear_ingest(body, which=str(body.get("which") or "portal")))
         if path in ("/v1/runtime/ensure", "/api/runtime/ensure", "/v1/host/ensure"):
             from pocket.auth import is_home_lan_client
             from pocket.host_runtime import ensure as runtime_ensure

@@ -810,111 +810,148 @@ PHONEAI_GLASSES_HTML = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#000"/>
 <title>PhoneAI Glasses + AirPods</title>
 <style>
-:root{--g:#00ff86;--fg:#f7f7f4;--muted:#9a9aa6;--bg:#05060a}
+:root{--g:#00ff86;--fg:#f7f7f4;--muted:#9a9aa6}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui}
+html,body{margin:0;min-height:100%;background:#05060a;color:var(--fg);font-family:ui-sans-serif,system-ui}
 body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.hud{position:relative;flex:1;min-height:0;background:#000}
-.hud img{width:100%;height:100%;object-fit:contain;background:#000}
-.ov{position:absolute;left:10px;top:10px;right:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
-.pill{background:rgba(0,0,0,.62);border:1px solid rgba(0,255,134,.35);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800}
-.reply{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(0,0,0,.72);border-radius:12px;padding:10px 12px;font-size:16px;line-height:1.35;max-height:28%;overflow:auto}
-.row{display:flex;gap:8px;padding:8px 10px;overflow:auto;touch-action:pan-x}
+.top{display:flex;gap:10px;align-items:center;padding:8px 12px;flex-wrap:wrap}
+.top a{color:var(--muted);text-decoration:none}
+.hud{display:flex;gap:8px;padding:0 12px 8px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;margin-right:6px}
+.dot.on{background:var(--g);box-shadow:0 0 8px var(--g)}
+.pill{background:#101018;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700}
+.cards{margin:0 12px;border:1px solid rgba(0,255,134,.28);border-radius:16px;padding:14px 16px;background:#0b0c12;min-height:110px}
+.cards b{display:block;font-size:22px;letter-spacing:-.03em;margin:0 0 6px}
+.cards span{display:block;color:var(--muted);font-size:15px;line-height:1.35}
+.stream{display:none;margin:8px 12px 0;border-radius:12px;overflow:hidden;background:#000;max-height:36vh}
+.stream.on{display:block}
+.stream img{width:100%;max-height:36vh;object-fit:contain}
+.reply{margin:8px 12px;font-size:16px;line-height:1.4;min-height:2.4em}
+.row{display:flex;gap:8px;padding:8px 12px;overflow:auto;touch-action:pan-x}
 .row button{flex:0 0 auto;min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}
 .row button.go{background:var(--g);color:#042}
-.bar{display:flex;gap:8px;padding:8px 10px 10px}
+.bar{display:flex;gap:8px;padding:8px 12px}
 input,button{font:inherit;border:0;border-radius:12px;min-height:48px}
 input{flex:1;background:#14141c;color:#fff;padding:0 12px}
 .bar button{background:var(--g);color:#042;font-weight:800;padding:0 14px}
-.note{padding:0 12px 12px;color:var(--muted);font-size:12px}
-html.air .hud{max-height:32vh}
-a{color:var(--muted);text-decoration:none}
-.top{display:flex;gap:10px;align-items:center;padding:8px 12px}
+.note{padding:0 12px 16px;color:var(--muted);font-size:12px}
 .lis{outline:2px solid var(--g)}
+video,canvas{display:none}
 </style></head>
 <body>
 <div class="top">
   <a href="/phoneai/app">Home</a>
-  <b id="modeLabel">Glasses HUD</b>
+  <b id="modeLabel">Glasses</b>
   <a href="/phoneai/portal">Portal</a>
   <a href="/phoneai/airpods">AirPods</a>
 </div>
 <div class="hud">
-  <img id="f" alt="PC" src="/v1/phoneai/portal/frame?t=1"/>
-  <div class="ov"><span class="pill" id="fg">…</span><span class="pill" id="st">AirPods · tap Listen</span></div>
-  <div class="reply" id="r">Pair AirPods to the phone. Open this on Meta glasses. Say look, open Edge, scroll down, switch to Code, coder fix auth.</div>
+  <span class="pill"><i class="dot" id="dHost"></i>Host</span>
+  <span class="pill"><i class="dot" id="dGlass"></i>Glasses</span>
+  <span class="pill"><i class="dot" id="dPods"></i>AirPods</span>
+  <span class="pill" id="batt">Bat —</span>
 </div>
+<div class="cards" id="cards"><b>PhoneAI</b><span>Connecting…</span><span></span></div>
+<div class="stream" id="stream"><img id="f" alt="PC" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="/></div>
+<p class="reply" id="r">Always listen waits for “PhoneAI …”. Glance is 3 lines — no JPEG until you tap Stream. Dictation types until you say send.</p>
 <div class="row" id="chips">
   <button type="button" class="go" id="listen">Listen</button>
   <button type="button" id="always">Always</button>
+  <button type="button" id="dict">Dictation</button>
+  <button type="button" id="streamBtn">Stream</button>
+  <button type="button" id="cam">Camera</button>
   <button type="button" data-say="look">Look</button>
+  <button type="button" data-say="left window">Left</button>
+  <button type="button" data-say="right window">Right</button>
   <button type="button" data-say="scroll down">Scroll</button>
-  <button type="button" data-say="whats open">Tabs</button>
-  <button type="button" data-say="open explorer">Explorer</button>
-  <button type="button" data-say="open edge">Edge</button>
-  <button type="button" data-say="open code">Code</button>
 </div>
-<form class="bar" id="v"><input id="t" placeholder="Speak or type — AirPods hear, glasses show"/><button>Go</button></form>
-<p class="note">AirPods = mic + speaker on the phone. Glasses = HUD of the live PC. Same Wi-Fi or tunnel /phoneai/glasses</p>
+<form class="bar" id="v"><input id="t" placeholder="PhoneAI look · left window · dictation · send"/><button>Go</button></form>
+<p class="note">AirPods on the phone. Glasses browser: /phoneai/glasses. Wake word: PhoneAI.</p>
+<video id="vid" autoplay playsinline></video><canvas id="cv"></canvas>
 <script>
-const air=/airpods|wear/.test(location.pathname); if(air) document.documentElement.classList.add('air');
-document.getElementById('modeLabel').textContent=air?'AirPods + glance':'Glasses + AirPods';
-const img=document.getElementById('f'); let busy=false, rec=null, listening=false, always=false;
-function tick(){ if(document.hidden||busy){ setTimeout(tick,700); return;} busy=true; img.onload=()=>{busy=false;setTimeout(tick,900)}; img.onerror=()=>{busy=false;setTimeout(tick,1400)}; img.src='/v1/phoneai/portal/frame?t='+Date.now(); }
-tick();
-async function glance(){
-  try{
-    const j=await fetch('/v1/phoneai/wear').then(r=>r.json());
-    document.getElementById('fg').textContent=j.focused||'desktop';
-  }catch(_){}
-}
-glance(); setInterval(glance, 2500);
+const air=/airpods/.test(location.pathname); if(air) document.documentElement.classList.add('air');
+document.getElementById('modeLabel').textContent=air?'AirPods':'Glasses HUD';
+let rec=null, listening=false, always=false, streamOn=false, busy=false, dictOn=false;
+const img=document.getElementById('f');
 function speak(text){
-  const s=String(text||'').slice(0,280); if(!s) return;
-  try{
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(s);
-    u.rate=1.05; u.pitch=1;
-    const vs=window.speechSynthesis.getVoices()||[];
-    const v=vs.find(x=>/en/i.test(x.lang||''))||vs[0];
-    if(v) u.voice=v;
-    window.speechSynthesis.speak(u);
-  }catch(_){}
+  const s=String(text||'').trim().slice(0,240); if(!s) return;
+  try{ window.speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(s); u.rate=1.04; const vs=speechSynthesis.getVoices()||[]; const v=vs.find(x=>/en/i.test(x.lang||'')); if(v) u.voice=v; speechSynthesis.speak(u);}catch(_){}
 }
-async function run(text){
-  const t=(text||'').trim(); if(!t) return;
-  document.getElementById('r').textContent='…';
-  document.getElementById('st').textContent='Working';
+function paintHud(j){
+  const h=j.hud||{}, g=j.glance||{};
+  document.getElementById('dHost').classList.toggle('on', !!(g.host || h.host));
+  document.getElementById('dGlass').classList.toggle('on', navigator.onLine);
+  document.getElementById('dPods').classList.toggle('on', !!(h.inEar || h.airpods || listening));
+  const lines=g.lines||[];
+  document.getElementById('cards').innerHTML='<b>'+(lines[0]||j.focused||'desktop').replace(/</g,'')+'</b><span>'+(lines[1]||'')+'</span><span>'+(lines[2]||'')+'</span>';
+  if(typeof j.dictation==='boolean') dictOn=j.dictation;
+  document.getElementById('dict').classList.toggle('go', dictOn);
+}
+async function beat(extra){
+  const body=Object.assign({glasses:!air, airpods:true, online:navigator.onLine, always:always}, extra||{});
   try{
-    const j=await fetch('/v1/phoneai/wear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:t})}).then(r=>r.json());
+    if(navigator.getBattery){ const b=await navigator.getBattery(); body.battery=b.level; document.getElementById('batt').textContent='Bat '+Math.round(b.level*100)+'%'; }
+  }catch(_){}
+  try{
+    const j=await fetch('/v1/phoneai/wear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+    paintHud(j);
+    return j;
+  }catch(_){ document.getElementById('dHost').classList.remove('on'); return {}; }
+}
+beat(); setInterval(()=>beat(), 5000);
+function tick(){
+  if(!streamOn || document.hidden || busy){ setTimeout(tick, 800); return; }
+  busy=true; img.onload=()=>{busy=false;setTimeout(tick,1100)}; img.onerror=()=>{busy=false;setTimeout(tick,1600)};
+  img.src='/v1/phoneai/portal/frame?t='+Date.now();
+}
+tick();
+async function run(text, extra){
+  const t=(text||'').trim();
+  if(!t && !extra) return;
+  if(t) document.getElementById('r').textContent='…';
+  const body=Object.assign({text:t, always:always, glasses:!air, airpods:true, online:navigator.onLine}, extra||{});
+  try{
+    const j=await fetch('/v1/phoneai/wear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+    paintHud(j);
+    if(j.kind==='ignore'){ document.getElementById('r').textContent='Waiting for PhoneAI …'; return; }
     const reply=j.reply||j.error||'ok';
     document.getElementById('r').textContent=reply;
-    if(j.focus && j.focus.title) document.getElementById('fg').textContent=j.focus.title;
-    speak(reply);
-  }catch(e){ document.getElementById('r').textContent='Host unreachable. Keep the PC awake.'; }
-  document.getElementById('st').textContent=listening?'Listening · AirPods':'AirPods · tap Listen';
+    if(reply) speak(reply);
+  }catch(e){ document.getElementById('r').textContent='Host unreachable.'; }
 }
 document.getElementById('v').onsubmit=ev=>{ ev.preventDefault(); const i=document.getElementById('t'); run(i.value); i.value=''; };
 document.getElementById('chips').onclick=e=>{
-  const b=e.target.closest('[data-say],#listen,#always'); if(!b) return;
+  const b=e.target.closest('button'); if(!b) return;
   if(b.id==='listen'){ armListen(false); return; }
-  if(b.id==='always'){ always=!always; b.classList.toggle('go', always); armListen(true); return; }
-  run(b.getAttribute('data-say'));
+  if(b.id==='always'){ always=!always; b.classList.toggle('go', always); armListen(true); document.getElementById('r').textContent=always?'Always on. Say PhoneAI then the command.':'Always off.'; return; }
+  if(b.id==='dict'){ run(dictOn?'stop dictation':'dictation'); return; }
+  if(b.id==='streamBtn'){ streamOn=!streamOn; document.getElementById('stream').classList.toggle('on', streamOn); b.classList.toggle('go', streamOn); if(streamOn) tick(); return; }
+  if(b.id==='cam'){ snap(); return; }
+  if(b.getAttribute('data-say')) run(b.getAttribute('data-say'));
 };
 function Rec(){ return window.SpeechRecognition||window.webkitSpeechRecognition; }
-function armListen(keep){
+function armListen(){
   const C=Rec();
-  if(!C){ document.getElementById('st').textContent='No speech engine — type instead'; return; }
+  if(!C){ document.getElementById('r').textContent='No speech engine — type instead.'; return; }
   if(rec){ try{ rec.stop(); }catch(_){} rec=null; }
   rec=new C(); rec.lang='en-US'; rec.interimResults=false; rec.continuous=!!always;
   rec.onresult=ev=>{
-    const t=ev.results[ev.results.length-1][0].transcript;
-    if(t) run(t);
+    const said=ev.results[ev.results.length-1][0].transcript||'';
+    if(said) run(said);
   };
-  rec.onend=()=>{ listening=false; document.getElementById('listen').classList.remove('lis');
-    if(always){ setTimeout(()=>armListen(true), 250); } else document.getElementById('st').textContent='AirPods · tap Listen'; };
+  rec.onend=()=>{ listening=false; document.getElementById('listen').classList.remove('lis'); if(always) setTimeout(()=>armListen(), 280); };
   rec.onerror=()=>{ listening=false; };
-  try{ rec.start(); listening=true; document.getElementById('listen').classList.add('lis'); document.getElementById('st').textContent=always?'Always listening':'Listening · AirPods'; }catch(_){}
+  try{ rec.start(); listening=true; document.getElementById('listen').classList.add('lis'); }catch(_){}
+}
+async function snap(){
+  try{
+    const v=document.getElementById('vid');
+    if(!v.srcObject) v.srcObject=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    await new Promise(r=>setTimeout(r,400));
+    const c=document.getElementById('cv'); c.width=v.videoWidth||720; c.height=v.videoHeight||960;
+    c.getContext('2d').drawImage(v,0,0); const img=c.toDataURL('image/jpeg',0.82);
+    run('what is this error', {image:img});
+  }catch(e){ document.getElementById('r').textContent='Camera permission needed.'; }
 }
 </script>
 </body></html>
