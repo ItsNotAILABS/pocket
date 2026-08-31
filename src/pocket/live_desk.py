@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import time
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -135,11 +136,105 @@ def _agy_strings(blob: bytes, min_len: int = 18) -> List[str]:
             s = m.decode("ascii")
         except Exception:
             continue
-        if s.startswith("file://") or s.startswith("C:\\") or s.startswith("{"):
-            out.append(s)
-        elif " " in s and not s.startswith("sessionID"):
+        if (
+            "worktrees/" in s
+            or "github.com/" in s
+            or "file://" in s
+            or s.startswith("C:\\")
+            or s.startswith("{")
+            or (" " in s and not s.startswith("sessionID"))
+        ):
             out.append(s)
     return out[:40]
+
+
+def _humanize_app(raw: str) -> str:
+    from urllib.parse import unquote
+
+    s = unquote((raw or "").replace("\\", "/")).strip().strip('"')
+    s = re.sub(r"[:\]]+[a-z]{0,8}file:?$", "", s, flags=re.I)
+    s = s.split("?")[0].rstrip("/")
+    if "worktrees/" in s:
+        s = s.split("worktrees/", 1)[-1]
+    if "github.com/" in s:
+        s = s.split("github.com/", 1)[-1]
+        if s.endswith(".git"):
+            s = s[:-4]
+        s = s.split("/")[-1]
+    s = Path(s).name if (":" in s or s.startswith("/")) and "/" in s else s
+    s = s.replace("(Never Delete)", "").replace("%20", " ")
+    s = s.replace("_", " ").replace("-", " ")
+    s = re.sub(r"\s+", " ", s).strip(" .")
+    drop = {"build", "src", "app", "main"}
+    words = [w for w in s.split(" ") if w and w.lower() not in drop]
+    titled = []
+    for w in words:
+        if w.isupper() or w[:1].isupper() and w[1:].islower() is False and len(w) <= 6:
+            titled.append(w)
+        else:
+            titled.append(w[:1].upper() + w[1:].lower() if w else w)
+    name = " ".join(titled) or "Antigravity"
+    return name[:72]
+
+
+def _name_antigravity(strings: List[str], db_id: str) -> Dict[str, str]:
+    """AI-style name from the real app (worktree / GitHub), not the hex db id."""
+    import re
+
+    app = ""
+    leaf = ""
+    github = ""
+    cwd = ""
+    for s in strings:
+        t = s.replace("\\", "/")
+        if "worktrees/" in t:
+            rest = t.split("worktrees/", 1)[-1]
+            parts = [p for p in rest.split("/") if p and p not in ("#",)]
+            if parts:
+                app = re.split(r"[#?\"]", parts[0])[0]
+            if len(parts) > 1:
+                leaf = re.split(r"[#?\"]", parts[1])[0]
+            path = t.split("file:///", 1)[-1] if "file:///" in t else ""
+            if path:
+                cwd = path.replace("/", "\\")
+        if "github.com/" in t:
+            github = t.split("github.com/", 1)[-1]
+            github = re.split(r"[#?\"\s]", github)[0].removesuffix(".git")
+        if not cwd and ("Users/" in t or ":/" in t.lower()) and "file://" in t:
+            cwd = t.replace("file:///", "").replace("/", "\\")
+    app_h = _humanize_app(app) if app else ""
+    leaf_h = _humanize_app(leaf) if leaf else ""
+    gh_h = _humanize_app(github.split("/")[-1]) if github else ""
+    if app_h and leaf_h and leaf_h.lower() not in app_h.lower():
+        title = f"{app_h} — {leaf_h}"
+    elif app_h:
+        title = app_h
+    elif gh_h:
+        title = gh_h
+    elif cwd:
+        title = _humanize_app(Path(cwd).name)
+    else:
+        title = f"Antigravity {db_id[:8]}"
+    return {"title": title[:120], "app": app_h or title, "github": github, "cwd": cwd[:260]}
+
+
+def real_antigravity_apps() -> List[Dict[str, str]]:
+    root = Path.home() / ".gemini" / "antigravity" / "worktrees"
+    rows: List[Dict[str, str]] = []
+    if not root.is_dir():
+        return rows
+    for p in sorted(root.iterdir(), key=_mtime, reverse=True):
+        if not p.is_dir():
+            continue
+        rows.append(
+            {
+                "id": p.name,
+                "name": _humanize_app(p.name),
+                "path": str(p),
+                "updated": _mtime(p),
+            }
+        )
+    return rows[:24]
 
 
 def antigravity_threads(limit: int = 12) -> List[Dict[str, Any]]:
@@ -164,31 +259,9 @@ def antigravity_threads(limit: int = 12) -> List[Dict[str, Any]]:
             except Exception:
                 pass
             strings = _agy_strings(blob, 12)
-            cwd = ""
-            title = db.stem[:12]
-            for s in strings:
-                if s.startswith("file:///"):
-                    cwd = s.replace("file:///", "").replace("/", "\\")
-                    if cwd[1:2] == ":":
-                        pass
-                    title = Path(cwd).name or title
-                    break
-                if ":\\" in s and "Users" in s:
-                    cwd = s
-                    title = Path(s).name or title
-                    break
-            snippet = ""
-            try:
-                gen = cur.execute("SELECT data FROM gen_metadata ORDER BY idx DESC LIMIT 8").fetchall()
-                for (g,) in gen:
-                    for s in _agy_strings(g or b"", 24):
-                        if len(s) > 28 and not s.startswith("{") and "sessionID" not in s:
-                            snippet = s[:160]
-                            break
-                    if snippet:
-                        break
-            except Exception:
-                pass
+            named = _name_antigravity(strings, db.stem)
+            cwd = named.get("cwd") or ""
+            snippet = named.get("title") or ""
             try:
                 nsteps = cur.execute("SELECT COUNT(*) FROM steps").fetchone()[0]
             except Exception:
@@ -200,13 +273,16 @@ def antigravity_threads(limit: int = 12) -> List[Dict[str, Any]]:
             {
                 "engine": "antigravity",
                 "id": db.stem,
-                "title": (title or db.stem)[:120],
+                "title": named.get("title") or db.stem,
+                "app": named.get("app") or "",
+                "github": named.get("github") or "",
                 "cwd": cwd,
                 "updated": _mtime(db),
                 "kind": "conversation",
                 "steps": nsteps,
                 "snippet": snippet,
                 "file": str(db),
+                "named": True,
             }
         )
     return out
@@ -256,24 +332,30 @@ def desk(*, limit: int = 8) -> Dict[str, Any]:
         "pocket": pocket,
         "antigravity": anti,
         "antigravity_threads": agy,
+        "antigravity_apps": real_antigravity_apps(),
+        "you_are_building": (agy[0] if agy else None),
         "note": (
-            "PhoneAI must attach to these threads — not ~/.pocket/phoneai_ws unless you pick it. "
-            "Grok resume --resume ID; Codex exec resume ID; Antigravity opens the PC app on that cwd."
+            "Antigravity desk is a direct view of the real Antigravity window and worktree. "
+            "Threads are named from the app, not hex ids."
         ),
     }
 
 
 def pick_thread(engine: str = "", thread_id: str = "") -> Optional[Dict[str, Any]]:
+    import os
+
+    live = (os.environ.get("GROK_SESSION_ID") or "").strip()
     d = desk(limit=20)
     if thread_id:
+        if live and thread_id == live:
+            return None
+        if str(thread_id).startswith(("s-", "pa-")):
+            return None
         for bucket in ("grok", "codex", "pocket", "antigravity_threads"):
             for t in d.get(bucket) or []:
                 if t.get("id") == thread_id:
                     return t
-    if engine in ("grok", "codex"):
-        rows = d.get(engine) or []
-        return rows[0] if rows else d.get("you_are_working_on")
-    if engine in ("antigravity", "anti", "agy"):
-        rows = d.get("antigravity_threads") or []
-        return rows[0] if rows else d.get("you_are_working_on")
-    return d.get("you_are_working_on")
+        return None
+    # Do not auto-attach the newest Grok thread — that is often the live
+    # operator session and resuming it from PhoneAI deadlocks both UIs.
+    return None

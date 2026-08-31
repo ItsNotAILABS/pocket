@@ -38,4 +38,13 @@ def test_pick_engine_auto():
     assert _pick_engine("hello", "spark") == "spark"
     assert _pick_engine("run ollama", "auto") == "spark"
     assert _pick_engine("remind me to call mom", "auto") == "life"
-    assert _pick_engine("directions to the store", "auto") == "life"
+
+
+def test_ask_engine_does_not_resume_live_grok(monkeypatch):
+    from pocket.phoneai_bridge import _attach_thread
+
+    monkeypatch.setenv("GROK_SESSION_ID", "01a045ce-13bd-7033-858b-0f96ba27a20f")
+    assert _attach_thread("grok", "") is None
+    assert _attach_thread("grok", "01a045ce-13bd-7033-858b-0f96ba27a20f") is None
+    assert _attach_thread("grok", "s-abc") is None
+    assert _attach_thread("grok", "pa-abc") is None

@@ -43,12 +43,20 @@ def dual_write(rel: str, content: str, *, message: str = "") -> Dict[str, Any]:
             ["-c", "user.email=phoneai@pocket.local", "-c", "user.name=PhoneAI", "commit", "-m", msg],
             gp,
         )
+    gh = {}
+    try:
+        from pocket.phoneai_github import write_and_push
+
+        gh = write_and_push(rel, text, message=msg)
+    except Exception as e:
+        gh = {"ok": False, "error": str(e)[:160]}
     return {
         "ok": True,
         "explorer": str(exp),
         "git": str(gfile),
         "repo": git.get("name"),
         "clone": git.get("clone") or git.get("path"),
+        "github": gh,
         "list": list_space(USER, "files"),
         "repos": list_repos(),
     }

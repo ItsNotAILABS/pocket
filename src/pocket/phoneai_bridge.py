@@ -58,6 +58,8 @@ TOOLS: List[Dict[str, Any]] = [
     {"id": "imagine", "name": "Imagine", "category": "Create", "icon": "image", "description": "Generate a still (no cap).", "risk": "write", "params": [{"key": "prompt", "label": "Prompt", "type": "textarea"}]},
     {"id": "webmcp_scan", "name": "WebMCP scan", "category": "WebMCP", "icon": "grid", "description": "Diffuse page/app/host into every action PhoneAI can read.", "risk": "read", "params": [{"key": "url", "label": "URL (optional)", "type": "text"}]},
     {"id": "webmcp_list", "name": "WebMCP list", "category": "WebMCP", "icon": "list", "description": "Read the action catalog.", "risk": "read", "params": [{"key": "q", "label": "Filter", "type": "text"}]},
+    {"id": "github_sync", "name": "GitHub sync", "category": "VCS", "icon": "cloud-upload", "description": "Commit PhoneAI vault and push to GitHub like Pocket.", "risk": "write", "params": [{"key": "message", "label": "Message", "type": "text", "placeholder": "phoneai"}]},
+    {"id": "github_status", "name": "GitHub status", "category": "VCS", "icon": "logo-github", "description": "Where PhoneAI writes on GitHub.", "risk": "read", "params": []},
 ]
 
 
@@ -284,6 +286,16 @@ def execute_local(tool_id: str, params: Dict[str, Any]) -> Tuple[str, List[str],
 
         hits = find_actions(str(params.get("q") or params.get("prompt") or ""))
         return "succeeded", [f"{len(hits)} hits"], {"actions": hits[:80]}
+    if tool_id == "github_status":
+        from pocket.phoneai_github import snapshot as gh_snap
+
+        data = gh_snap()
+        return "succeeded", [data.get("url") or ""], data
+    if tool_id == "github_sync":
+        from pocket.phoneai_github import push as gh_push
+
+        data = gh_push(message=str(params.get("message") or params.get("prompt") or "phoneai"))
+        return ("succeeded" if data.get("ok") else "failed"), [data.get("url") or data.get("out") or ""], data
     if tool_id in (
         "grok_ask",
         "codex_ask",
@@ -471,6 +483,17 @@ def _pick_engine(text: str, engine: str) -> str:
     return "grok"
 
 
+def _cli_env(*, extra_path: str = "") -> Dict[str, str]:
+    """Child CLIs must not inherit this Grok session or they deadlock the desk."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GROK_")}
+    env["CI"] = "1"
+    env.pop("GROK_SESSION_ID", None)
+    env.pop("GROK_AGENT", None)
+    if extra_path:
+        env["PATH"] = extra_path + os.pathsep + env.get("PATH", "")
+    return env
+
+
 def _run_timeout(args: List[str], *, cwd: str, timeout: float, stdin: str = "") -> Tuple[int, str, str]:
     try:
         r = subprocess.run(
@@ -482,6 +505,7 @@ def _run_timeout(args: List[str], *, cwd: str, timeout: float, stdin: str = "") 
             timeout=timeout,
             encoding="utf-8",
             errors="replace",
+            env=_cli_env(),
         )
         return r.returncode, r.stdout or "", r.stderr or ""
     except subprocess.TimeoutExpired:
@@ -490,12 +514,39 @@ def _run_timeout(args: List[str], *, cwd: str, timeout: float, stdin: str = "") 
         return 1, "", str(e)[:200]
 
 
+def _attach_thread(engine: str, thread_id: str) -> Optional[Dict[str, Any]]:
+    """Only resume a thread the user picked. Never auto-attach the live Grok session."""
+    tid = (thread_id or "").strip()
+    if not tid or tid.startswith(("s-", "pa-")):
+        return None
+    live = (os.environ.get("GROK_SESSION_ID") or "").strip()
+    if live and tid == live:
+        return None
+    from pocket.live_desk import pick_thread
+
+    th = pick_thread(engine, tid)
+    hid = str((th or {}).get("id") or "")
+    if live and hid == live:
+        return None
+    return th
+
+
+def _local_chat(text: str, thought: Dict[str, Any], where: Dict[str, Any]) -> Dict[str, Any]:
+    """Instant reply. Do not spawn Grok/Spark from the host — that freezes PhoneAI."""
+    why = thought.get("why") or "think then reply"
+    return {
+        "ok": True,
+        "engine": "phoneai",
+        "reply": f"PhoneAI is up on this PC ({why}).\n\n{text[:800]}",
+        **where,
+    }
+
+
 def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
-    """Continue a REAL Grok/Codex/Antigravity thread — not the empty PhoneAI sandbox."""
+    """Think, then one engine. Do not resume the live Grok session (that freezes PhoneAI + desk)."""
     text = (text or "").strip()
     if not text:
         return {"ok": False, "error": "say something"}
-    from pocket.live_desk import pick_thread
     from pocket.agent_runtime import route_think
 
     thought = route_think(text, engine)
@@ -529,10 +580,10 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
         chosen = thought.get("engine") if thought.get("engine") in _KNOWN_ENGINES else "grok"
     else:
         chosen = _pick_engine(text, engine)
-    th = pick_thread(chosen if chosen in ("grok", "codex") else engine, thread_id)
+    th = _attach_thread(chosen if chosen in ("grok", "codex") else engine, thread_id)
     cwd = str((th or {}).get("cwd") or "") or str(WS)
     Path(cwd).mkdir(parents=True, exist_ok=True)
-    resume_id = str((th or {}).get("id") or "")
+    resume_id = str((th or {}).get("id") or "") if th else ""
     where = {
         "you_are_working_on": (th or {}).get("title") or "new",
         "cwd": cwd,
@@ -601,53 +652,11 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[
             cmd += ["resume", resume_id, "-"]
         else:
             cmd += ["-"]
-        rc, out, err = _run_timeout(cmd, cwd=cwd, timeout=90, stdin=text[:8000])
+        rc, out, err = _run_timeout(cmd, cwd=cwd, timeout=25, stdin=text[:8000])
         reply = (out or err or "").strip() or f"codex exit {rc}"
         return {"ok": rc == 0, "engine": "codex", "reply": reply[-8000:], "returncode": rc, **where}
-    # grok
-    from pocket.executor import which_grok_cli
-
-    grok = which_grok_cli()
-    if not grok:
-        return {"ok": False, "engine": "grok", "error": "Grok CLI is not installed on the host", **where}
-    cmd = [grok]
-    if resume_id:
-        cmd += ["--resume", resume_id]
-    cmd += [
-        "--single",
-        text[:8000],
-        "--cwd",
-        cwd,
-        "--max-turns",
-        "6",
-        "--always-approve",
-        "--output-format",
-        "plain",
-    ]
-    env_path = str(Path(grok).parent) + os.pathsep + os.environ.get("PATH", "")
-    try:
-        r = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=90,
-            encoding="utf-8",
-            errors="replace",
-            env={**os.environ, "PATH": env_path, "CI": "1"},
-        )
-        reply = ((r.stdout or "") + (r.stderr or "")).strip() or f"grok exit {r.returncode}"
-        return {
-            "ok": r.returncode == 0,
-            "engine": "grok",
-            "reply": reply[-8000:],
-            "returncode": r.returncode,
-            **where,
-        }
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "engine": "grok", "error": "Grok timed out — try a shorter ask", **where}
-    except Exception as e:
-        return {"ok": False, "engine": "grok", "error": str(e)[:200], **where}
+    # Do not spawn Grok CLI from PhoneAI — it deadlocks the live desk session.
+    return _local_chat(text, thought, where)
 
 
 def work(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
@@ -655,11 +664,12 @@ def work(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, A
     r["companion"] = "PhoneAI Twin"
     r["workspace"] = r.get("cwd") or str(WS)
     try:
-        from pocket.phoneai_space import dual_write
-
         note = f"# {r.get('engine')}\n\n{text}\n\n{r.get('reply') or r.get('error') or ''}\n"
-        dw = dual_write(f"work/{int(time.time())}.md", note, message=f"phoneai {r.get('engine')}")
-        r["space"] = {"explorer": dw.get("explorer"), "git": dw.get("git"), "repo": dw.get("repo")}
+        dest = Path(str(r.get("cwd") or WS)) / "work"
+        dest.mkdir(parents=True, exist_ok=True)
+        fp = dest / f"{int(time.time())}.md"
+        fp.write_text(note, encoding="utf-8")
+        r["space"] = {"explorer": str(fp)}
     except Exception as e:
         r["space"] = {"ok": False, "error": str(e)[:160]}
     return r

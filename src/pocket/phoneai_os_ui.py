@@ -381,45 +381,60 @@ PHONEAI_ANTI_HTML = r"""<!DOCTYPE html>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--g:#00ff86;--p:#14141c}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif}
-body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .top{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
 .top a{color:var(--muted);text-decoration:none}
+.now{padding:10px 14px 6px;font-size:13px;color:#a1a1aa}
+.now b{color:var(--fg);display:block;font-size:16px;margin-bottom:4px}
+.chips{display:flex;gap:8px;overflow:auto;padding:0 12px 10px}
+.chips button{flex:0 0 auto;border:1px solid var(--line);background:var(--p);color:var(--fg);border-radius:999px;padding:8px 12px;font-size:12px}
+.chips button.on{border-color:var(--g);color:#042;background:var(--g)}
+.view{margin:0 12px;border-radius:14px;overflow:hidden;background:#000;min-height:220px;border:1px solid var(--line);flex:1}
+.view img{width:100%;display:block;min-height:220px;object-fit:contain;background:#000}
 .row{display:flex;gap:8px;padding:10px 12px;flex-wrap:wrap}
 .row button{flex:1;min-height:44px;border:0;border-radius:12px;background:#1c1c24;color:#fff;font-weight:700}
 .row button.g{background:var(--g);color:#042}
-.log{flex:1;overflow:auto;padding:12px 14px;white-space:pre-wrap;font-size:14px;line-height:1.45;background:#0c0c0e;margin:0 12px;border-radius:12px}
-.form{display:flex;gap:8px;padding:10px 12px}
+.form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
 textarea{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .form button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 </style></head>
 <body>
 <div class="top"><a href="/phoneai">Home</a><b style="flex:1">Antigravity</b><a href="/phoneai/work">Desk</a></div>
+<div class="now" id="now"><b>Looking for your real app…</b>Direct view of Antigravity on this PC.</div>
+<div class="chips" id="chips"></div>
+<div class="view"><img id="frame" alt="Antigravity" src="/v1/phoneai/anti/frame?t=1"/></div>
 <div class="row">
+  <button type="button" id="o">Open app</button>
   <button type="button" id="n">New chat</button>
-  <button type="button" id="r">Refresh stream</button>
-  <button type="button" id="c" class="g">Continue / click</button>
+  <button type="button" id="c" class="g">Continue</button>
 </div>
-<pre class="log" id="log">Opening live Antigravity thread…</pre>
-<form class="form" id="f"><textarea id="t" placeholder="Message this Antigravity chat…"></textarea><button>Send</button></form>
+<form class="form" id="f"><textarea id="t" placeholder="Type into the real Antigravity chat…"></textarea><button>Send</button></form>
 <script>
-const log=document.getElementById('log');
+const now=document.getElementById('now');
+const chips=document.getElementById('chips');
+const frame=document.getElementById('frame');
 async function anti(action,text){
   const r=await fetch('/v1/phoneai/anti',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,text})});
   return r.json();
 }
-async function show(j){
-  log.textContent=j.thread||j.text||j.reply||j.error||JSON.stringify(j);
-  log.scrollTop=log.scrollHeight;
+function paint(j){
+  const y=j.you_are_building||{};
+  const title=y.title||j.title||'Antigravity';
+  const cwd=y.cwd||j.cwd||'';
+  now.innerHTML='<b>'+title.replace(/</g,'')+'</b>'+(cwd?cwd:'Direct view of the real Antigravity window.');
+  const th=j.threads||[];
+  chips.innerHTML=th.map(t=>'<button type="button" data-id="'+t.id+'">'+(t.title||t.app||t.id).slice(0,42)+'</button>').join('');
 }
-document.getElementById('n').onclick=async()=>{ log.textContent='New chat…'; show(await anti('new','')); };
-document.getElementById('r').onclick=async()=>{ show(await anti('read','')); };
-document.getElementById('c').onclick=async()=>{ log.textContent='Continuing via WebMCP…'; show(await anti('continue','')); };
+fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{ now.innerHTML='<b>Host unreachable</b>'; });
+setInterval(()=>{ frame.src='/v1/phoneai/anti/frame?t='+Date.now(); }, 1800);
+setInterval(()=>fetch('/v1/phoneai/anti').then(r=>r.json()).then(paint).catch(()=>{}), 8000);
+document.getElementById('o').onclick=()=>anti('open','');
+document.getElementById('n').onclick=async()=>{ paint(await anti('new','')); };
+document.getElementById('c').onclick=async()=>{ paint(await anti('continue','')); };
 document.getElementById('f').onsubmit=async ev=>{
   ev.preventDefault(); const t=document.getElementById('t'); const text=t.value.trim(); if(!text) return;
-  t.value=''; log.textContent='Sending…\n'+text; show(await anti('send',text));
+  t.value=''; await anti('send',text); paint(await fetch('/v1/phoneai/anti').then(r=>r.json()));
 };
-anti('read','').then(show).catch(()=>{ log.textContent='Cannot reach host.'; });
-setInterval(()=>anti('read','').then(j=>{ if(j.text||j.thread) show(j); }).catch(()=>{}), 8000);
 </script>
 </body></html>
 """

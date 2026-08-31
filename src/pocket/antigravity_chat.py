@@ -150,6 +150,71 @@ def _webmcp_notice() -> Dict[str, Any]:
         return {"error": str(e)[:160]}
 
 
+def real_app() -> Dict[str, Any]:
+    """What Antigravity is actually building on this PC — not a sandbox."""
+    from pocket.live_desk import antigravity_state, antigravity_threads, real_antigravity_apps
+
+    threads = antigravity_threads(16)
+    apps = real_antigravity_apps()
+    now = threads[0] if threads else {}
+    windows = []
+    try:
+        from pocket.screen_share import list_windows
+
+        windows = [
+            w
+            for w in list_windows(limit=40)
+            if "antigravity" in (w.get("title") or "").lower()
+        ]
+    except Exception:
+        windows = []
+    st = antigravity_state()
+    return {
+        "ok": True,
+        "engine": "antigravity",
+        "direct_view": True,
+        "installed": st.get("installed"),
+        "exe": st.get("exe") or "",
+        "window": (windows[0] if windows else {}),
+        "windows": windows[:8],
+        "apps": apps,
+        "threads": threads,
+        "you_are_building": now,
+        "cwd": now.get("cwd") or ((apps[0] or {}).get("path") if apps else ""),
+        "title": now.get("title") or ((apps[0] or {}).get("name") if apps else "Antigravity"),
+        "reply": now.get("title") or "Antigravity is the live app on this PC.",
+        "thread": now.get("title") or "",
+        "frame": "/v1/phoneai/anti/frame",
+    }
+
+
+def live_frame_jpeg() -> bytes:
+    """JPEG of the real Antigravity window (direct view)."""
+    import io
+
+    from pocket.screen_share import _grab_window_image
+
+    img, hwnd = (None, 0)
+    for needle in ("Antigravity", "anti", "Gemini", "AIEOS", "Terminalis", "Spatium"):
+        img, hwnd = _grab_window_image(0, needle)
+        if img is not None:
+            break
+    if img is None:
+        try:
+            _focus("")
+            time.sleep(0.6)
+            img, hwnd = _grab_window_image(0, "Antigravity")
+        except Exception:
+            img = None
+    if img is None:
+        return b""
+    img = img.convert("RGB")
+    img.thumbnail((1100, 780))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=58, optimize=True)
+    return buf.getvalue()
+
+
 def handle(action: str, text: str = "", *, cwd: str = "") -> Dict[str, Any]:
     a = (action or "send").strip().lower()
     if a in ("new", "new_chat", "new-chat"):
@@ -157,5 +222,18 @@ def handle(action: str, text: str = "", *, cwd: str = "") -> Dict[str, Any]:
     if a in ("continue", "mcp", "click"):
         return continue_mcp(text)
     if a in ("read", "thread", "stream"):
-        return read_thread()
-    return paste_send(text, cwd=cwd)
+        t = read_thread()
+        app = real_app()
+        t["you_are_building"] = app.get("you_are_building")
+        t["title"] = app.get("title")
+        t["apps"] = app.get("apps")
+        t["threads"] = app.get("threads")
+        t["frame"] = "/v1/phoneai/anti/frame"
+        t["direct_view"] = True
+        return t
+    if a in ("app", "apps", "state", "desk"):
+        return real_app()
+    if a in ("open", "focus"):
+        ctx = _focus(cwd or str((real_app().get("cwd") or "")))
+        return {"ok": True, "action": "open", **ctx, **real_app()}
+    return paste_send(text, cwd=cwd or str((real_app().get("cwd") or "")))

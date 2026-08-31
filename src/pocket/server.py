@@ -925,10 +925,28 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_settings import snapshot as phoneai_settings
 
             return self._json(200, phoneai_settings())
-        if path in ("/v1/phoneai/anti", "/api/phoneai/anti"):
-            from pocket.antigravity_chat import read_thread
+        if path in ("/v1/phoneai/anti", "/api/phoneai/anti", "/v1/phoneai/anti/app"):
+            from pocket.antigravity_chat import real_app as anti_app
 
-            return self._json(200, read_thread())
+            return self._json(200, anti_app())
+        if path in ("/v1/phoneai/anti/frame", "/api/phoneai/anti/frame"):
+            from pocket.antigravity_chat import live_frame_jpeg
+
+            data = live_frame_jpeg()
+            if not data:
+                return self._json(503, {"ok": False, "error": "Antigravity window not visible — open it on this PC"})
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return None
+        if path in ("/v1/phoneai/github", "/api/phoneai/github"):
+            from pocket.phoneai_github import snapshot as gh_snap
+
+            return self._json(200, gh_snap())
         if path in ("/webmcp", "/web-mcp", "/v1/webmcp"):
             from pocket.webmcp import catalog as webmcp_catalog, html as webmcp_html
 
@@ -3884,6 +3902,12 @@ class Handler(BaseHTTPRequestHandler):
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
             cwd = str(body.get("cwd") or "")
             return self._json(200, anti_handle(action, text, cwd=cwd))
+        if path in ("/v1/phoneai/github", "/api/phoneai/github"):
+            from pocket.phoneai_github import push as gh_push, snapshot as gh_snap
+
+            if str(body.get("action") or "") in ("status", "snap", ""):
+                return self._json(200, gh_snap())
+            return self._json(200, gh_push(message=str(body.get("message") or "phoneai")))
 
         if path in ("/v1/phoneai/life", "/api/phoneai/life"):
             from pocket.phone_life import act as phone_life_act
