@@ -638,9 +638,11 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
 .net{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+body.mobile .stage{max-width:min(430px,100%);margin:0 auto;aspect-ratio:9/16;width:100%}
+body.mobile .hint{max-width:min(430px,100%);left:50%;right:auto;transform:translateX(-50%)}
 @media (orientation:landscape){
   html,body{width:100%;height:100dvh;overflow:hidden}
-  .tabs,.apps{display:none}
+  .apps{max-height:36px}
   .top,.hint{padding-top:4px;padding-bottom:4px}
   .ctrl button{min-height:36px}
   .stage{flex:1;min-height:0}
@@ -670,7 +672,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   </div>
   <div class="dot" id="dot"></div>
   <div class="joy" id="joy"><i id="knob"></i></div>
-  <div class="hint" id="hint">Fit maps the whole PC onto this phone. Fill crops to fill the glass. Tap = click. Stick = mouse.</div>
+  <div class="hint" id="hint">Entire PC is shown. Focus = mobile view of the active app. Off = full desktop.</div>
 </div>
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
@@ -685,7 +687,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   <button>Enter</button>
 </form>
 <script>
-let mode='touch', target='desktop', busy=false, fitMode='contain';
+let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false;
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
@@ -718,7 +720,7 @@ function applyNet(){
   const el=document.getElementById('net');
   if(el) el.textContent=net.label+(liveOk?' · LIVE':'');
   if(liveOk && live && live.readyState===1){
-    live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps}));
+    live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps, target:target, hwnd:activeHwnd||0}));
   }
 }
 function layout(){
@@ -745,13 +747,27 @@ function applyView(){
 window.addEventListener('resize', ()=>{ autoFit(); applyView(); });
 window.addEventListener('orientationchange', ()=>{ autoFit(); setTimeout(applyView, 120); });
 function autoFit(){
-  if(window.innerWidth>window.innerHeight){
-    fitMode='cover';
-    const fill=document.querySelector('#fitseg [data-f="cover"]');
-    [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fill));
-    if(hint) hint.textContent='Landscape · PC covers the glass';
-  } else if(fitMode==='contain'){
-    if(hint) hint.textContent='Portrait · Fill shows more of the PC. Rotate for the full desk.';
+  if(phoneFocus){
+    fitMode='contain';
+    document.body.classList.add('mobile');
+    if(hint) hint.textContent='Focus on · active app as a phone screen. Tap Focus to return to the full PC.';
+    return;
+  }
+  document.body.classList.remove('mobile');
+  fitMode='contain';
+  const fit=document.querySelector('#fitseg [data-f="contain"]');
+  if(fit) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fit));
+  if(hint) hint.textContent=window.innerWidth>window.innerHeight
+    ? 'Full computer screen · every pixel visible. Focus for the active app as a phone.'
+    : 'Full PC on this phone. Rotate for landscape. Focus = mobile view of the active window.';
+}
+function setPhoneFocus(on){
+  phoneFocus=!!on;
+  target=phoneFocus?'focus':'desktop';
+  document.getElementById('focusBtn').classList.toggle('on', phoneFocus);
+  autoFit(); applyView(); applyNet();
+  if(phoneFocus){
+    send('focus', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
   }
 }
 document.getElementById('fitseg').onclick=e=>{
@@ -881,7 +897,7 @@ function tick(){
   const im=new Image();
   im.onload=()=>{ img.src=im.src; layout(); busy=false; setTimeout(tick, Math.max(60, 1000/net.fps)); };
   im.onerror=()=>{ busy=false; setTimeout(tick, 700); };
-  im.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&max_w='+net.max_w+'&q='+net.q+'&t='+Date.now();
+  im.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&hwnd='+(activeHwnd||0)+'&max_w='+net.max_w+'&q='+net.q+'&t='+Date.now();
 }
 tick();
 img.addEventListener('load', layout);
@@ -1068,19 +1084,8 @@ function holdScroll(dy){
 function endScroll(){ if(scrollHold){ clearInterval(scrollHold); scrollHold=null; } }
 bindPress(document.getElementById('sup'), ()=>holdScroll(-0.5), endScroll);
 bindPress(document.getElementById('sdn'), ()=>holdScroll(0.5), endScroll);
-let focusTaps={n:0,t:0};
 bindPress(document.getElementById('focusBtn'), ()=>{
-  const now=Date.now();
-  if(now-focusTaps.t<900) focusTaps.n+=1; else focusTaps={n:1,t:now};
-  focusTaps.t=now;
-  if(focusTaps.n>=3){
-    focusTaps.n=0;
-    send('maximize', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
-    hint.textContent='Fullscreen that window';
-  } else {
-    send('focus', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
-    hint.textContent=focusTaps.n===2?'Tap Focus once more to fill the screen':'Window active — swipe to scroll it';
-  }
+  setPhoneFocus(!phoneFocus);
 });
 
 keys.addEventListener('input', ()=>{

@@ -22,37 +22,25 @@ from pocket.platform_space import tenant_root
 SUBS = ("twin", "vault", "pocket_vault", "agents", "bin", "files", "local")
 
 
-def _key(user: str) -> bytes:
-    secret = (os.environ.get("POCKET_TWIN_SECRET") or "pocket-twin-v1").encode()
-    return hashlib.pbkdf2_hmac("sha256", (user or "seat").encode(), secret, 80_000, dklen=32)
-
-
 def encrypt_bytes(user: str, raw: bytes) -> Dict[str, str]:
-    nonce = secrets.token_bytes(16)
-    key = _key(user)
-    # stream from HMAC(key, nonce||counter)
-    out = bytearray()
-    i = 0
-    while len(out) < len(raw):
-        block = hmac.new(key, nonce + i.to_bytes(8, "big"), hashlib.sha256).digest()
-        out.extend(block)
-        i += 1
-    ct = bytes(a ^ b for a, b in zip(raw, bytes(out[: len(raw)])))
-    import base64
+    from pocket.crypto import encrypt_bytes as _enc
 
-    return {
-        "alg": "hmac-sha256-ctr-v1",
-        "nonce": base64.b64encode(nonce).decode("ascii"),
-        "ct": base64.b64encode(ct).decode("ascii"),
-    }
+    return _enc(user, raw, purpose="twin-vault")
 
 
 def decrypt_bytes(user: str, blob: Dict[str, Any]) -> bytes:
+    from pocket.crypto import decrypt_bytes as _dec
+
+    alg = str((blob or {}).get("alg") or "")
+    if alg == "hmac-sha256-ctr-mac-v2":
+        return _dec(user, blob, purpose="twin-vault")
+    # legacy v1 (no mac) — still open old envelopes
     import base64
 
     nonce = base64.b64decode(blob.get("nonce") or "")
     ct = base64.b64decode(blob.get("ct") or "")
-    key = _key(user)
+    secret = (os.environ.get("POCKET_TWIN_SECRET") or "pocket-twin-v1").encode()
+    key = hashlib.pbkdf2_hmac("sha256", (user or "seat").encode(), secret, 80_000, dklen=32)
     out = bytearray()
     i = 0
     while len(out) < len(ct):

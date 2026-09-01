@@ -1071,7 +1071,11 @@ class Handler(BaseHTTPRequestHandler):
                 quality = int((q.get("q") or q.get("quality") or ["0"])[0])
             except Exception:
                 quality = 0
-            data, meta = grab_jpeg(target=target, max_w=max(640, min(max_w, 1920)), quality=quality)
+            try:
+                hwnd = int((q.get("hwnd") or ["0"])[0])
+            except Exception:
+                hwnd = 0
+            data, meta = grab_jpeg(target=target, max_w=max(640, min(max_w, 1920)), quality=quality, hwnd=hwnd)
             self.send_response(200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Content-Length", str(len(data)))
@@ -3523,6 +3527,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.orchestrator import get_orchestrator
 
             return self._json(200, get_orchestrator().catalog())
+        if path in ("/v1/fabric", "/v1/features", "/v1/wired"):
+            from pocket.feature_fabric import snapshot as fabric_snap
+
+            return self._json(200, fabric_snap())
         if path in ("/v1/ai-workspace", "/v1/ai_workspace", "/v1/workspace/ai"):
             from pocket.ai_workspace import get_workspace_view, refresh_index
 

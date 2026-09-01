@@ -394,8 +394,17 @@ def focus_at(x: int, y: int) -> Dict[str, Any]:
     return {**focus_hwnd(int(hit["hwnd"])), "hit": hit}
 
 
-def geom(target: str = "desktop") -> Dict[str, Any]:
+def geom(target: str = "desktop", hwnd: int = 0) -> Dict[str, Any]:
     t = (target or "desktop").lower()
+    hid = int(hwnd or 0)
+    if hid > 0 or t in ("focus", "window", "app", "mobile"):
+        if hid <= 0:
+            wr = find_app_window("antigravity", "anti gravity") or window_rect("Antigravity")
+        else:
+            r = _rect_of(hid)
+            wr = {"hwnd": hid, "title": _title_of(hid), **r} if r.get("w", 0) > 40 else None
+        if wr and int(wr.get("w") or 0) > 40:
+            return {"ok": True, "target": "focus", **wr}
     if t in ("window", "anti", "antigravity", "app"):
         wr = find_app_window("antigravity", "anti gravity") or window_rect("Antigravity") or window_rect("anti")
         if wr:
@@ -465,11 +474,11 @@ def _blackout_self(img) -> None:
         pass
 
 
-def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0) -> Tuple[bytes, Dict[str, Any]]:
-    """Primary-monitor JPEG. Never block the host on all-screens grab."""
+def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, hwnd: int = 0) -> Tuple[bytes, Dict[str, Any]]:
+    """Primary-monitor JPEG, or the focused window when hwnd/target=focus."""
     q = int(quality) if quality else (82 if max_w >= 1280 else 62)
     q = max(40, min(q, 90))
-    key = f"{target}:{max_w}:{q}"
+    key = f"{target}:{int(hwnd or 0)}:{max_w}:{q}"
     now = time.time()
     coalesce = 0.07 if max_w <= 1280 else 0.12
     with _grab_lock:
@@ -482,7 +491,16 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0) -
         g.update({"x": 0, "y": 0, "w": 1920, "h": 1080})
     img = None
     tlow = (target or "desktop").lower()
-    if tlow in ("window", "anti", "antigravity", "app"):
+    hid = int(hwnd or 0)
+    if hid > 0 or tlow in ("focus", "mobile"):
+        g0 = geom("focus", hid)
+        if int(g0.get("w") or 0) > 40:
+            g.update({"ok": True, "target": "focus", **g0})
+            try:
+                img = _ex.submit(_capture_rect, g0["x"], g0["y"], g0["w"], g0["h"]).result(timeout=0.9)
+            except (FutTimeout, Exception):
+                img = None
+    if img is None and tlow in ("window", "anti", "antigravity", "app"):
         wr = find_app_window("antigravity", "anti gravity")
         if wr and wr.get("w", 0) > 80:
             g.update({"ok": True, "target": "window", **wr})
@@ -544,10 +562,10 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0) -
     return data, g
 
 
-def map_touch(nx: float, ny: float, *, target: str = "desktop") -> Dict[str, int]:
+def map_touch(nx: float, ny: float, *, target: str = "desktop", hwnd: int = 0) -> Dict[str, int]:
     nx = max(0.0, min(1.0, float(nx)))
     ny = max(0.0, min(1.0, float(ny)))
-    g = geom(target)
+    g = geom(target, hwnd=int(hwnd or 0))
     x = int(g["x"] + nx * g["w"])
     y = int(g["y"] + ny * g["h"])
     return {"x": x, "y": y, "target": g.get("target") or target, "hwnd": int(g.get("hwnd") or 0)}
@@ -713,7 +731,7 @@ def touch(
     """
     kind = (kind or "tap").lower().strip()
     side = (button or "left").lower()
-    pt = map_touch(nx, ny, target=target)
+    pt = map_touch(nx, ny, target=target, hwnd=int(hwnd or 0))
     x, y = pt["x"], pt["y"]
     t0 = time.time()
     focused: Dict[str, Any] = {}
@@ -979,14 +997,14 @@ def _ws_recv_frame(sock) -> Optional[Tuple[int, bytes]]:
     return opcode, data
 
 
-def _kick_grab(target: str, max_w: int, quality: int) -> None:
+def _kick_grab(target: str, max_w: int, quality: int, hwnd: int = 0) -> None:
     if _grabbing.is_set():
         return
     _grabbing.set()
 
     def _run() -> None:
         try:
-            grab_jpeg(target=target, max_w=max_w, quality=quality)
+            grab_jpeg(target=target, max_w=max_w, quality=quality, hwnd=hwnd)
         except Exception:
             pass
         finally:
@@ -995,13 +1013,13 @@ def _kick_grab(target: str, max_w: int, quality: int) -> None:
     threading.Thread(target=_run, name="portal-ws-grab", daemon=True).start()
 
 
-def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72) -> Optional[Tuple[bytes, Dict[str, Any]]]:
+def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72, hwnd: int = 0) -> Optional[Tuple[bytes, Dict[str, Any]]]:
     with _grab_lock:
         data = _last_jpeg.get("data") or b""
         meta = dict(_last_jpeg.get("meta") or {})
         age = time.time() - float(_last_jpeg.get("t") or 0)
     if age > 0.06:
-        _kick_grab(target, max_w, quality)
+        _kick_grab(target, max_w, quality, hwnd)
     if data:
         return data, meta
     return None
@@ -1010,7 +1028,7 @@ def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72) 
 def run_portal_ws(sock, headers=None, client_address=None) -> None:
     """One connection: binary JPEGs out, JSON touch in. No HTTP round-trip per move."""
     sock.settimeout(0.02)
-    cfg = {"max_w": 1280, "q": 72, "target": "desktop", "fps": 12.0}
+    cfg = {"max_w": 1280, "q": 72, "target": "desktop", "fps": 12.0, "hwnd": 0}
     last = 0.0
     hello = json.dumps({"ok": True, "kind": "hello", "ws": True, "spatial": True}).encode("utf-8")
     try:
@@ -1026,6 +1044,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
                 target=str(cfg.get("target") or "desktop"),
                 max_w=int(cfg.get("max_w") or 1280),
                 quality=int(cfg.get("q") or 72),
+                hwnd=int(cfg.get("hwnd") or 0),
             )
             if peeked:
                 try:
@@ -1062,6 +1081,10 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
         if kind in ("cfg", "config", "net"):
             if msg.get("max_w"):
                 cfg["max_w"] = max(640, min(int(msg["max_w"]), 1920))
+            if msg.get("target"):
+                cfg["target"] = str(msg.get("target") or "desktop")
+            if msg.get("hwnd") is not None:
+                cfg["hwnd"] = int(msg.get("hwnd") or 0)
             if msg.get("q") or msg.get("quality"):
                 cfg["q"] = max(40, min(int(msg.get("q") or msg.get("quality")), 90))
             if msg.get("fps"):

@@ -314,6 +314,13 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Install always-on", "runtime_install", "POST /v1/runtime/install", "Logon task + Startup + ensure."),
         ("PhoneAI landing", "phoneai_landing", "GET /phoneai", "Professional intro before the kernel OS."),
         ("Setup flow", "setup_open", "GET /setup", "Account · host · always-on · open products."),
+        ("Portal focus mobile", "portal_focus", "POST /v1/phoneai/portal/touch kind=focus", "Active window as a phone screen; off = full PC."),
+        ("Real workspace", "workspace_view", "GET /v1/ai-workspace", "Files + preview interior, not a fake pane."),
+        ("RAH Auro leaf", "rah_auro", "RAH mode=auro", "Parallel Auro harness leaves on the host."),
+        ("TV mesh", "phoneai_tv", "GET /phoneai/tv", "Same-Wi-Fi TV stream + touch."),
+        ("Doorbell", "phoneai_doorbell", "GET /phoneai/doorbell", "Home camera MJPEG/HTTP."),
+        ("Laptop cam", "phoneai_cam", "GET /phoneai/cam", "PC webcam with Allow."),
+        ("Photo pipe", "phoneai_photos", "POST /v1/phoneai/photos", "Phone photo to files/chat/promo/imagine."),
     ]
     out = []
     for name, inv, how, blurb in tools:

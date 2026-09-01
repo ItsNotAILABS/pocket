@@ -169,6 +169,9 @@ _RAH_ESCALATE_MODES = frozenset(
         "ask",
         "work",
         "working",
+        "auro",
+        "auro14b",
+        "meaning",
     }
 )
 
@@ -631,6 +634,22 @@ def _run_leaf_harness(
                 verify=bool(sub_plan.get("verify", False)),
             )
 
+    if mode in ("auro", "auro14b", "meaning"):
+        try:
+            from pocket.internal_models.modules.auro import AuroModel
+
+            res = AuroModel().express(goal, genome=None)
+            rec["status"] = "done" if getattr(res, "ok", True) else "fail"
+            rec["ok"] = bool(getattr(res, "ok", True))
+            rec["result"] = str(getattr(res, "text", res) or "")[:12000]
+            rec["engine"] = "auro"
+            rec["finished_at"] = time.time()
+            rec["duration_sec"] = round(rec["finished_at"] - started, 2)
+            return rec
+        except Exception as e:
+            rec["engine"] = "auro"
+            rec["error"] = str(e)[:400]
+            # fall through to host job
     job = create_job(
         goal_full[:20000],
         name=f"rah:{run_id}:{lid}",
