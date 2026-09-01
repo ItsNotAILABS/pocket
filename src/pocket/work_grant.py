@@ -123,6 +123,41 @@ def memory_lease(grant_id: str, *, kinds: Optional[List[str]] = None) -> Dict[st
     return lease
 
 
+CONTRACTS = {
+    "schema": "pocket.contracts.v1",
+    "framework": "RAH",
+    "protocol": "MEDINA-RAH/1.0",
+    "roles": {
+        "pocket": "Orchestrator — plans work, cannot silently execute fan-out from wording",
+        "nexus": "Authority — WorkGrant: principal, tenant, capability, budget, deadline, tools, parent, idempotency",
+        "auro": "Cognition — analyze/recall a MemoryLease; never self-authorize tools",
+        "rah": "Execution fabric — concurrent leaves only after a valid grant",
+        "verifier": "Independent judge — required for shell/code/browser/persistence; synthesis is not proof",
+        "pixel": "Evidence — visual/pixel source of truth; episodic/semantic/procedural are other kinds",
+    },
+    "objects": [
+        "pocket.work_grant.v1",
+        "pocket.memory_lease.v1",
+        "pocket.rah.plan.v1",
+        "pocket.rah.v1",
+        "pocket.auro_leaf_receipt.v1",
+        "pocket.action_receipt.v1",
+    ],
+    "agent_tools": ["rah_plan", "rah_run", "rah_status", "rah_grant", "rah_lease"],
+    "http": [
+        "GET /v1/rah",
+        "GET /v1/rah/contracts",
+        "POST /v1/rah/plan",
+        "POST /v1/rah/run",
+        "POST /v1/rah/grant",
+    ],
+}
+
+
+def contracts() -> Dict[str, Any]:
+    return {"ok": True, **CONTRACTS}
+
+
 def recall_capsule(lease: Dict[str, Any], *, query: str = "", limit: int = 6) -> Dict[str, Any]:
     """AURO-facing excerpts only — hashes, provenance, short text. Not host memory."""
     if not lease or not lease.get("ok"):

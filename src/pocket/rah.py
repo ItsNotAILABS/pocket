@@ -917,8 +917,20 @@ def run_rah(
     verify: bool = True,
     synthesize: bool = True,
     hint: str = "",
+    grant_id: str = "",
 ) -> Dict[str, Any]:
     """Execute a Recursive Agent Harness run (POCKET-native)."""
+    from pocket.work_grant import issue as grant_issue, valid as grant_valid
+
+    if not grant_valid(grant_id, capability="rah").get("ok"):
+        g = grant_issue(
+            principal="in-process",
+            tenant="local",
+            capability="rah",
+            tools=["rah", "think", "verify", "memory"],
+            parent_run=parent_job_id,
+        )
+        grant_id = str(g.get("id") or "")
     max_depth, max_parallel = _limits(max_depth, max_parallel)
     if depth > max_depth:
         return {
@@ -964,6 +976,7 @@ def run_rah(
         "max_depth": max_depth,
         "max_parallel": max_parallel,
         "task": task[:4000],
+        "grant_id": grant_id,
         "script": str(script_path),
         "status": "running",
         "started_at": started,

@@ -56,6 +56,55 @@ def primary_screen() -> Dict[str, int]:
     }
 
 
+def list_monitors() -> Dict[str, Any]:
+    """Every attached display — HDMI/DisplayPort TVs show up as extra monitors."""
+    rows: list = []
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class RECT(ctypes.Structure):
+            _fields_ = [
+                ("left", ctypes.c_long),
+                ("top", ctypes.c_long),
+                ("right", ctypes.c_long),
+                ("bottom", ctypes.c_long),
+            ]
+
+        MonitorEnumProc = ctypes.WINFUNCTYPE(
+            ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.POINTER(RECT), ctypes.c_longlong
+        )
+
+        def _cb(hmon, hdc, lprect, lparam):
+            r = lprect.contents
+            i = len(rows)
+            w = int(r.right - r.left)
+            h = int(r.bottom - r.top)
+            primary = int(r.left) == 0 and int(r.top) == 0
+            rows.append(
+                {
+                    "id": i,
+                    "x": int(r.left),
+                    "y": int(r.top),
+                    "w": w,
+                    "h": h,
+                    "primary": primary,
+                    "label": "PC" if primary else f"Display {i + 1}",
+                    "hint": "This PC" if primary else "Often the HDMI / smart TV",
+                }
+            )
+            return 1
+
+        _user32().EnumDisplayMonitors(0, 0, MonitorEnumProc(_cb), 0)
+    except Exception:
+        ps = primary_screen()
+        rows = [{"id": 0, "primary": True, "label": "PC", "hint": "This PC", **ps}]
+    if not rows:
+        ps = primary_screen()
+        rows = [{"id": 0, "primary": True, "label": "PC", "hint": "This PC", **ps}]
+    return {"ok": True, "monitors": rows, "count": len(rows)}
+
+
 def find_app_window(*needles: str) -> Optional[Dict[str, Any]]:
     from pocket.screen_share import list_windows
 
@@ -410,6 +459,18 @@ def geom(target: str = "desktop", hwnd: int = 0) -> Dict[str, Any]:
         wr = find_app_window("antigravity", "anti gravity") or window_rect("Antigravity") or window_rect("anti")
         if wr:
             return {"ok": True, "target": "window", **wr}
+    if t.startswith("monitor") or t in ("tv", "display", "hdmi", "screen"):
+        mons = (list_monitors().get("monitors") or [])
+        idx = 0
+        try:
+            idx = int(hwnd or 0)
+        except Exception:
+            idx = 0
+        if t in ("tv", "hdmi") and len(mons) > 1:
+            idx = next((m["id"] for m in mons if not m.get("primary")), mons[-1]["id"])
+        if 0 <= idx < len(mons):
+            m = mons[idx]
+            return {"ok": True, "target": "monitor", "hwnd": 0, "title": m.get("label") or "display", **m}
     ps = primary_screen()
     return {"ok": True, "target": "desktop", "hwnd": 0, "title": "primary", **ps}
 
@@ -507,6 +568,14 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
             g.update({"ok": True, "target": "window", **wr})
             try:
                 img = _ex.submit(_capture_rect, wr["x"], wr["y"], wr["w"], wr["h"]).result(timeout=0.9)
+            except (FutTimeout, Exception):
+                img = None
+    if img is None and (tlow.startswith("monitor") or tlow in ("tv", "display", "hdmi", "screen")):
+        g0 = geom(tlow, hid)
+        if int(g0.get("w") or 0) > 40:
+            g.update({"ok": True, "target": "monitor", **g0})
+            try:
+                img = _ex.submit(_capture_rect, g0["x"], g0["y"], g0["w"], g0["h"]).result(timeout=0.9)
             except (FutTimeout, Exception):
                 img = None
     if img is None and tlow in ("desktop", "", "primary"):

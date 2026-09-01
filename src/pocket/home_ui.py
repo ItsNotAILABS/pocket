@@ -6,63 +6,76 @@ from __future__ import annotations
 def tv_html() -> str:
     return r"""<!DOCTYPE html>
 <html lang="en"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>PhoneAI TV</title>
 <meta name="theme-color" content="#000"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <style>
-html,body{margin:0;height:100%;background:#000;color:#f4f4f5;font-family:ui-sans-serif,system-ui;overflow:hidden}
-body{display:flex;flex-direction:column}
-.top{display:flex;gap:16px;align-items:center;padding:10px 18px;font-size:18px}
-.top a{color:#8b8b98;text-decoration:none}
-.stage{flex:1;position:relative;background:#000;min-height:0}
-img{width:100%;height:100%;object-fit:contain;touch-action:none}
-.bar{display:flex;gap:12px;padding:12px 16px;background:#0a0a10}
-.bar button{min-height:56px;min-width:120px;border:0;border-radius:14px;background:#14141c;color:#fff;font-size:20px;font-weight:800}
-.bar button.go{background:#00ff86;color:#042}
+html,body{margin:0;width:100%;height:100%;height:100dvh;background:#000;color:#f4f4f5;font-family:ui-sans-serif,system-ui;overflow:hidden}
+body{position:fixed;inset:0}
+.stage{position:fixed;inset:0;background:#000}
+img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;touch-action:none}
+.hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75));z-index:4;overflow:auto}
+.hud button,select{min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}
+.hud button.go{background:#00ff86;color:#042}
+.top{position:fixed;top:8px;left:12px;z-index:4;font-size:13px;color:#a1a1aa}
+.top a{color:#a1a1aa;text-decoration:none;margin-left:10px}
 </style></head>
 <body>
-<div class="top"><b>PhoneAI TV</b><span id="h">Same Wi-Fi · watch + touch the PC</span><a href="/phoneai/portal">Phone Portal</a></div>
-<div class="stage" id="stage"><img id="f" alt="PC" src="/v1/phoneai/portal/frame?max_w=1280&t=1" draggable="false"/></div>
-<div class="bar">
-  <button type="button" class="go" id="l">Click</button>
+<div class="top"><b id="h">TV</b><a href="/phoneai/portal">Phone</a></div>
+<div class="stage" id="stage"><img id="f" alt="TV" src="/v1/phoneai/portal/frame?target=tv&max_w=1280&t=1" draggable="false"/></div>
+<div class="hud">
+  <select id="src"></select>
+  <button class="go" type="button" id="l">Click</button>
   <button type="button" id="r">Right</button>
-  <button type="button" id="u">Scroll ▲</button>
-  <button type="button" id="d">Scroll ▼</button>
-  <button type="button" id="m">Max window</button>
+  <button type="button" id="u">▲</button>
+  <button type="button" id="d">▼</button>
 </div>
 <script>
-let nx=0.5, ny=0.5, busy=false;
-const img=document.getElementById('f'), stage=document.getElementById('stage');
+let nx=0.5, ny=0.5, live=null, liveOk=false, src='tv', hwnd=0;
+const img=document.getElementById('f');
 function pt(ev){
-  const t=(ev.touches&&ev.touches[0])||(ev.changedTouches&&ev.changedTouches[0])||ev;
+  const t=(ev.touches&&ev.touches[0])||ev;
   const r=img.getBoundingClientRect();
   nx=Math.max(0,Math.min(1,(t.clientX-r.left)/Math.max(1,r.width)));
   ny=Math.max(0,Math.min(1,(t.clientY-r.top)/Math.max(1,r.height)));
 }
 function send(kind, extra){
-  fetch('/v1/phoneai/portal/touch',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({kind,nx,ny,target:'desktop'}, extra||{}))})
-    .then(r=>r.json()).then(j=>{ document.getElementById('h').textContent=(j.focus&&j.focus.title)||j.kind||'TV'; }).catch(()=>{});
+  const payload=Object.assign({kind,nx,ny,target:src,hwnd:hwnd}, extra||{});
+  if(liveOk && live && live.readyState===1){ live.send(JSON.stringify(payload)); return; }
+  fetch('/v1/phoneai/portal/touch',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(j=>{ document.getElementById('h').textContent=(j.focus&&j.focus.title)||src; }).catch(()=>{});
 }
-function tick(){
-  if(document.hidden||busy){ setTimeout(tick,500); return; }
-  busy=true; img.onload=()=>{busy=false;setTimeout(tick,400)}; img.onerror=()=>{busy=false;setTimeout(tick,900)};
-  img.src='/v1/phoneai/portal/frame?max_w=1280&t='+Date.now();
+function openLive(){
+  try{ live=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/v1/phoneai/portal/ws'); }
+  catch(_){ return; }
+  live.binaryType='blob';
+  live.onopen=()=>{ liveOk=true; live.send(JSON.stringify({kind:'cfg',target:src,hwnd:hwnd,max_w:1280,q:68,fps:18})); };
+  live.onclose=()=>{ liveOk=false; setTimeout(openLive,800); };
+  live.onmessage=ev=>{ if(typeof ev.data==='string') return; const u=URL.createObjectURL(ev.data); img.onload=()=>URL.revokeObjectURL(u); img.src=u; };
 }
-tick();
+openLive();
+fetch('/v1/phoneai/home').then(r=>r.json()).then(j=>{
+  const m=((j.tv&&j.tv.monitors)||[]);
+  const lan=((j.tv&&j.tv.lan)||[]);
+  const sel=document.getElementById('src');
+  sel.innerHTML=m.map(x=>'<option value="monitor:'+x.id+'">'+(x.label||('Display '+x.id))+'</option>').join('')
+    + lan.map(t=>'<option value="lan:'+t.ip+'">'+(t.kind||'TV')+' '+t.ip+'</option>').join('');
+  if(m.length>1){ const tv=m.find(x=>!x.primary)||m[m.length-1]; src='tv'; hwnd=tv.id; sel.value='monitor:'+tv.id; }
+});
+document.getElementById('src').onchange=()=>{
+  const v=document.getElementById('src').value;
+  if(v.startsWith('monitor:')){ src='monitor'; hwnd=parseInt(v.split(':')[1],10)||0; }
+  else { src='tv'; hwnd=0; }
+  if(liveOk) live.send(JSON.stringify({kind:'cfg',target:src,hwnd:hwnd,max_w:1280,q:68,fps:18}));
+};
+const stage=document.getElementById('stage');
 stage.addEventListener('touchstart', ev=>{ ev.preventDefault(); pt(ev); send('tap'); }, {passive:false});
 stage.addEventListener('click', ev=>{ pt(ev); send('tap'); });
-let lastY=null;
-stage.addEventListener('touchmove', ev=>{
-  ev.preventDefault(); const t=ev.touches[0]; pt(ev);
-  if(lastY!=null) send('scroll',{dy:(t.clientY-lastY)/70});
-  lastY=t.clientY;
-}, {passive:false});
-stage.addEventListener('touchend', ()=>{ lastY=null; });
 document.getElementById('l').onclick=()=>send('tap');
 document.getElementById('r').onclick=()=>send('right');
 document.getElementById('u').onclick=()=>send('scroll',{dy:-0.5});
 document.getElementById('d').onclick=()=>send('scroll',{dy:0.5});
-document.getElementById('m').onclick=()=>send('maximize');
 </script>
 </body></html>
 """

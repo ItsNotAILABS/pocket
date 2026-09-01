@@ -2407,11 +2407,16 @@ class Handler(BaseHTTPRequestHandler):
         # --- Recursive Agent Harnesses (RAH) ---
         if path in ("/v1/rah", "/v1/rah/status", "/v1/recursive-harness", "/v1/rah/health"):
             from pocket.rah import status as rah_status, list_runs, manifest as rah_manifest
+            from pocket.work_grant import contracts as rah_contracts
 
             return self._json(
                 200,
-                {**rah_status(), "manifest": rah_manifest(), "runs": list_runs(limit=20)},
+                {**rah_status(), "manifest": rah_manifest(), "contracts": rah_contracts(), "runs": list_runs(limit=20)},
             )
+        if path in ("/v1/rah/contracts", "/v1/contracts/rah"):
+            from pocket.work_grant import contracts as rah_contracts
+
+            return self._json(200, rah_contracts())
         if path in ("/v1/protocols/rah", "/v1/protocol/rah"):
             from pocket.rah import manifest as rah_manifest
 
@@ -6471,6 +6476,27 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": r.get("ok"), "result": r, "engine": "orchestrator"})
 
         # --- Recursive Agent Harnesses ---
+        if path in ("/v1/rah/grant", "/v1/work-grant"):
+            from pocket.rbac import principal as rbac_p
+            from pocket.work_grant import issue as grant_issue
+
+            who = rbac_p(self.headers)
+            user = str(who.get("user") or "")
+            if not user:
+                return self._json(401, {"ok": False, "error": "sign in to issue a WorkGrant"})
+            return self._json(
+                200,
+                grant_issue(
+                    principal=user,
+                    tenant=str(body.get("tenant") or user),
+                    capability=str(body.get("capability") or "rah"),
+                    budget=int(body.get("budget") or 6),
+                    deadline_s=float(body.get("deadline_s") or 180),
+                    tools=body.get("tools") if isinstance(body.get("tools"), list) else ["rah", "think", "verify", "memory"],
+                    parent_run=str(body.get("parent_run") or body.get("job_id") or ""),
+                    idempotency_key=str(body.get("idempotency_key") or "")[:80],
+                ),
+            )
         if path in ("/v1/rah/plan", "/v1/rah/preview", "/v1/rah/score"):
             from pocket.rah import plan_fanout, manifest as rah_manifest, score_rah_fit
 
@@ -6553,6 +6579,24 @@ class Handler(BaseHTTPRequestHandler):
             plan = body.get("plan") if isinstance(body.get("plan"), dict) else None
             if not task and not plan:
                 return self._json(400, {"ok": False, "error": "task or plan required"})
+            from pocket.rbac import principal as rbac_p
+            from pocket.work_grant import issue as grant_issue, valid as grant_valid
+
+            gid = str(body.get("grant_id") or "")
+            if not grant_valid(gid, capability="rah").get("ok"):
+                who = rbac_p(self.headers)
+                user = str(who.get("user") or "")
+                if not user:
+                    return self._json(403, {"ok": False, "error": "RAH execute needs a WorkGrant or a signed-in seat"})
+                g = grant_issue(
+                    principal=user,
+                    tenant=user,
+                    capability="rah",
+                    tools=["rah", "think", "verify", "memory"],
+                    parent_run=str(body.get("job_id") or ""),
+                    idempotency_key=str(body.get("idempotency_key") or "")[:80],
+                )
+                gid = str(g.get("id") or "")
             run = run_rah(
                 task or (plan or {}).get("task") or "",
                 plan=plan,
@@ -6565,6 +6609,7 @@ class Handler(BaseHTTPRequestHandler):
                 cwd=str(body.get("cwd") or ""),
                 session_id=str(body.get("session_id") or body.get("session") or ""),
                 parent_job_id=str(body.get("job_id") or ""),
+                grant_id=gid,
             )
             # Economic: escrow + twin pulse for RAH
             try:

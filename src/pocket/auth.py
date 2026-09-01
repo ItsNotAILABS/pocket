@@ -190,6 +190,7 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/doctrine/organisms",
     "/v1/rah",
     "/v1/rah/status",
+    "/v1/rah/contracts",
     "/v1/protocols/rah",
     "/v1/internal-models",
     "/v1/internal_models",
@@ -920,6 +921,7 @@ def public_gate_html(*, reason: str = "owner-only") -> str:
     </div>
     <label class="remember"><input type="checkbox" id="loginRemember" checked/> Stay signed in on this device</label>
     <button type="submit" class="primary" id="loginBtn">Sign in</button>
+    <button type="button" class="primary" id="faceBtn" style="margin-top:8px;background:#0c0c0e;color:#f4f4f5;border:1px solid var(--line)">Face ID — no password</button>
   </form>
   <form id="rf" autocomplete="on" style="display:none">
     <label for="regUser">Username</label>
@@ -963,6 +965,27 @@ def public_gate_html(*, reason: str = "owner-only") -> str:
     }catch(_){}
   }
   maybeResume();
+  document.getElementById('faceBtn').onclick=async function(){
+    var e=document.getElementById('e');
+    try{
+      var r=await fetch('/v1/auth/passkey/begin?kind=login',{credentials:'include'});
+      var j=await r.json();
+      if(!j.ok){ r=await fetch('/v1/auth/passkey/begin?kind=register',{credentials:'include'}); j=await r.json(); }
+      if(!j.ok){ e.textContent=j.hint||j.error||'Pair this phone on home Wi-Fi first'; return; }
+      function buf(s){ return Uint8Array.from(String(s), c=>c.charCodeAt(0)).buffer; }
+      function b64(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; var b=atob(s); var u=new Uint8Array(b.length); for(var i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }
+      function b64u(x){ var u=new Uint8Array(x); var s=''; for(var i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,''); }
+      var pk=j.publicKey; pk.challenge=buf(pk.challenge);
+      if(pk.user&&pk.user.id) pk.user.id=b64(pk.user.id);
+      if(pk.allowCredentials) pk.allowCredentials=pk.allowCredentials.map(function(c){ return {type:'public-key', id:b64(c.id)}; });
+      var cred = j.publicKey.user ? await navigator.credentials.create({publicKey:pk}) : await navigator.credentials.get({publicKey:pk});
+      var path = j.publicKey.user ? '/v1/auth/passkey/register' : '/v1/auth/passkey/login';
+      var done=await fetch(path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:{id:cred.id,type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:cred.response.attestationObject?b64u(cred.response.attestationObject):undefined,authenticatorData:cred.response.authenticatorData?b64u(cred.response.authenticatorData):undefined,signature:cred.response.signature?b64u(cred.response.signature):undefined}}})});
+      var out=await done.json();
+      if(out.ok){ goDesk(); return; }
+      e.textContent=out.error||'Face ID failed';
+    }catch(err){ e.textContent='Face ID not available — use password or pair on Wi-Fi'; }
+  };
   function tab(which){
     var join = which==='register';
     document.getElementById('tabL').className = join ? '' : 'on';

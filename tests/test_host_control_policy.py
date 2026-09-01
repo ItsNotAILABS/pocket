@@ -94,6 +94,33 @@ def test_work_grant_required_for_rah_execute():
     assert valid(g["id"], capability="rah").get("ok") is True
 
 
+def test_rah_contracts_are_first_class():
+    from pocket.work_grant import contracts
+
+    c = contracts()
+    assert c["ok"] is True
+    assert "rah" in c["roles"]
+    assert "pocket.work_grant.v1" in c["objects"]
+    assert "rah_run" in c["agent_tools"]
+
+
+def test_portal_html_glass_fill():
+    from pocket.phoneai_os_ui import phoneai_portal_html
+
+    html = phoneai_portal_html()
+    assert 'data-f="fill"' in html
+    assert "fitMode='fill'" in html or 'fitMode="fill"' in html
+
+
+def test_tv_html_is_fullscreen():
+    from pocket.home_ui import tv_html
+
+    html = tv_html()
+    assert "object-fit:fill" in html
+    assert "/v1/phoneai/home" in html
+    assert "WebSocket" in html
+
+
 def test_auro_adapter_does_not_crash():
     from pocket.auro_rah_adapter import ADAPTER, run_auro_rah
 

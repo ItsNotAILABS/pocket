@@ -665,6 +665,7 @@ body{position:fixed;inset:0;padding:0;touch-action:manipulation}
 body.hud-off .top,body.hud-off .tabs,body.hud-off .apps{transform:translateY(-120%);opacity:0;pointer-events:none}
 body.hud-off .ctrl,body.hud-off .bar{transform:translateY(120%);opacity:0;pointer-events:none}
 body.hud-off .hint{opacity:0}
+body.hud-off .joy{opacity:0;pointer-events:none}
 body.mobile .hint{left:10px;right:10px;transform:none}
 @media (orientation:landscape){
   html,body,.stage{width:100%;height:100dvh;height:100svh;overflow:hidden}
@@ -683,8 +684,9 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <b>Portal</b>
   <span class="net" id="net">LAN</span>
   <div class="seg" id="fitseg">
-    <button type="button" data-f="contain" class="on">Fit</button>
-    <button type="button" data-f="cover">Fill</button>
+    <button type="button" data-f="fill" class="on">Glass</button>
+    <button type="button" data-f="contain">Fit</button>
+    <button type="button" data-f="cover">Crop</button>
   </div>
   <div class="seg" id="mode">
     <button type="button" data-m="watch">Watch</button>
@@ -714,7 +716,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button>Enter</button>
 </form>
 <script>
-let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false;
+let mode='touch', target='desktop', busy=false, fitMode='fill', phoneFocus=false;
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
@@ -761,7 +763,7 @@ function netProfile(){
     return {label:'LTE', max_w:960, q:62, fps:10};
   }
   if(cellular) return {label:'CELL', max_w:960, q:60, fps:8};
-  return {label:'LAN', max_w:1600, q:82, fps:16};
+  return {label:'LAN', max_w:1440, q:68, fps:22};
 }
 function applyNet(){
   net=netProfile();
@@ -781,7 +783,9 @@ function layout(){
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
   const ar=iw/Math.max(1,ih);
   let w=s.width, h=w/ar;
-  if(fitMode==='cover'){
+  if(fitMode==='fill'){
+    w=s.width; h=s.height;
+  } else if(fitMode==='cover'){
     if(h<s.height){ h=s.height; w=h*ar; }
   } else if(h>s.height){ h=s.height; w=h*ar; }
   img.style.left=((s.width-w)/2)+'px';
@@ -813,12 +817,10 @@ function autoFit(){
     return;
   }
   document.body.classList.remove('mobile');
-  fitMode='contain';
-  const fit=document.querySelector('#fitseg [data-f="contain"]');
+  fitMode='fill';
+  const fit=document.querySelector('#fitseg [data-f="fill"]');
   if(fit) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fit));
-  if(hint) hint.textContent=window.innerWidth>window.innerHeight
-    ? 'Full computer on the whole phone. HUD for clicks. Focus = active app as a phone.'
-    : 'Full PC on the whole phone glass. Rotate for landscape. HUD = controls.';
+  if(hint) hint.textContent='Entire PC stretched to this whole glass. Touch maps 1:1. Fit = letterbox. Crop = zoom.';
 }
 function setPhoneFocus(on){
   phoneFocus=!!on;
@@ -1293,9 +1295,10 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .cards{margin:0 12px;border:1px solid rgba(0,255,134,.28);border-radius:16px;padding:14px 16px;background:#0b0c12;min-height:110px}
 .cards b{display:block;font-size:22px;letter-spacing:-.03em;margin:0 0 6px}
 .cards span{display:block;color:var(--muted);font-size:15px;line-height:1.35}
-.stream{display:none;margin:8px 12px 0;border-radius:12px;overflow:hidden;background:#000;max-height:36vh}
+.stream{display:none;position:fixed;inset:0;z-index:1;background:#000;margin:0;border-radius:0}
 .stream.on{display:block}
-.stream img{width:100%;max-height:36vh;object-fit:contain}
+.stream img{width:100%;height:100%;object-fit:fill}
+.top,.hud,.cards,.row,.bar,.reply,.note{position:relative;z-index:2}
 .reply{margin:8px 12px;font-size:16px;line-height:1.4;min-height:2.4em}
 .row{display:flex;gap:8px;padding:8px 12px;overflow:auto;touch-action:pan-x}
 .row button{flex:0 0 auto;min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}

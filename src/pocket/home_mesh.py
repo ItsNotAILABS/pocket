@@ -189,11 +189,75 @@ def grab_doorbell(cam_id: str = "") -> Tuple[bytes, Dict[str, Any]]:
     return _placeholder(cam.get("name") or "doorbell"), {"ok": False, "id": cam.get("id")}
 
 
+def discover_tvs(timeout: float = 1.1) -> Dict[str, Any]:
+    """SSDP on the LAN: smart TVs, renderers, Roku, Dial."""
+    import socket
+
+    found: Dict[str, Dict[str, Any]] = {}
+    payloads = [
+        "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 1\r\nST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n",
+        "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 1\r\nST: urn:dial-multiscreen-org:service:dial:1\r\n\r\n",
+        "M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 1\r\nST: roku:ecp\r\n\r\n",
+    ]
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.settimeout(max(0.4, min(timeout, 2.0)))
+    try:
+        for msg in payloads:
+            try:
+                sock.sendto(msg.encode("utf-8"), ("239.255.255.250", 1900))
+            except Exception:
+                continue
+        deadline = time.time() + max(0.4, min(timeout, 2.0))
+        while time.time() < deadline:
+            try:
+                data, addr = sock.recvfrom(4096)
+            except Exception:
+                break
+            text = data.decode("utf-8", errors="ignore")
+            ip = addr[0]
+            st = ""
+            loc = ""
+            for line in text.splitlines():
+                low = line.lower()
+                if low.startswith("st:"):
+                    st = line.split(":", 1)[-1].strip()
+                if low.startswith("location:"):
+                    loc = line.split(":", 1)[-1].strip()
+            found[ip] = {
+                "ip": ip,
+                "st": st[:120],
+                "location": loc[:240],
+                "kind": "roku" if "roku" in (st + loc).lower() else ("tv" if "renderer" in (st + loc).lower() or "dial" in (st + loc).lower() else "upnp"),
+            }
+    finally:
+        sock.close()
+    rows = list(found.values())
+    return {"ok": True, "tvs": rows, "count": len(rows), "note": "HDMI TVs also appear as extra Windows displays."}
+
+
 def snapshot() -> Dict[str, Any]:
+    mons = {}
+    try:
+        from pocket.phoneai_portal import list_monitors
+
+        mons = list_monitors()
+    except Exception:
+        mons = {"monitors": []}
+    tvs = {"tvs": []}
+    try:
+        tvs = discover_tvs(0.8)
+    except Exception:
+        pass
     return {
         "ok": True,
         "product": "PhoneAI home mesh",
-        "tv": {"url": "/phoneai/tv", "note": "Same Wi-Fi. Stream + touch the PC on a TV browser."},
+        "tv": {
+            "url": "/phoneai/tv",
+            "note": "Stream the HDMI/smart-TV display, or open this page on the TV browser.",
+            "monitors": mons.get("monitors") or [],
+            "lan": tvs.get("tvs") or [],
+        },
         "doorbell": {"url": "/phoneai/doorbell", "cameras": _load_cams()},
         "laptop_cam": {
             "request": "POST /v1/phoneai/cam/request",
