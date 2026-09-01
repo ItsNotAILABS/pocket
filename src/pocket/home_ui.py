@@ -14,7 +14,7 @@ def tv_html() -> str:
 html,body{margin:0;width:100%;height:100%;height:100dvh;background:#000;color:#f4f4f5;font-family:ui-sans-serif,system-ui;overflow:hidden}
 body{position:fixed;inset:0}
 .stage{position:fixed;inset:0;background:#000}
-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;touch-action:none}
+img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;touch-action:none}
 .hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75));z-index:4;overflow:auto}
 .hud button,select{min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}
 .hud button.go{background:#00ff86;color:#042}

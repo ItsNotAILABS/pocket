@@ -684,8 +684,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <b>Portal</b>
   <span class="net" id="net">LAN</span>
   <div class="seg" id="fitseg">
-    <button type="button" data-f="fill" class="on">Glass</button>
-    <button type="button" data-f="contain">Fit</button>
+    <button type="button" data-f="contain" class="on">Laptop</button>
     <button type="button" data-f="cover">Crop</button>
   </div>
   <div class="seg" id="mode">
@@ -716,7 +715,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button>Enter</button>
 </form>
 <script>
-let mode='touch', target='desktop', busy=false, fitMode='fill', phoneFocus=false;
+let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false, fitLocked=false;
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
@@ -783,9 +782,7 @@ function layout(){
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
   const ar=iw/Math.max(1,ih);
   let w=s.width, h=w/ar;
-  if(fitMode==='fill'){
-    w=s.width; h=s.height;
-  } else if(fitMode==='cover'){
+  if(fitMode==='cover'){
     if(h<s.height){ h=s.height; w=h*ar; }
   } else if(h>s.height){ h=s.height; w=h*ar; }
   img.style.left=((s.width-w)/2)+'px';
@@ -809,18 +806,16 @@ if(window.visualViewport){
 }
 function autoFit(){
   if(phoneFocus){
-    fitMode='cover';
+    fitMode='contain';
     document.body.classList.add('mobile');
-    const fill=document.querySelector('#fitseg [data-f="cover"]');
-    if(fill) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fill));
-    if(hint) hint.textContent='Focus on · active app fills this phone. HUD → Focus to return to the full PC.';
+    if(hint) hint.textContent='Focus on · active window at its real size. Tap Focus to see the full laptop.';
     return;
   }
   document.body.classList.remove('mobile');
-  fitMode='fill';
-  const fit=document.querySelector('#fitseg [data-f="fill"]');
+  if(!fitLocked) fitMode='contain';
+  const fit=document.querySelector('#fitseg [data-f="'+fitMode+'"]');
   if(fit) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fit));
-  if(hint) hint.textContent='Entire PC stretched to this whole glass. Touch maps 1:1. Fit = letterbox. Crop = zoom.';
+  if(hint) hint.textContent='Laptop screen, full desktop, real aspect. Crop only if you want to zoom a region.';
 }
 function setPhoneFocus(on){
   phoneFocus=!!on;
@@ -837,6 +832,7 @@ function setPhoneFocus(on){
 document.getElementById('fitseg').onclick=e=>{
   const b=e.target.closest('[data-f]'); if(!b) return;
   fitMode=b.getAttribute('data-f');
+  fitLocked=true;
   [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===b));
   applyView();
 };
@@ -1297,7 +1293,7 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .cards span{display:block;color:var(--muted);font-size:15px;line-height:1.35}
 .stream{display:none;position:fixed;inset:0;z-index:1;background:#000;margin:0;border-radius:0}
 .stream.on{display:block}
-.stream img{width:100%;height:100%;object-fit:fill}
+.stream img{width:100%;height:100%;object-fit:contain}
 .top,.hud,.cards,.row,.bar,.reply,.note{position:relative;z-index:2}
 .reply{margin:8px 12px;font-size:16px;line-height:1.4;min-height:2.4em}
 .row{display:flex;gap:8px;padding:8px 12px;overflow:auto;touch-action:pan-x}

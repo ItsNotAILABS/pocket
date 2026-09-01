@@ -108,15 +108,15 @@ def test_portal_html_glass_fill():
     from pocket.phoneai_os_ui import phoneai_portal_html
 
     html = phoneai_portal_html()
-    assert 'data-f="fill"' in html
-    assert "fitMode='fill'" in html or 'fitMode="fill"' in html
+    assert 'data-f="contain"' in html
+    assert "fitMode='contain'" in html or 'fitMode="contain"' in html
 
 
 def test_tv_html_is_fullscreen():
     from pocket.home_ui import tv_html
 
     html = tv_html()
-    assert "object-fit:fill" in html
+    assert "object-fit:contain" in html
     assert "/v1/phoneai/home" in html
     assert "WebSocket" in html
 
