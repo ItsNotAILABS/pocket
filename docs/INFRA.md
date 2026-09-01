@@ -11,7 +11,7 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | PhoneAI kernel | `/phoneai/app` | Phone seat |
 | Setup | `/setup` | Account · host · always-on · open |
 | Runtime | `GET /v1/runtime` · `POST /v1/runtime/ensure` | Servers inside the product; agents bring them up |
-| Portal | `/phoneai/portal` | HD JPEG (1600px) live PC. Tap/drag/hold-scroll/double-tap move, joystick mouse, live type |
+| Portal | `/phoneai/portal` | Spatial Fit/Fill of the PC. Live WebSocket JPEG + instant touch. 5G uses smaller faster frames. Session cookie required off-LAN. |
 | Agents | `/agents` | Names, faces, DMs, group chats, Agent Mail |
 | TV | `/phoneai/tv` | Same-Wi-Fi 16:9 stream + touch |
 | Doorbell | `/phoneai/doorbell` | Home camera MJPEG/HTTP |

@@ -1,5 +1,12 @@
 from pocket.phoneai_os_ui import phoneai_anti_html, phoneai_portal_html
-from pocket.phoneai_portal import map_touch, snapshot
+from pocket.phoneai_portal import (
+    check_portal_token,
+    map_touch,
+    mint_portal_token,
+    origin_ok,
+    snapshot,
+    touch_allowed,
+)
 
 
 def test_map_touch_clamps_and_orders():
@@ -21,11 +28,15 @@ def test_portal_html_phone_zoom_and_controls():
     assert 'id="focusBtn"' in html
     assert 'id="moveBtn"' in html
     assert 'id="joy"' in html
-    assert "max_w=1600" in html
+    assert "layout()" in html
+    assert "WebSocket" in html
+    assert "netProfile" in html
+    assert "data-f=\"contain\"" in html or "data-f='contain'" in html
     assert "maximize" in html
     assert "vk:8" in html
     assert "move_window" in html
     assert "/v1/phoneai/portal/touch" in html
+    assert "/v1/phoneai/portal/ws" in html
     assert "touchstart" in html
     assert "credentials:'include'" in html or 'credentials:"include"' in html
     assert "emitScroll" in html or "kind:'scroll'" in html or 'kind,"scroll"' in html or "send('scroll'" in html
@@ -47,10 +58,21 @@ def test_snapshot_documents_phone_zoom():
 
 
 def test_touch_allowed_on_named_tunnel():
-    from pocket.phoneai_portal import touch_allowed
-
-    assert touch_allowed({"Host": "pocket.medinatechlabs.net", "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is True
     assert touch_allowed({}, ("127.0.0.1", 1)) is True
+    tok = mint_portal_token()
+    assert check_portal_token(tok)
+    assert touch_allowed({"Cookie": "pocket_portal=" + tok, "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is True
+    assert touch_allowed({"Host": "evil.example", "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is False
+
+
+def test_origin_and_token_security():
+    assert origin_ok({}) is True
+    assert origin_ok({"Origin": "https://pocket.medinatechlabs.net", "Host": "pocket.medinatechlabs.net"}) is True
+    assert origin_ok({"Origin": "https://evil.example", "Host": "pocket.medinatechlabs.net"}) is False
+    assert check_portal_token("nope") is False
+    html = phoneai_portal_html()
+    assert "Fit is 1:1" in html or "layout()" in html
+    assert "5G" in html
 
 
 def test_windows_list_and_html_tabs():

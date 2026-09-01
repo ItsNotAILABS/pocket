@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import io
+import json
+import os
+import struct
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutTimeout
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+from urllib.parse import urlparse
 
 _grab_lock = threading.Lock()
 _last_jpeg: Dict[str, Any] = {"t": 0.0, "key": "", "data": b"", "meta": {}}
 _ex = ThreadPoolExecutor(max_workers=1, thread_name_prefix="portal-grab")
+_grabbing = threading.Event()
 
 # SM_XVIRTUALSCREEN … SM_CYVIRTUALSCREEN
 _SM_X = 76
@@ -456,12 +465,15 @@ def _blackout_self(img) -> None:
         pass
 
 
-def grab_jpeg(*, target: str = "desktop", max_w: int = 1600) -> Tuple[bytes, Dict[str, Any]]:
+def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0) -> Tuple[bytes, Dict[str, Any]]:
     """Primary-monitor JPEG. Never block the host on all-screens grab."""
-    key = f"{target}:{max_w}"
+    q = int(quality) if quality else (82 if max_w >= 1280 else 62)
+    q = max(40, min(q, 90))
+    key = f"{target}:{max_w}:{q}"
     now = time.time()
+    coalesce = 0.07 if max_w <= 1280 else 0.12
     with _grab_lock:
-        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.16 and _last_jpeg.get("data"):
+        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < coalesce and _last_jpeg.get("data"):
             return _last_jpeg["data"], _last_jpeg["meta"]
     g = {"ok": True, "target": "desktop"}
     try:
@@ -513,13 +525,14 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600) -> Tuple[bytes, Dic
         try:
             from PIL import Image as _PILImage
 
-            resample = getattr(getattr(_PILImage, "Resampling", _PILImage), "LANCZOS", 1)
+            kind = "BILINEAR" if q < 80 else "LANCZOS"
+            resample = getattr(getattr(_PILImage, "Resampling", _PILImage), kind, 2 if q < 80 else 1)
         except Exception:
-            resample = 1
+            resample = 2 if q < 80 else 1
         img = img.resize((max_w, max(1, int(img.height * ratio))), resample)
     buf = io.BytesIO()
-    q = 82 if max_w >= 1280 else 70
-    img.save(buf, format="JPEG", quality=q, subsampling=0)
+    sub = 0 if q >= 80 else 2
+    img.save(buf, format="JPEG", quality=q, subsampling=sub)
     data = buf.getvalue()
     g["frame_w"] = img.width
     g["frame_h"] = img.height
@@ -815,11 +828,98 @@ def touch(
         return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
 
 
-def touch_allowed(headers=None, client_address=None) -> bool:
-    """LAN, signed-in seat, or this host's named tunnel (the phone)."""
-    import os
-    from urllib.parse import urlparse
+_TOKEN_TTL = 60 * 60 * 8
+_WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+
+def _portal_secret() -> bytes:
+    p = Path.home() / ".pocket" / "portal.key"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    if p.is_file():
+        return p.read_bytes()[:64] or b"pocket-portal"
+    raw = os.urandom(32)
+    p.write_bytes(raw)
+    try:
+        os.chmod(p, 0o600)
+    except Exception:
+        pass
+    return raw
+
+
+def mint_portal_token() -> str:
+    ts = str(int(time.time()))
+    sig = hmac.new(_portal_secret(), ts.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+    return f"{ts}.{sig}"
+
+
+def check_portal_token(token: str) -> bool:
+    raw = (token or "").strip()
+    if "." not in raw:
+        return False
+    ts, _, sig = raw.partition(".")
+    try:
+        age = time.time() - int(ts)
+    except Exception:
+        return False
+    if age < 0 or age > _TOKEN_TTL:
+        return False
+    expect = hmac.new(_portal_secret(), ts.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+    return hmac.compare_digest(expect, sig[:32])
+
+
+def portal_cookie(token: str, *, secure: bool = False) -> str:
+    parts = [
+        f"pocket_portal={token}",
+        "Path=/",
+        f"Max-Age={_TOKEN_TTL}",
+        "HttpOnly",
+        "SameSite=Lax",
+    ]
+    if secure:
+        parts.append("Secure")
+    return "; ".join(parts)
+
+
+def token_from_headers(headers=None, query: Optional[Dict[str, Any]] = None) -> str:
+    headers = headers or {}
+    h = headers.get("X-Pocket-Portal") or headers.get("x-pocket-portal") or ""
+    if h:
+        return str(h).strip()
+    cookie = headers.get("Cookie") or headers.get("cookie") or ""
+    for part in cookie.split(";"):
+        k, _, v = part.strip().partition("=")
+        if k == "pocket_portal":
+            return v.strip()
+    if query:
+        return str((query.get("pt") or query.get("token") or [""])[0] if isinstance(query.get("pt"), list) else (query.get("pt") or query.get("token") or ""))
+    return ""
+
+
+def origin_ok(headers=None) -> bool:
+    """POST/WS must come from this host, LAN, or the named public URL. No random sites."""
+    headers = headers or {}
+    origin = (headers.get("Origin") or headers.get("origin") or "").strip()
+    if not origin:
+        return True
+    host = str(headers.get("Host") or headers.get("host") or "").split(":")[0].lower()
+    oh = (urlparse(origin).hostname or "").lower()
+    if not oh:
+        return False
+    if host and oh == host:
+        return True
+    if oh in ("127.0.0.1", "localhost") or oh.startswith("192.168.") or oh.startswith("10."):
+        return True
+    pub = os.environ.get("POCKET_PUBLIC_URL") or "https://pocket.medinatechlabs.net"
+    pub_host = (urlparse(pub).hostname or "").lower()
+    if pub_host and oh == pub_host:
+        return True
+    if oh.endswith(".medinatechlabs.net"):
+        return True
+    return False
+
+
+def touch_allowed(headers=None, client_address=None, query: Optional[Dict[str, Any]] = None) -> bool:
+    """LAN, signed-in seat, or a minted portal session — not the open internet."""
     from pocket.auth import current_user, is_home_lan_client
 
     if is_home_lan_client(headers, client_address):
@@ -829,14 +929,162 @@ def touch_allowed(headers=None, client_address=None) -> bool:
             return True
     except Exception:
         pass
-    host = str((headers or {}).get("Host") or (headers or {}).get("host") or "").split(":")[0].lower()
-    pub = os.environ.get("POCKET_PUBLIC_URL") or "https://pocket.medinatechlabs.net"
-    pub_host = (urlparse(pub).hostname or "").lower()
-    if pub_host and host == pub_host:
-        return True
-    if host.endswith(".medinatechlabs.net") or host.endswith(".trycloudflare.com"):
+    tok = token_from_headers(headers, query)
+    if tok and check_portal_token(tok):
         return True
     return False
+
+
+def ws_accept_key(key: str) -> str:
+    digest = hashlib.sha1((key.strip() + _WS_GUID).encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("ascii")
+
+
+def _ws_send(sock, payload: bytes, opcode: int = 1) -> None:
+    n = len(payload)
+    hdr = bytes([0x80 | (opcode & 0x0F)])
+    if n < 126:
+        hdr += bytes([n])
+    elif n < 65536:
+        hdr += bytes([126]) + struct.pack("!H", n)
+    else:
+        hdr += bytes([127]) + struct.pack("!Q", n)
+    sock.sendall(hdr + payload)
+
+
+def _ws_recv_frame(sock) -> Optional[Tuple[int, bytes]]:
+    hdr = sock.recv(2)
+    if not hdr or len(hdr) < 2:
+        return None
+    opcode = hdr[0] & 0x0F
+    masked = bool(hdr[1] & 0x80)
+    n = hdr[1] & 0x7F
+    if n == 126:
+        ext = sock.recv(2)
+        n = struct.unpack("!H", ext)[0]
+    elif n == 127:
+        ext = sock.recv(8)
+        n = struct.unpack("!Q", ext)[0]
+    if n > 262144:
+        return None
+    mask = sock.recv(4) if masked else b""
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            break
+        data += chunk
+    if masked and mask:
+        data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
+    return opcode, data
+
+
+def _kick_grab(target: str, max_w: int, quality: int) -> None:
+    if _grabbing.is_set():
+        return
+    _grabbing.set()
+
+    def _run() -> None:
+        try:
+            grab_jpeg(target=target, max_w=max_w, quality=quality)
+        except Exception:
+            pass
+        finally:
+            _grabbing.clear()
+
+    threading.Thread(target=_run, name="portal-ws-grab", daemon=True).start()
+
+
+def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72) -> Optional[Tuple[bytes, Dict[str, Any]]]:
+    with _grab_lock:
+        data = _last_jpeg.get("data") or b""
+        meta = dict(_last_jpeg.get("meta") or {})
+        age = time.time() - float(_last_jpeg.get("t") or 0)
+    if age > 0.06:
+        _kick_grab(target, max_w, quality)
+    if data:
+        return data, meta
+    return None
+
+
+def run_portal_ws(sock, headers=None, client_address=None) -> None:
+    """One connection: binary JPEGs out, JSON touch in. No HTTP round-trip per move."""
+    sock.settimeout(0.02)
+    cfg = {"max_w": 1280, "q": 72, "target": "desktop", "fps": 12.0}
+    last = 0.0
+    hello = json.dumps({"ok": True, "kind": "hello", "ws": True, "spatial": True}).encode("utf-8")
+    try:
+        _ws_send(sock, hello, 1)
+    except Exception:
+        return
+    _kick_grab("desktop", 1280, 72)
+    while True:
+        now = time.time()
+        interval = 1.0 / max(4.0, min(float(cfg["fps"]), 20.0))
+        if now - last >= interval:
+            peeked = peek_jpeg(
+                target=str(cfg.get("target") or "desktop"),
+                max_w=int(cfg.get("max_w") or 1280),
+                quality=int(cfg.get("q") or 72),
+            )
+            if peeked:
+                try:
+                    _ws_send(sock, peeked[0], 2)
+                    last = now
+                except Exception:
+                    break
+        try:
+            frame = _ws_recv_frame(sock)
+        except TimeoutError:
+            continue
+        except OSError:
+            break
+        if frame is None:
+            break
+        opcode, payload = frame
+        if opcode == 8:
+            break
+        if opcode == 9:
+            try:
+                _ws_send(sock, payload, 10)
+            except Exception:
+                break
+            continue
+        if opcode != 1:
+            continue
+        try:
+            msg = json.loads(payload.decode("utf-8"))
+        except Exception:
+            continue
+        if not isinstance(msg, dict):
+            continue
+        kind = str(msg.get("kind") or "")
+        if kind in ("cfg", "config", "net"):
+            if msg.get("max_w"):
+                cfg["max_w"] = max(640, min(int(msg["max_w"]), 1920))
+            if msg.get("q") or msg.get("quality"):
+                cfg["q"] = max(40, min(int(msg.get("q") or msg.get("quality")), 90))
+            if msg.get("fps"):
+                cfg["fps"] = float(msg["fps"])
+            continue
+        if kind in ("ping", "hello"):
+            continue
+        try:
+            touch(
+                kind,
+                nx=float(msg.get("nx") if msg.get("nx") is not None else 0.5),
+                ny=float(msg.get("ny") if msg.get("ny") is not None else 0.5),
+                dy=float(msg.get("dy") or 0),
+                dx=float(msg.get("dx") or 0),
+                text=str(msg.get("text") or msg.get("app") or ""),
+                target="desktop",
+                button=str(msg.get("button") or "left"),
+                vk=int(msg.get("vk") or 0),
+                n=int(msg.get("n") or 1),
+                hwnd=int(msg.get("hwnd") or 0),
+            )
+        except Exception:
+            continue
 
 
 def snapshot() -> Dict[str, Any]:
@@ -859,9 +1107,11 @@ def snapshot() -> Dict[str, Any]:
         "frame": "/v1/phoneai/portal/frame",
         "touch": "POST /v1/phoneai/portal/touch",
         "policy": {
-            "touch": "home LAN / loopback only",
-            "frame_coalesce_ms": 300,
+            "touch": "LAN, signed-in, or portal session cookie",
+            "frame": "same gate as touch — no anonymous JPEG",
+            "frame_coalesce_ms": 80,
             "one_grab_at_a_time": True,
+            "live": "WebSocket /v1/phoneai/portal/ws",
         },
         "note": "First-class PC stream. Antigravity remains its own desktop-app view at /phoneai/anti.",
     }

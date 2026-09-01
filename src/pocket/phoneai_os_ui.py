@@ -551,26 +551,37 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
 .seg button.on{background:var(--g);color:#042}
 .stage{flex:1;position:relative;background:#000;min-height:0;overflow:hidden;touch-action:none}
-.view{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:0 0}
-.view img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto;-webkit-optimize-contrast:high}
-.dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16);transition:left .04s linear,top .04s linear}
+.view{position:absolute;inset:0;transform-origin:0 0}
+.view img{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;max-height:none;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto;-webkit-optimize-contrast:high}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
 .joy{position:absolute;left:12px;bottom:48px;width:92px;height:92px;border-radius:50%;background:rgba(20,20,28,.55);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .bar,.ctrl{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
 .ctrl{display:grid;grid-template-columns:repeat(6,1fr)}
-.ctrl button{min-height:52px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:15px}
+.ctrl button{min-height:48px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:13px}
 .ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
 .bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
-.hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.6);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
+.hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.55);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
 .tabs,.apps{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
+.net{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+@media (orientation:landscape){
+  .top,.tabs,.apps,.hint{padding-top:4px;padding-bottom:4px}
+  .ctrl button{min-height:40px;font-size:12px}
+  .joy{width:72px;height:72px;bottom:12px}
+}
 </style></head>
 <body>
 <div class="top">
   <a href="/phoneai/app">Home</a>
   <b>Portal</b>
+  <span class="net" id="net">LAN</span>
+  <div class="seg" id="fitseg">
+    <button type="button" data-f="contain" class="on">Fit</button>
+    <button type="button" data-f="cover">Fill</button>
+  </div>
   <div class="seg" id="mode">
     <button type="button" data-m="watch">Watch</button>
     <button type="button" data-m="touch" class="on">Touch</button>
@@ -580,11 +591,11 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 <div class="apps" id="apps"></div>
 <div class="stage" id="stage">
   <div class="view" id="view">
-    <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&max_w=1600&t=1" draggable="false"/>
+    <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&max_w=1280&q=72&t=1" draggable="false"/>
   </div>
   <div class="dot" id="dot"></div>
   <div class="joy" id="joy"><i id="knob"></i></div>
-  <div class="hint" id="hint">Tap to click · drag to drag · hold-swipe to scroll · double-tap drag to move the window. Stick = mouse.</div>
+  <div class="hint" id="hint">Fit maps the whole PC onto this phone. Fill crops to fill the glass. Tap = click. Stick = mouse.</div>
 </div>
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
@@ -599,10 +610,11 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
   <button>Enter</button>
 </form>
 <script>
-let mode='touch', target='desktop', busy=false;
+let mode='touch', target='desktop', busy=false, fitMode='contain';
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
+let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1600, q:82, fps:14};
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -610,13 +622,64 @@ const dot=document.getElementById('dot');
 const hint=document.getElementById('hint');
 const keys=document.getElementById('keys');
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function netProfile(){
+  const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection||{};
+  const type=(c.effectiveType||'').toLowerCase();
+  const downlink=Number(c.downlink||0);
+  const rtt=Number(c.rtt||0);
+  const save=!!c.saveData;
+  const cellular=(c.type==='cellular') || /2g|3g|4g|5g/.test(type);
+  if(save || type==='2g' || type==='slow-2g') return {label:'2G', max_w:720, q:48, fps:5};
+  if(type==='3g') return {label:'3G', max_w:800, q:52, fps:6};
+  if(cellular && (type==='4g' || type==='5g' || downlink>=8)){
+    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:1280, q:72, fps:14};
+    return {label:'LTE', max_w:960, q:62, fps:10};
+  }
+  if(cellular) return {label:'CELL', max_w:960, q:60, fps:8};
+  return {label:'LAN', max_w:1600, q:82, fps:16};
+}
+function applyNet(){
+  net=netProfile();
+  const el=document.getElementById('net');
+  if(el) el.textContent=net.label+(liveOk?' · LIVE':'');
+  if(liveOk && live && live.readyState===1){
+    live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps}));
+  }
+}
+function layout(){
+  const s=stage.getBoundingClientRect();
+  const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
+  const ar=iw/Math.max(1,ih);
+  let w=s.width, h=w/ar;
+  if(fitMode==='cover'){
+    if(h<s.height){ h=s.height; w=h*ar; }
+  } else if(h>s.height){ h=s.height; w=h*ar; }
+  img.style.left=((s.width-w)/2)+'px';
+  img.style.top=((s.height-h)/2)+'px';
+  img.style.width=w+'px';
+  img.style.height=h+'px';
+}
 function applyView(){
   if(zoom<=1.02){ zoom=1; panX=0; panY=0; }
   const s=stage.getBoundingClientRect();
   panX=clamp(panX, s.width*(1-zoom), 0);
   panY=clamp(panY, s.height*(1-zoom), 0);
   view.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  layout();
 }
+window.addEventListener('resize', ()=>{ autoFit(); applyView(); });
+window.addEventListener('orientationchange', ()=>{ autoFit(); setTimeout(applyView, 120); });
+function autoFit(){
+  if(window.innerWidth<window.innerHeight && fitMode==='contain'){
+    hint.textContent='Portrait · Fill shows more of the PC. Rotate for the full desk.';
+  }
+}
+document.getElementById('fitseg').onclick=e=>{
+  const b=e.target.closest('[data-f]'); if(!b) return;
+  fitMode=b.getAttribute('data-f');
+  [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===b));
+  applyView();
+};
 function finger(ev){
   if(ev.touches && ev.touches[0]) return ev.touches[0];
   if(ev.changedTouches && ev.changedTouches[0]) return ev.changedTouches[0];
@@ -638,12 +701,20 @@ function aim(p, why){
 function send(kind, nx, ny, extra){
   extra=Object.assign({}, extra||{});
   if(activeHwnd && extra.hwnd==null) extra.hwnd=activeHwnd;
-  return fetch('/v1/phoneai/portal/touch',{
+  const payload=Object.assign({kind,nx:nx,ny:ny,target}, extra);
+  if(liveOk && live && live.readyState===1){
+    try{ live.send(JSON.stringify(payload)); return Promise.resolve({ok:true, via:'ws'}); }catch(_){}
+  }
+  const hot=/^(drag|scroll|joy|nudge|stick|move|hover|down|up|move_window)$/.test(kind);
+  const p=fetch('/v1/phoneai/portal/touch',{
     method:'POST',
     credentials:'include',
+    keepalive:true,
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(Object.assign({kind,nx:nx,ny:ny,target}, extra))
-  }).then(async r=>{
+    body:JSON.stringify(payload)
+  });
+  if(hot) return p.catch(()=>{});
+  return p.then(async r=>{
     let j={};
     try{ j=await r.json(); }catch(_){ j={ok:false,error:'HTTP '+r.status}; }
     if(!r.ok){ hint.textContent=j.error||('Touch HTTP '+r.status); return j; }
@@ -655,6 +726,24 @@ function send(kind, nx, ny, extra){
     return j;
   }).catch(()=>{ hint.textContent='Touch failed — check host / tunnel'; });
 }
+let liveBackoff=400;
+function openLive(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  try{ live=new WebSocket(proto+'://'+location.host+'/v1/phoneai/portal/ws'); }
+  catch(_){ live=null; setTimeout(openLive, liveBackoff); return; }
+  live.binaryType='blob';
+  live.onopen=()=>{ liveOk=true; liveBackoff=400; applyNet(); hint.textContent='Live desk — '+net.label+' · Fit is 1:1 with the PC'; };
+  live.onclose=()=>{ liveOk=false; applyNet(); liveBackoff=Math.min(liveBackoff*1.6, 5000); setTimeout(openLive, liveBackoff); };
+  live.onerror=()=>{ liveOk=false; };
+  live.onmessage=ev=>{
+    if(typeof ev.data==='string') return;
+    const url=URL.createObjectURL(ev.data);
+    img.onload=()=>{ layout(); if(blobUrl) URL.revokeObjectURL(blobUrl); blobUrl=url; };
+    img.src=url;
+  };
+}
+openLive(); applyNet();
+if(navigator.connection){ navigator.connection.addEventListener('change', applyNet); }
 function loadWins(){
   fetch('/v1/phoneai/portal/windows').then(r=>r.json()).then(j=>{
     const el=document.getElementById('tabs');
@@ -704,13 +793,18 @@ document.getElementById('apps').onclick=e=>{
   setTimeout(loadWins, 800);
 };
 function tick(){
-  if(document.hidden || busy){ setTimeout(tick, 280); return; }
+  if(liveOk){ setTimeout(tick, 800); return; }
+  if(document.hidden){ setTimeout(tick, 400); return; }
+  if(busy){ setTimeout(tick, 80); return; }
   busy=true;
-  const done=()=>{ busy=false; setTimeout(tick, 180); };
-  img.onload=done; img.onerror=()=>{ busy=false; setTimeout(tick, 700); };
-  img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&max_w=1600&q=hd&t='+Date.now();
+  applyNet();
+  const im=new Image();
+  im.onload=()=>{ img.src=im.src; layout(); busy=false; setTimeout(tick, Math.max(60, 1000/net.fps)); };
+  im.onerror=()=>{ busy=false; setTimeout(tick, 700); };
+  im.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&max_w='+net.max_w+'&q='+net.q+'&t='+Date.now();
 }
 tick();
+img.addEventListener('load', layout);
 document.getElementById('mode').onclick=e=>{
   const b=e.target.closest('button'); if(!b) return;
   mode=b.getAttribute('data-m');
@@ -741,7 +835,7 @@ function syncFingers(ev){
 }
 function emitScroll(nx, ny, dx, dy){
   const now=Date.now();
-  if(now-lastDrag<28) return;
+  if(now-lastDrag<16) return;
   lastDrag=now;
   const extra=activeHwnd?{dy:dy, dx:dx, hwnd:activeHwnd}:{dy:dy, dx:dx};
   send('scroll', nx, ny, extra);
@@ -750,7 +844,7 @@ function emitScroll(nx, ny, dx, dy){
 function emitMoveWin(p){
   if(!startAt) return;
   const now=Date.now();
-  if(now-lastDrag<28) return;
+  if(now-lastDrag<16) return;
   lastDrag=now;
   const r=img.getBoundingClientRect();
   const dx=(p.cx-startAt.lastX)/Math.max(1,r.width);
@@ -818,7 +912,7 @@ function onMove(ev){
     emitScroll(startAt.nx, startAt.ny, dx, dy);
   } else if(gest==='drag'){
     const now=Date.now();
-    if(now-lastDrag<20) return;
+    if(now-lastDrag<16) return;
     lastDrag=now;
     send('drag', p.nx, p.ny);
   }

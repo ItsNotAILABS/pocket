@@ -1,4 +1,4 @@
-﻿"""POCKET Multi-Agent Platform â€” agents, tokenomics, deploys, Grok research pulls."""
+"""POCKET HTTP host - desk, PhoneAI, API, MCP."""
 
 from __future__ import annotations
 
@@ -594,7 +594,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def _html(self, html: str):
+    def _html(self, html: str, extra_headers: Optional[list] = None):
         try:
             from pocket.ui_kit import enhance
 
@@ -605,6 +605,9 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self._sec_headers()
+        if extra_headers:
+            for hk, hv in extra_headers:
+                self.send_header(hk, hv)
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
         self.wfile.write(raw)
@@ -939,8 +942,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(phoneai_anti_html())
         if path in ("/phoneai/portal", "/phoneai/pc", "/portal"):
             from pocket.phoneai_os_ui import phoneai_portal_html
+            from pocket.phoneai_portal import mint_portal_token, portal_cookie
 
-            return self._html(phoneai_portal_html())
+            tok = mint_portal_token()
+            host = (self.headers.get("Host") or "").lower()
+            xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
+            secure = xf == "https" or "medinatechlabs.net" in host
+            return self._html(phoneai_portal_html(), extra_headers=[("Set-Cookie", portal_cookie(tok, secure=secure))])
         if path in ("/phoneai/glasses", "/glasses", "/phoneai/hud", "/phoneai/airpods", "/airpods", "/phoneai/wear"):
             from pocket.phoneai_os_ui import phoneai_glasses_html
 
@@ -1019,16 +1027,51 @@ class Handler(BaseHTTPRequestHandler):
 
             apps = [a for a in list_apps() if a.get("available")]
             return self._json(200, {"ok": True, "apps": apps, "count": len(apps)})
+        if path in ("/v1/phoneai/portal/ws", "/api/phoneai/portal/ws"):
+            from pocket.phoneai_portal import origin_ok, run_portal_ws, touch_allowed, ws_accept_key
+            from pocket.ratelimit import hit as rl_hit
+
+            if not touch_allowed(self.headers, getattr(self, "client_address", None), parse_qs(urlparse(self.path).query)):
+                return self._json(403, {"ok": False, "error": "portal session required"})
+            if not origin_ok(self.headers):
+                return self._json(403, {"ok": False, "error": "origin blocked"})
+            key = (self.headers.get("Sec-WebSocket-Key") or "").strip()
+            if (self.headers.get("Upgrade") or "").lower() != "websocket" or not key:
+                return self._json(426, {"ok": False, "error": "WebSocket upgrade required"})
+            ok_rl, reason = rl_hit("portal_ws", self._client_ip(), kind="api")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            self.send_response(101, "Switching Protocols")
+            self.send_header("Upgrade", "websocket")
+            self.send_header("Connection", "Upgrade")
+            self.send_header("Sec-WebSocket-Accept", ws_accept_key(key))
+            self.end_headers()
+            try:
+                run_portal_ws(self.connection, self.headers, getattr(self, "client_address", None))
+            except Exception:
+                pass
+            self.close_connection = True
+            return None
         if path in ("/v1/phoneai/portal/frame", "/api/phoneai/portal/frame"):
-            from pocket.phoneai_portal import grab_jpeg
+            from pocket.phoneai_portal import grab_jpeg, touch_allowed
+            from pocket.ratelimit import hit as rl_hit
 
             q = parse_qs(urlparse(self.path).query)
+            if not touch_allowed(self.headers, getattr(self, "client_address", None), q):
+                return self._json(403, {"ok": False, "error": "portal session required to view the PC"})
+            ok_rl, reason = rl_hit("portal_frame", self._client_ip(), kind="portal_frame")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             target = (q.get("target") or ["desktop"])[0]
             try:
-                max_w = int((q.get("max_w") or ["1600"])[0])
+                max_w = int((q.get("max_w") or ["1280"])[0])
             except Exception:
-                max_w = 1600
-            data, meta = grab_jpeg(target=target, max_w=max(640, min(max_w, 1920)))
+                max_w = 1280
+            try:
+                quality = int((q.get("q") or q.get("quality") or ["0"])[0])
+            except Exception:
+                quality = 0
+            data, meta = grab_jpeg(target=target, max_w=max(640, min(max_w, 1920)), quality=quality)
             self.send_response(200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Content-Length", str(len(data)))
@@ -1051,7 +1094,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, anti_app())
         if path in ("/v1/phoneai/anti/frame", "/api/phoneai/anti/frame"):
             from pocket.antigravity_chat import live_frame_jpeg
+            from pocket.phoneai_portal import touch_allowed
 
+            if not touch_allowed(self.headers, getattr(self, "client_address", None), parse_qs(urlparse(self.path).query)):
+                return self._json(403, {"ok": False, "error": "portal session required"})
             data = live_frame_jpeg()
             if not data:
                 # Tiny JPEG so the page does not look "down" when the desktop app is closed.
@@ -4247,7 +4293,7 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/phoneai/portal/touch", "/api/phoneai/portal/touch"):
-            from pocket.phoneai_portal import touch as portal_touch
+            from pocket.phoneai_portal import origin_ok, touch as portal_touch
             from pocket.phoneai_portal import touch_allowed
             from pocket.ratelimit import hit as rl_hit
 
@@ -4255,27 +4301,30 @@ class Handler(BaseHTTPRequestHandler):
             if not touch_allowed(self.headers, getattr(self, "client_address", None)):
                 return self._json(
                     403,
-                    {"ok": False, "error": "Touch blocked. Sign in, same Wi-Fi, or use https://pocket.medinatechlabs.net/phoneai/portal"},
+                    {"ok": False, "error": "Touch blocked. Open Portal on this phone so a session cookie is set, or use LAN / sign in."},
                 )
+            if not origin_ok(self.headers):
+                return self._json(403, {"ok": False, "error": "origin blocked"})
             ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
-            return self._json(
-                200,
-                portal_touch(
-                    str(body.get("kind") or body.get("action") or "tap"),
-                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
-                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
-                    dy=float(body.get("dy") or 0),
-                    dx=float(body.get("dx") or 0),
-                    text=str(body.get("text") or body.get("app") or ""),
-                    target="desktop",
-                    button=str(body.get("button") or "left"),
-                    vk=int(body.get("vk") or 0),
-                    n=int(body.get("n") or 1),
-                    hwnd=int(body.get("hwnd") or 0),
-                ),
+            kind = str(body.get("kind") or body.get("action") or "tap")
+            result = portal_touch(
+                kind,
+                nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                dy=float(body.get("dy") or 0),
+                dx=float(body.get("dx") or 0),
+                text=str(body.get("text") or body.get("app") or ""),
+                target="desktop",
+                button=str(body.get("button") or "left"),
+                vk=int(body.get("vk") or 0),
+                n=int(body.get("n") or 1),
+                hwnd=int(body.get("hwnd") or 0),
             )
+            if kind in ("drag", "scroll", "joy", "nudge", "stick", "move", "hover", "down", "up", "move_window"):
+                return self._json(200, {"ok": True, "kind": kind, "fast": True})
+            return self._json(200, result)
         if path in ("/v1/phoneai/photos", "/api/phoneai/photos", "/v1/phoneai/photos/send"):
             from pocket.photo_pipe import send as photo_send
 

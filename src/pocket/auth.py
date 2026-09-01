@@ -1144,7 +1144,7 @@ def security_headers() -> list[tuple[str, str]]:
         (
             "Content-Security-Policy",
             "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline'; connect-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; "
             "media-src 'self' blob:; frame-src 'self'; frame-ancestors 'none'; "
             "base-uri 'self'; form-action 'self'; object-src 'none'",
         ),
