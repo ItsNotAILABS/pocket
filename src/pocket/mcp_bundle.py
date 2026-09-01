@@ -58,9 +58,11 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             # Agent mail (our own accounts + inboxes)
             "mail_status", "mail_accounts", "mail_account_create",
             "mail_inbox", "mail_send", "mail_read", "mail_draft",
+            "agent_people", "agent_dm", "agent_group_post", "agent_email",
+            "subagent_steer", "cron_memory", "browser_drive",
             # Website interfaces via Python engines
             "web_ui_open", "web_ui_sense", "web_ui_act", "web_ui_fetch",
-            "web_ui_search", "web_ui_browse", "web_ui_status",
+            "web_ui_search", "web_ui_browse", "web_ui_drive", "web_ui_status",
             "webmcp_scan", "webmcp_list", "webmcp_use", "webmcp_find",
             # Models → Python agents / engines
             "python_engine", "python_engines_list",
@@ -503,6 +505,61 @@ def _invoke_mail_web(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
         from pocket.web_ui_engine import browse
 
         return browse(p.get("url") or p.get("text") or p.get("prompt") or "", profile=p.get("profile") or "Default")
+    if t in ("web_ui_drive", "browser_drive", "drive_browser"):
+        from pocket.web_ui_engine import drive as browser_drive
+
+        return browser_drive(
+            p.get("url") or "",
+            goal=p.get("goal") or p.get("prompt") or p.get("text") or "",
+            steps=p.get("steps") if isinstance(p.get("steps"), list) else None,
+            profile=p.get("profile") or "Default",
+        )
+    if t in ("agent_people", "agent_faces", "agent_social"):
+        from pocket.agent_social import list_people, status as social_status
+
+        if t == "agent_social":
+            return social_status()
+        return list_people()
+    if t in ("agent_dm",):
+        from pocket.agent_social import dm
+
+        return dm(
+            p.get("from") or p.get("from_agent") or "system",
+            p.get("to") or p.get("agent") or "",
+            p.get("text") or p.get("body") or p.get("prompt") or "",
+            also_email=bool(p.get("email")),
+        )
+    if t in ("agent_email",):
+        from pocket.agent_social import email_agents
+
+        return email_agents(
+            p.get("from") or p.get("from_agent") or "scribe",
+            p.get("to") or "",
+            subject=p.get("subject") or "",
+            body=p.get("body") or p.get("text") or p.get("prompt") or "",
+        )
+    if t in ("agent_group_post",):
+        from pocket.agent_social import group_post
+
+        return group_post(
+            p.get("group") or p.get("id") or "",
+            p.get("from") or p.get("from_agent") or "system",
+            p.get("text") or p.get("body") or p.get("prompt") or "",
+        )
+    if t in ("subagent_steer", "steer_subagent"):
+        from pocket.subagent_dispatch import steer
+
+        return steer(
+            p.get("instruction") or p.get("text") or p.get("prompt") or "",
+            run_id=p.get("run_id") or p.get("id") or "",
+            agent=p.get("agent") or p.get("name") or "",
+        )
+    if t in ("cron_memory", "autonomy_memory"):
+        from pocket.autonomy import last_week, yesterday
+
+        days = str(p.get("days") or "1")
+        sid = p.get("id") or p.get("schedule") or ""
+        return last_week(sid) if days in ("7", "week") else yesterday(sid)
 
     # --- Models use Python agents / engines ---
     if t in ("python_engines_list", "list_python_engines", "engines_list"):
@@ -713,7 +770,9 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
         "mail_inbox", "mail_send", "mail_read", "mail_draft",
         "agent_mail_status", "agent_inbox", "agent_mail_send",
         "web_ui_open", "web_ui_sense", "web_ui_act", "web_ui_fetch",
-        "web_ui_search", "web_ui_browse", "web_ui_status",
+        "web_ui_search", "web_ui_browse", "web_ui_drive", "web_ui_status",
+        "agent_people", "agent_dm", "agent_group_post", "agent_email", "agent_social",
+        "subagent_steer", "cron_memory", "browser_drive",
         "python_engine", "python_engines_list",
         "engine_uses", "engine_use", "list_engine_uses",
         "model_build", "model_list_built", "model_register", "model_suggest",

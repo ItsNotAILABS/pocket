@@ -56,6 +56,14 @@ def pillars() -> List[Dict[str, Any]]:
 
     items.append(
         _ok(
+            "Agent social (names · faces · DM · groups)",
+            True,
+            "/agents · /v1/agents/people",
+            tier="class",
+        )
+    )
+    items.append(
+        _ok(
             "PhoneAI Portal stream",
             True,
             "Watch + Touch · /phoneai/portal (separate from Antigravity)",

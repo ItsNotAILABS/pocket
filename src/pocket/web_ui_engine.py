@@ -193,6 +193,22 @@ ENGINE_USES: List[Dict[str, Any]] = [
         "improves": "Dial from agent +p virtual line (softphone; PSTN if Twilio set)",
         "example": "call assist about status",
     },
+    {
+        "id": "drive_browser",
+        "title": "Drive the desktop browser",
+        "tool": "web_ui_drive",
+        "engine": "remote_browser",
+        "improves": "Open Edge, sense the page, click/type from the agent",
+        "example": "open github.com then click Sign in",
+    },
+    {
+        "id": "agent_social",
+        "title": "Agent names, faces, DMs, groups",
+        "tool": "python_engine",
+        "engine": "scribe",
+        "improves": "Roster with faces; DM and email other agents; group chat",
+        "example": "dm coder hello from grok",
+    },
 ]
 
 
@@ -269,6 +285,8 @@ def run_use(use_id: str, prompt: str = "", *, params: Optional[Dict[str, Any]] =
         return {**sense(agent=params.get("agent") or "web_ui"), "use": uid}
     if tool == "web_ui_act":
         return {**act(p or params.get("action") or "sense", **params), "use": uid}
+    if tool == "web_ui_drive":
+        return {**drive(url=params.get("url") or "", goal=p, steps=params.get("steps")), "use": uid}
     if tool in ("call_dial", "dial") or engine in ("call_dial", "phone_call"):
         from pocket.agent_calls import dial, assign_number
 
@@ -337,6 +355,7 @@ def status() -> Dict[str, Any]:
             "web_ui_fetch",
             "web_ui_search",
             "web_ui_browse",
+            "web_ui_drive",
             "python_engine",
             "python_engines_list",
             "engine_uses",
@@ -534,6 +553,57 @@ def browse(url: str = "", *, profile: str = "Default") -> Dict[str, Any]:
         },
         "url": url,
         "message": "Website opened on host browser — model can sense/act via MCP",
+    }
+
+
+def drive(
+    url: str = "",
+    *,
+    goal: str = "",
+    steps: Optional[List[Any]] = None,
+    profile: str = "Default",
+) -> Dict[str, Any]:
+    """Agent drives the signed-in desktop browser: open → sense → act."""
+    opened: Optional[Dict[str, Any]] = None
+    u = (url or "").strip()
+    low = (goal or "").lower()
+    if not u:
+        for token in (goal or "").split():
+            if token.startswith("http://") or token.startswith("https://") or "." in token and " " not in token:
+                if any(ch.isalpha() for ch in token):
+                    u = token.strip(".,")
+                    break
+    if u:
+        opened = open_url(u, profile=profile)
+        time.sleep(0.5)
+    sensed = sense(agent="browser_drive")
+    acts: List[Dict[str, Any]] = []
+    seq = list(steps or [])
+    if not seq and goal:
+        if "click" in low or "press" in low:
+            seq.append({"action": "click", "text": goal})
+        elif "type" in low or "search" in low:
+            seq.append({"action": "type", "text": goal})
+        elif "scroll" in low:
+            seq.append({"action": "scroll", "text": goal})
+    for step in seq[:8]:
+        if isinstance(step, str):
+            acts.append(act(step, agent="browser_drive"))
+        elif isinstance(step, dict):
+            acts.append(act(str(step.get("action") or "sense"), agent="browser_drive", **{k: v for k, v in step.items() if k != "action"}))
+    return {
+        "ok": True if not opened else bool(opened.get("ok")),
+        "tool": "web_ui_drive",
+        "engine": "desktop_browser",
+        "url": u,
+        "goal": (goal or "")[:400],
+        "open": opened,
+        "sense": {
+            "ok": sensed.get("ok"),
+            "brief": (sensed.get("brief") or sensed.get("text") or sensed.get("summary") or "")[:1200],
+        },
+        "acts": acts,
+        "message": "Agent drove the host Edge/desktop browser. Control stays on this PC.",
     }
 
 

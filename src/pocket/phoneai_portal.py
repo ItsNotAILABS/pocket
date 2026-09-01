@@ -305,6 +305,21 @@ def focus_hwnd(hwnd: int, *, make_main: bool = True) -> Dict[str, Any]:
     }
 
 
+def move_hwnd(hwnd: int, dx: int, dy: int) -> Dict[str, Any]:
+    """Drag a desktop app window by pixel delta — double-tap then swipe."""
+    u = _bind_user32()
+    hwnd = int(hwnd or 0)
+    if hwnd <= 0 or not u.IsWindow(hwnd):
+        return {"ok": False, "error": "no window"}
+    if u.IsIconic(hwnd):
+        u.ShowWindow(hwnd, SW_RESTORE)
+    r = _rect_of(hwnd)
+    nx = int(r.get("x") or 0) + int(dx)
+    ny = int(r.get("y") or 0) + int(dy)
+    u.SetWindowPos(hwnd, 0, nx, ny, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW)
+    return {"ok": True, "hwnd": hwnd, "x": nx, "y": ny, "title": _title_of(hwnd)[:80]}
+
+
 def maximize_hwnd(hwnd: int) -> Dict[str, Any]:
     """Focus a window and expand it to fill the monitor."""
     hwnd = int(hwnd or 0)
@@ -441,12 +456,12 @@ def _blackout_self(img) -> None:
         pass
 
 
-def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict[str, Any]]:
+def grab_jpeg(*, target: str = "desktop", max_w: int = 1600) -> Tuple[bytes, Dict[str, Any]]:
     """Primary-monitor JPEG. Never block the host on all-screens grab."""
     key = f"{target}:{max_w}"
     now = time.time()
     with _grab_lock:
-        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.35 and _last_jpeg.get("data"):
+        if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < 0.16 and _last_jpeg.get("data"):
             return _last_jpeg["data"], _last_jpeg["meta"]
     g = {"ok": True, "target": "desktop"}
     try:
@@ -464,19 +479,20 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
             except (FutTimeout, Exception):
                 img = None
     if img is None and tlow in ("desktop", "", "primary"):
-        try:
-            from pocket.live_vision import FRAME_PATH, ensure_vision
+        if max_w < 1280:
+            try:
+                from pocket.live_vision import FRAME_PATH, ensure_vision
 
-            ensure_vision(interval=0.9)
-            if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
-                data = FRAME_PATH.read_bytes()
-                if len(data) > 800:
-                    meta = {**g, "via": "live_vision", "bytes": len(data)}
-                    with _grab_lock:
-                        _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
-                    return data, meta
-        except Exception:
-            pass
+                ensure_vision(interval=0.9)
+                if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
+                    data = FRAME_PATH.read_bytes()
+                    if len(data) > 800:
+                        meta = {**g, "via": "live_vision", "bytes": len(data)}
+                        with _grab_lock:
+                            _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
+                        return data, meta
+            except Exception:
+                pass
         try:
             img = _ex.submit(_capture_primary).result(timeout=1.6)
         except (FutTimeout, Exception):
@@ -494,9 +510,16 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 960) -> Tuple[bytes, Dict
         _blackout_self(img)
     if img.width > max_w:
         ratio = max_w / float(img.width)
-        img = img.resize((max_w, max(1, int(img.height * ratio))))
+        try:
+            from PIL import Image as _PILImage
+
+            resample = getattr(getattr(_PILImage, "Resampling", _PILImage), "LANCZOS", 1)
+        except Exception:
+            resample = 1
+        img = img.resize((max_w, max(1, int(img.height * ratio))), resample)
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=55)
+    q = 82 if max_w >= 1280 else 70
+    img.save(buf, format="JPEG", quality=q, subsampling=0)
     data = buf.getvalue()
     g["frame_w"] = img.width
     g["frame_h"] = img.height
@@ -688,6 +711,16 @@ def touch(
             else:
                 focused = focus_at(x, y)
             return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "hwnd": focused.get("hwnd") or hwnd, "ms": int((time.time() - t0) * 1000)}
+        if kind in ("move_window", "drag_window"):
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            g = primary_screen()
+            px = int(float(dx) * float(g.get("w") or 1920))
+            py = int(float(dy) * float(g.get("h") or 1080))
+            moved = move_hwnd(hid, px, py) if hid else {"ok": False, "error": "no window"}
+            return {"ok": bool(moved.get("ok")), "kind": kind, **pt, "hwnd": hid, "moved": moved, "ms": int((time.time() - t0) * 1000)}
         if kind in ("maximize", "full", "expand", "fullscreen"):
             hid = int(hwnd or 0)
             if hid <= 0:

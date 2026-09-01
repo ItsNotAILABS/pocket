@@ -62,6 +62,30 @@ def dual_write(rel: str, content: str, *, message: str = "") -> Dict[str, Any]:
     }
 
 
+def dual_write_bytes(rel: str, data: bytes, *, message: str = "") -> Dict[str, Any]:
+    """Binary twin write (photos) into explorer + git."""
+    rel = (rel or "photos/from-phone.jpg").replace("\\", "/").lstrip("/")
+    if ".." in rel.split("/"):
+        return {"ok": False, "error": "path escape"}
+    blob = data or b""
+    exp = explorer_root() / rel
+    exp.parent.mkdir(parents=True, exist_ok=True)
+    exp.write_bytes(blob)
+    git = vault_repo()
+    gp = Path(git.get("path") or "")
+    gfile = gp / rel
+    gfile.parent.mkdir(parents=True, exist_ok=True)
+    gfile.write_bytes(blob)
+    msg = (message or f"phoneai: {rel}")[:120]
+    if gp.is_dir():
+        _run_git(["add", rel], gp)
+        _run_git(
+            ["-c", "user.email=phoneai@pocket.local", "-c", "user.name=PhoneAI", "commit", "-m", msg],
+            gp,
+        )
+    return {"ok": True, "explorer": str(exp), "git": str(gfile), "bytes": len(blob)}
+
+
 def ensure_user_seat() -> Dict[str, Any]:
     """PhoneAI is its own market seat — not the founder `pocket` login."""
     import secrets

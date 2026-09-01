@@ -11,7 +11,11 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | PhoneAI kernel | `/phoneai/app` | Phone seat |
 | Setup | `/setup` | Account · host · always-on · open |
 | Runtime | `GET /v1/runtime` · `POST /v1/runtime/ensure` | Servers inside the product; agents bring them up |
-| Portal | `/phoneai/portal` | Live PC on the phone. Per-window focus makes that app the main window. Phone-only zoom, L/R, drag, joystick, live type |
+| Portal | `/phoneai/portal` | HD JPEG (1600px) live PC. Tap/drag/hold-scroll/double-tap move, joystick mouse, live type |
+| Agents | `/agents` | Names, faces, DMs, group chats, Agent Mail |
+| TV | `/phoneai/tv` | Same-Wi-Fi 16:9 stream + touch |
+| Doorbell | `/phoneai/doorbell` | Home camera MJPEG/HTTP |
+| PC cam | `/phoneai/cam` | Laptop webcam only after PC Allow |
 | Antigravity | `/phoneai/anti` | HWND stream of the real Antigravity app + window-local touch |
 | Code desk | `/phoneai/work` | Coder persona (Grok, KEEP, whole family repos) + harness + shell |
 | Coder | `GET /v1/phoneai/coder` | Long-term Grok coding agent seated on PhoneAI |
@@ -32,7 +36,21 @@ MCP tools: `eyes_see`, `eyes_touch`, `eyes_catalog`
 WebMCP invoke: `eyes_see_portal`, `eyes_see_anti`, `eyes_touch`  
 HTTP: `GET /v1/eyes?which=portal` · `POST /v1/eyes/touch`
 
-Touch is LAN-only. Portal blacks out its own window. Anti stream is the Antigravity HWND only.
+Touch is LAN, signed-in, or the named tunnel. Portal blacks out its own window. Anti stream is the Antigravity HWND only.
+
+## Agent social + cron + steer + browser
+
+| Action | Path |
+|--------|------|
+| People + faces | `GET /v1/agents/people` · `GET /v1/agents/face/{id}.svg` |
+| DM | `POST /v1/agents/dm` |
+| Email | `POST /v1/agents/email` (`@agents.pocket.local`) |
+| Groups | `POST /v1/agents/groups` · `POST /v1/agents/groups/post` |
+| Cron memory | `GET /v1/cron/memory?days=1\|7` |
+| Steer sub-agent | `POST /v1/subagents/steer` |
+| Drive desktop browser | `POST /v1/browser/drive` |
+
+MCP: `agent_people`, `agent_dm`, `agent_email`, `agent_group_post`, `subagent_steer`, `cron_memory`, `browser_drive`, `web_ui_drive`.
 
 ## Always-on
 

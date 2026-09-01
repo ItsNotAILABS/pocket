@@ -39,6 +39,7 @@ POCKET_SURFACES = (
     {"id": "phoneai", "path": "/phoneai", "name": "PhoneAI landing"},
     {"id": "phoneai_app", "path": "/phoneai/app", "name": "PhoneAI kernel"},
     {"id": "portal", "path": "/phoneai/portal", "name": "Portal"},
+    {"id": "agents", "path": "/agents", "name": "Agents"},
     {"id": "anti", "path": "/phoneai/anti", "name": "Antigravity"},
     {"id": "setup", "path": "/setup", "name": "Setup"},
     {"id": "signup", "path": "/signup", "name": "Sign up"},

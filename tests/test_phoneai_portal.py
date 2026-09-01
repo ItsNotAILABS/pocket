@@ -19,8 +19,12 @@ def test_portal_html_phone_zoom_and_controls():
     assert 'id="sup"' in html and 'id="sdn"' in html
     assert "L click" in html
     assert 'id="focusBtn"' in html
+    assert 'id="moveBtn"' in html
+    assert 'id="joy"' in html
+    assert "max_w=1600" in html
     assert "maximize" in html
     assert "vk:8" in html
+    assert "move_window" in html
     assert "/v1/phoneai/portal/touch" in html
     assert "touchstart" in html
     assert "credentials:'include'" in html or 'credentials:"include"' in html

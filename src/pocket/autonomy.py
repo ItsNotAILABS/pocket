@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 ROOT = Path.home() / ".pocket"
 SCHED_PATH = ROOT / "schedules.json"
 INBOX = ROOT / "autonomy_inbox"
+MEM_DIR = ROOT / "autonomy_memory"
 _lock = threading.Lock()
 _runner_started = False
 _runner_thread: Optional[threading.Thread] = None
@@ -101,6 +102,61 @@ def cancel_schedule(sid: str) -> Dict[str, Any]:
     return {"ok": ok, "id": sid}
 
 
+def remember(sid: str = "", *, days: int = 1, limit: int = 12) -> Dict[str, Any]:
+    """What this cron (or all crons) did yesterday / last week."""
+    MEM_DIR.mkdir(parents=True, exist_ok=True)
+    cutoff = time.time() - max(1, int(days)) * 86400
+    files = [MEM_DIR / f"{sid}.jsonl"] if sid else sorted(MEM_DIR.glob("*.jsonl"))
+    rows: List[Dict[str, Any]] = []
+    for fp in files:
+        if not fp.is_file():
+            continue
+        try:
+            for line in fp.read_text(encoding="utf-8").splitlines()[-80:]:
+                rec = json.loads(line)
+                if float(rec.get("at") or 0) >= cutoff:
+                    rows.append(rec)
+        except Exception:
+            continue
+    rows.sort(key=lambda r: float(r.get("at") or 0), reverse=True)
+    lines = []
+    for r in rows[:limit]:
+        when = time.strftime("%Y-%m-%d %H:%M", time.localtime(float(r.get("at") or 0)))
+        lines.append(f"- {when} · {r.get('schedule') or sid} · {r.get('status')} · {(r.get('prompt') or '')[:80]}")
+        snippet = (r.get("result") or r.get("error") or "")[:240]
+        if snippet:
+            lines.append(f"  {snippet}")
+    return {
+        "ok": True,
+        "days": days,
+        "count": len(rows[:limit]),
+        "items": rows[:limit],
+        "brief": "\n".join(lines) if lines else f"No cron memory in the last {days} day(s).",
+    }
+
+
+def yesterday(sid: str = "") -> Dict[str, Any]:
+    return remember(sid, days=1)
+
+
+def last_week(sid: str = "") -> Dict[str, Any]:
+    return remember(sid, days=7)
+
+
+def _remember_run(sid: str, prompt: str, result: str, error: str, status: str) -> None:
+    MEM_DIR.mkdir(parents=True, exist_ok=True)
+    rec = {
+        "at": time.time(),
+        "schedule": sid,
+        "prompt": (prompt or "")[:400],
+        "result": (result or "")[:2000],
+        "error": (error or "")[:400],
+        "status": status,
+    }
+    with (MEM_DIR / f"{sid}.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, default=str) + "\n")
+
+
 def _write_result(sid: str, prompt: str, result: str, error: str) -> str:
     INBOX.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y%m%d-%H%M%S")
@@ -126,13 +182,21 @@ def _write_result(sid: str, prompt: str, result: str, error: str) -> str:
 
 def _execute_one(rec: Dict[str, Any]) -> None:
     prompt = rec.get("prompt") or ""
+    sid = rec.get("id") or ""
+    yest = yesterday(sid).get("brief") or ""
+    week = last_week(sid).get("brief") or ""
+    memory = (
+        "You are a scheduled POCKET cron agent. Remember what you already did.\n"
+        f"## Yesterday\n{yest}\n\n## Last week\n{week}\n\n## Task now\n{prompt}"
+    )
     try:
         from pocket.step_agent import run_step_agent
 
-        result, error, engine = run_step_agent(prompt, max_steps=10)
+        result, error, engine = run_step_agent(memory, max_steps=10)
     except Exception as e:
         result, error, engine = "", str(e), "autonomy"
     path = _write_result(rec["id"], prompt, result, error)
+    _remember_run(rec["id"], prompt, result, error, "failed" if error else "done")
     with _lock:
         data = _load()
         for s in data.get("schedules") or []:

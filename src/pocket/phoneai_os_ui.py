@@ -86,6 +86,10 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/airpods"><div class="icon">🎧</div><span>AirPods</span></a>
     <a class="app" href="/phoneai/web"><div class="icon">🌐</div><span>Web live</span></a>
     <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
+    <a class="app" href="/agents"><div class="icon">🙂</div><span>Agents</span></a>
+    <a class="app" href="/phoneai/tv"><div class="icon">📺</div><span>TV</span></a>
+    <a class="app" href="/phoneai/doorbell"><div class="icon">🔔</div><span>Doorbell</span></a>
+    <a class="app" href="/phoneai/cam"><div class="icon">💻</div><span>PC cam</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
   <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
@@ -548,10 +552,12 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .seg button.on{background:var(--g);color:#042}
 .stage{flex:1;position:relative;background:#000;min-height:0;overflow:hidden;touch-action:none}
 .view{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:0 0}
-.view img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none;-webkit-user-drag:none}
-.dot{position:absolute;width:28px;height:28px;border-radius:50%;border:3px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 6px rgba(0,255,134,.18)}
+.view img{max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto;-webkit-optimize-contrast:high}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16);transition:left .04s linear,top .04s linear}
+.joy{position:absolute;left:12px;bottom:48px;width:92px;height:92px;border-radius:50%;background:rgba(20,20,28,.55);border:1px solid var(--line);z-index:6;touch-action:none}
+.joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .bar,.ctrl{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
-.ctrl{display:grid;grid-template-columns:repeat(5,1fr)}
+.ctrl{display:grid;grid-template-columns:repeat(6,1fr)}
 .ctrl button{min-height:52px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:15px}
 .ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
 .bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
@@ -574,16 +580,18 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 <div class="apps" id="apps"></div>
 <div class="stage" id="stage">
   <div class="view" id="view">
-    <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&t=1" draggable="false"/>
+    <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&max_w=1600&t=1" draggable="false"/>
   </div>
   <div class="dot" id="dot"></div>
-  <div class="hint" id="hint">Swipe on the screen to scroll the PC. Tap to click. Hold then swipe to scroll that window. ▲ ▼ also scroll.</div>
+  <div class="joy" id="joy"><i id="knob"></i></div>
+  <div class="hint" id="hint">Tap to click · drag to drag · hold-swipe to scroll · double-tap drag to move the window. Stick = mouse.</div>
 </div>
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
   <button type="button" id="rmb">R click</button>
   <button type="button" id="sup">Scroll ▲</button>
   <button type="button" id="sdn">Scroll ▼</button>
+  <button type="button" id="moveBtn">Move</button>
   <button type="button" id="focusBtn">Focus</button>
 </div>
 <form class="bar" id="kb">
@@ -696,11 +704,11 @@ document.getElementById('apps').onclick=e=>{
   setTimeout(loadWins, 800);
 };
 function tick(){
-  if(document.hidden || busy){ setTimeout(tick, 500); return; }
+  if(document.hidden || busy){ setTimeout(tick, 280); return; }
   busy=true;
-  const done=()=>{ busy=false; setTimeout(tick, 420); };
-  img.onload=done; img.onerror=()=>{ busy=false; setTimeout(tick, 900); };
-  img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&t='+Date.now();
+  const done=()=>{ busy=false; setTimeout(tick, 180); };
+  img.onload=done; img.onerror=()=>{ busy=false; setTimeout(tick, 700); };
+  img.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&max_w=1600&q=hd&t='+Date.now();
 }
 tick();
 document.getElementById('mode').onclick=e=>{
@@ -733,11 +741,23 @@ function syncFingers(ev){
 }
 function emitScroll(nx, ny, dx, dy){
   const now=Date.now();
-  if(now-lastDrag<40) return;
+  if(now-lastDrag<28) return;
   lastDrag=now;
   const extra=activeHwnd?{dy:dy, dx:dx, hwnd:activeHwnd}:{dy:dy, dx:dx};
   send('scroll', nx, ny, extra);
   hint.textContent=activeHwnd?'Scrolling this window':'Scrolling the PC';
+}
+function emitMoveWin(p){
+  if(!startAt) return;
+  const now=Date.now();
+  if(now-lastDrag<28) return;
+  lastDrag=now;
+  const r=img.getBoundingClientRect();
+  const dx=(p.cx-startAt.lastX)/Math.max(1,r.width);
+  const dy=(p.cy-startAt.lastY)/Math.max(1,r.height);
+  startAt.lastX=p.cx; startAt.lastY=p.cy;
+  send('move_window', startAt.nx, startAt.ny, {dx:dx, dy:dy, hwnd:activeHwnd||undefined});
+  hint.textContent='Moving the desktop window';
 }
 function onDown(ev){
   if(mode!=='touch') return;
@@ -749,9 +769,13 @@ function onDown(ev){
     pinch={d:Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1, z:zoom, px:panX, py:panY, mx:(pts[0].x+pts[1].x)/2, my:(pts[0].y+pts[1].y)/2};
     return;
   }
-  startAt={x:p.cx, y:p.cy, nx:p.nx, ny:p.ny, cx:p.cx, cy:p.cy, lastX:p.cx, lastY:p.cy};
+  const now=Date.now();
+  startAt={x:p.cx, y:p.cy, nx:p.nx, ny:p.ny, cx:p.cx, cy:p.cy, lastX:p.cx, lastY:p.cy, moved:false};
+  if(now-lastTap<360){
+    lastTap=0; gest='move'; aim(p, 'Double-tap — drag to move this window'); clearLong(); return;
+  }
   gest='pending';
-  const holdMs=(ev.pressure&&ev.pressure>0.45)?180:300;
+  const holdMs=(ev.pressure&&ev.pressure>0.45)?160:280;
   longTimer=setTimeout(()=>{ if(gest==='pending'){ gest='armed'; aim(startAt, 'Hold — swipe to scroll'); } }, holdMs);
 }
 function onMove(ev){
@@ -779,18 +803,27 @@ function onMove(ev){
   if(mode!=='touch' || !startAt) return;
   showDot(p.cx,p.cy);
   const dist=Math.hypot(p.cx-startAt.x, p.cy-startAt.y);
-  if((gest==='pending' || gest==='armed') && dist>16){
+  if(gest==='move' && dist>8){
+    startAt.moved=true; emitMoveWin(p); return;
+  }
+  if(gest==='armed' && dist>12){
     clearLong(); gest='scroll';
+  } else if(gest==='pending' && dist>14){
+    clearLong(); gest='drag'; send('down', startAt.nx, startAt.ny);
   }
   if(gest==='scroll'){
     const dy=(p.cy-startAt.lastY)/48;
     const dx=(p.cx-startAt.lastX)/64;
     startAt.lastY=p.cy; startAt.lastX=p.cx;
     emitScroll(startAt.nx, startAt.ny, dx, dy);
+  } else if(gest==='drag'){
+    const now=Date.now();
+    if(now-lastDrag<20) return;
+    lastDrag=now;
+    send('drag', p.nx, p.ny);
   }
 }
 function onUp(ev){
-  const n=syncFingers(ev);
   if(ev.touches) { /* remaining */ }
   else { fingers.delete(fid(ev)); }
   if((ev.touches?ev.touches.length:fingers.size)<2) pinch=null;
@@ -798,6 +831,7 @@ function onUp(ev){
   const p=ptFrom(ev);
   clearLong();
   const now=Date.now();
+  const left=(ev.touches?ev.touches.length:0)===0;
   if(gest==='pending'){
     if(now-streamTaps.t<420) streamTaps.n+=1; else streamTaps={n:1,t:now};
     streamTaps.t=now;
@@ -806,13 +840,15 @@ function onUp(ev){
       aim(p, 'Triple-tap');
       send('maximize', p.nx, p.ny);
       hint.textContent='Expanding that window to the whole screen';
-    } else if(now-lastTap<340){
-      lastTap=0; gest='armed'; aim(p, 'Double-press — swipe to scroll this window');
     } else {
       lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny);
     }
+  } else if(gest==='drag'){
+    send('up', p.nx, p.ny);
+  } else if(gest==='move' && !startAt.moved){
+    send('dbl', p.nx, p.ny);
   } else if(gest==='armed'){ aim(p, 'Armed — swipe to scroll this window'); }
-  if((ev.touches?ev.touches.length:0)===0){ gest=null; startAt=null; fingers.clear(); }
+  if(left){ if(gest!=='armed'){ gest=null; startAt=null; } fingers.clear(); }
 }
 stage.addEventListener('touchstart', ev=>{ usingTouch=true; ev.preventDefault(); onDown(ev); }, {passive:false});
 stage.addEventListener('touchmove', ev=>{ ev.preventDefault(); onMove(ev); }, {passive:false});
@@ -845,6 +881,11 @@ function bindPress(el, down, up){
 }
 bindPress(document.getElementById('lmb'), ()=>send('tap', lastNx, lastNy));
 bindPress(document.getElementById('rmb'), ()=>send('right', lastNx, lastNy));
+bindPress(document.getElementById('moveBtn'), ()=>{
+  gest='move';
+  startAt={x:lastNx, y:lastNy, nx:lastNx, ny:lastNy, cx:0, cy:0, lastX:0, lastY:0, moved:false};
+  hint.textContent='Move armed — drag the window';
+});
 let scrollHold=null;
 function holdScroll(dy){
   send('scroll', lastNx, lastNy, {dy:dy});
@@ -888,6 +929,25 @@ keys.addEventListener('keydown', ev=>{
   }
 });
 document.getElementById('kb').onsubmit=ev=>{ ev.preventDefault(); send('key', lastNx, lastNy, {vk:13}); lastTyped=''; keys.value=''; };
+(function(){
+  const pad=document.getElementById('joy'), knob=document.getElementById('knob');
+  let on=false, ox=0, oy=0, raf=0;
+  function setKnob(dx,dy){
+    const m=Math.hypot(dx,dy)||1, r=28;
+    const nx=dx/m*Math.min(m,r), ny=dy/m*Math.min(m,r);
+    knob.style.transform='translate('+nx+'px,'+ny+'px)';
+    send('joy', lastNx, lastNy, {dx:Math.round(nx*3.2), dy:Math.round(ny*3.2)});
+  }
+  function start(ev){ on=true; const t=finger(ev); const r=pad.getBoundingClientRect(); ox=r.left+r.width/2; oy=r.top+r.height/2; ev.preventDefault(); }
+  function move(ev){ if(!on) return; ev.preventDefault(); const t=finger(ev); setKnob(t.clientX-ox, t.clientY-oy); }
+  function end(ev){ on=false; knob.style.transform=''; }
+  pad.addEventListener('touchstart', start, {passive:false});
+  pad.addEventListener('touchmove', move, {passive:false});
+  pad.addEventListener('touchend', end);
+  pad.addEventListener('pointerdown', ev=>{ if(ev.pointerType==='touch') return; start(ev); });
+  pad.addEventListener('pointermove', ev=>{ if(ev.pointerType==='touch') return; move(ev); });
+  pad.addEventListener('pointerup', end);
+})();
 </script>
 </body></html>
 """

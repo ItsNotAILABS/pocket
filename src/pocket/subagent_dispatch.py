@@ -10,6 +10,9 @@ from typing import Any, Dict, List, Optional  # noqa: F401
 from pocket.live_events import emit
 from pocket.mesh_disk import ensure_agent, leave_artifact, send_message, bootstrap_core_agents
 
+_live: Dict[str, Dict[str, Any]] = {}
+_steer_lock = threading.Lock()
+
 # Always register mesh identities (includes design agents)
 try:
     bootstrap_core_agents()
@@ -82,6 +85,75 @@ def parse_mentions(text: str) -> List[str]:
     return found
 
 
+def _run_id(agent: str) -> str:
+    return f"run-{agent.lower()}-{int(time.time() * 1000)}"
+
+
+def live_runs() -> Dict[str, Any]:
+    with _steer_lock:
+        rows = list(_live.values())
+    return {"ok": True, "count": len(rows), "runs": rows}
+
+
+def steer(
+    instruction: str,
+    *,
+    run_id: str = "",
+    agent: str = "",
+) -> Dict[str, Any]:
+    """Push a mid-conversation note into a live or next sub-agent run."""
+    note = (instruction or "").strip()[:4000]
+    if not note:
+        return {"ok": False, "error": "instruction required"}
+    with _steer_lock:
+        target = None
+        if run_id and run_id in _live:
+            target = _live[run_id]
+        elif agent:
+            aid = agent.upper()
+            for rec in reversed(list(_live.values())):
+                if str(rec.get("agent") or "").upper() == aid:
+                    target = rec
+                    break
+            if target is None:
+                rid = _run_id(aid)
+                target = {
+                    "id": rid,
+                    "agent": aid,
+                    "status": "queued",
+                    "prompt": "",
+                    "notes": [],
+                    "started_at": time.time(),
+                }
+                _live[rid] = target
+        else:
+            running = [r for r in _live.values() if r.get("status") == "running"]
+            target = running[-1] if running else (list(_live.values())[-1] if _live else None)
+        if target is None:
+            return {"ok": False, "error": "no live sub-agent to steer"}
+        target.setdefault("notes", []).append({"at": time.time(), "text": note, "applied": False})
+        target["last_steer"] = note
+        rid = target["id"]
+    emit("subagents", f"steer {rid}: {note[:80]}", agent=str(target.get("agent") or ""), role="user")
+    return {"ok": True, "run_id": rid, "agent": target.get("agent"), "instruction": note, "pending": len(target.get("notes") or [])}
+
+
+def pending_notes(agent: str) -> str:
+    aid = (agent or "").upper()
+    bits = []
+    with _steer_lock:
+        for rec in _live.values():
+            if str(rec.get("agent") or "").upper() != aid:
+                continue
+            for n in rec.get("notes") or []:
+                if not n.get("applied"):
+                    bits.append(str(n.get("text") or ""))
+                    n["applied"] = True
+    if not bits:
+        return ""
+    return "Mid-conversation steer from the operator:\n- " + "\n- ".join(bits)
+
+
 def dispatch(
     message: str,
     *,
@@ -99,8 +171,31 @@ def dispatch(
         ensure_agent(name)
         # strip @tags for payload
         clean = MENTION_RE.sub("", text).strip() or text
+        steer_txt = pending_notes(name)
+        if steer_txt:
+            clean = f"{steer_txt}\n\nOriginal task:\n{clean}"
+        rid = _run_id(name)
+        with _steer_lock:
+            _live[rid] = {
+                "id": rid,
+                "agent": name,
+                "status": "running",
+                "prompt": clean[:400],
+                "notes": [],
+                "started_at": time.time(),
+            }
         msg = send_message(from_agent, name, clean, channel=channel, kind="dispatch")
         run = _execute_agent(name, clean)
+        extra = pending_notes(name)
+        with _steer_lock:
+            if rid in _live:
+                _live[rid]["status"] = "done" if run.get("ok") else "failed"
+                _live[rid]["finished_at"] = time.time()
+                if extra:
+                    _live[rid]["late_steer"] = extra
+        if extra:
+            follow = _execute_agent(name, extra + "\n\nContinue the previous task.")
+            run["steered"] = follow
         # peer notify ARCHON
         if name != "ARCHON":
             send_message(name, "ARCHON", f"completed dispatch: {run.get('ok')}", kind="status", channel=channel)

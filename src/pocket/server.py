@@ -949,6 +949,63 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_web_html
 
             return self._html(phoneai_web_html())
+        if path in ("/phoneai/tv", "/tv"):
+            from pocket.home_ui import tv_html
+
+            return self._html(tv_html())
+        if path in ("/phoneai/doorbell", "/doorbell"):
+            from pocket.home_ui import doorbell_html
+
+            return self._html(doorbell_html())
+        if path in ("/phoneai/cam", "/phoneai/camera-pc"):
+            from pocket.home_ui import cam_phone_html
+
+            return self._html(cam_phone_html())
+        if path in ("/phoneai/cam/approve", "/phoneai/cam-approve"):
+            from pocket.home_ui import cam_approve_html
+
+            return self._html(cam_approve_html())
+        if path in ("/v1/phoneai/home", "/api/phoneai/home"):
+            from pocket.home_mesh import snapshot as home_snap
+
+            return self._json(200, home_snap())
+        if path in ("/v1/phoneai/doorbell/frame", "/v1/doorbell/frame"):
+            from pocket.home_mesh import grab_doorbell
+
+            q = parse_qs(urlparse(self.path).query)
+            data, meta = grab_doorbell((q.get("id") or [""])[0])
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            try:
+                self.wfile.write(data)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+                self.close_connection = True
+            return None
+        if path in ("/v1/phoneai/cam/frame", "/v1/cam/frame"):
+            from pocket.home_mesh import grab_webcam, laptop_allowed
+
+            if not laptop_allowed():
+                return self._json(403, {"ok": False, "error": "laptop camera needs Allow on the PC"})
+            data, meta = grab_webcam()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            try:
+                self.wfile.write(data)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+                self.close_connection = True
+            return None
+        if path in ("/v1/phoneai/photos", "/api/phoneai/photos"):
+            from pocket.photo_pipe import catalog as photo_cat
+
+            return self._json(200, photo_cat())
         if path in ("/v1/phoneai/portal", "/api/phoneai/portal"):
             from pocket.phoneai_portal import snapshot as portal_snap
 
@@ -967,7 +1024,11 @@ class Handler(BaseHTTPRequestHandler):
 
             q = parse_qs(urlparse(self.path).query)
             target = (q.get("target") or ["desktop"])[0]
-            data, meta = grab_jpeg(target=target)
+            try:
+                max_w = int((q.get("max_w") or ["1600"])[0])
+            except Exception:
+                max_w = 1600
+            data, meta = grab_jpeg(target=target, max_w=max(640, min(max_w, 1920)))
             self.send_response(200)
             self.send_header("Content-Type", "image/jpeg")
             self.send_header("Content-Length", str(len(data)))
@@ -2481,6 +2542,61 @@ class Handler(BaseHTTPRequestHandler):
             if path.endswith("/summary") or (q.get("summary") or [""])[0]:
                 return self._json(200, summary())
             return self._json(200, build_registry(live=live))
+        if path in ("/agents", "/agents/", "/phoneai/agents"):
+            from pocket.agent_social_ui import agents_html
+
+            return self._html(agents_html())
+        if path in ("/v1/agents/social", "/v1/agent-social"):
+            from pocket.agent_social import status as social_status
+
+            return self._json(200, social_status())
+        if path in ("/v1/agents/people", "/v1/agents/faces"):
+            from pocket.agent_social import list_people
+
+            return self._json(200, list_people())
+        if path.startswith("/v1/agents/face/") and path.endswith(".svg"):
+            from pocket.agent_social import face_svg, _safe as social_safe
+
+            aid = path.rsplit("/", 1)[-1][:-4]
+            data = face_svg(social_safe(aid), name=aid).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return None
+        if path in ("/v1/agents/groups",):
+            from pocket.agent_social import list_groups, group_messages
+
+            q = parse_qs(urlparse(self.path).query)
+            if (q.get("id") or [""])[0]:
+                return self._json(200, group_messages((q.get("id") or [""])[0]))
+            return self._json(200, list_groups())
+        if path in ("/v1/agents/groups/messages",):
+            from pocket.agent_social import group_messages
+
+            q = parse_qs(urlparse(self.path).query)
+            return self._json(200, group_messages((q.get("id") or q.get("group") or [""])[0]))
+        if path in ("/v1/agents/dm",):
+            from pocket.agent_social import thread as dm_thread
+
+            q = parse_qs(urlparse(self.path).query)
+            return self._json(200, dm_thread((q.get("a") or ["system"])[0], (q.get("b") or [""])[0]))
+        if path in ("/v1/cron/memory", "/v1/autonomy/memory", "/v1/agents/cron"):
+            from pocket.autonomy import last_week, yesterday
+
+            q = parse_qs(urlparse(self.path).query)
+            sid = (q.get("id") or q.get("schedule") or [""])[0]
+            days = (q.get("days") or ["1"])[0]
+            if days in ("7", "week"):
+                return self._json(200, last_week(sid))
+            return self._json(200, yesterday(sid))
+        if path in ("/v1/subagents/live", "/v1/agents/steer"):
+            from pocket.subagent_dispatch import live_runs
+
+            return self._json(200, live_runs())
         if path in ("/v1/agents/catalog", "/v1/desk/catalog"):
             from pocket.first_class_agents import desk_catalog, ensure_modes_aligned
 
@@ -4159,6 +4275,43 @@ class Handler(BaseHTTPRequestHandler):
                     n=int(body.get("n") or 1),
                     hwnd=int(body.get("hwnd") or 0),
                 ),
+            )
+        if path in ("/v1/phoneai/photos", "/api/phoneai/photos", "/v1/phoneai/photos/send"):
+            from pocket.photo_pipe import send as photo_send
+
+            return self._json(
+                200,
+                photo_send(
+                    image=str(body.get("image") or ""),
+                    name=str(body.get("name") or ""),
+                    dest=str(body.get("dest") or "all"),
+                    caption=str(body.get("caption") or body.get("text") or ""),
+                ),
+            )
+        if path in ("/v1/phoneai/doorbell", "/api/phoneai/doorbell"):
+            from pocket.home_mesh import add_camera
+
+            return self._json(
+                200,
+                add_camera(
+                    name=str(body.get("name") or "doorbell"),
+                    url=str(body.get("url") or ""),
+                    kind=str(body.get("kind") or "mjpeg"),
+                ),
+            )
+        if path in ("/v1/phoneai/cam/request", "/api/phoneai/cam/request"):
+            from pocket.home_mesh import request_laptop_cam
+
+            return self._json(200, request_laptop_cam(who=str(body.get("who") or "phoneai")))
+        if path in ("/v1/phoneai/cam/decide", "/api/phoneai/cam/decide"):
+            from pocket.home_mesh import decide_laptop_cam
+            from pocket.phoneai_portal import touch_allowed
+
+            if not touch_allowed(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "approve laptop camera on this PC (LAN or signed in)"})
+            return self._json(
+                200,
+                decide_laptop_cam(bool(body.get("allow")), minutes=float(body.get("minutes") or 10)),
             )
 
         if path in ("/v1/phoneai/life", "/api/phoneai/life"):
@@ -7541,6 +7694,86 @@ class Handler(BaseHTTPRequestHandler):
                     from_agent=body.get("from") or "USER",
                     agents=agents,
                     channel=body.get("channel") or "freq-0",
+                ),
+            )
+        if path in ("/v1/subagents/steer", "/v1/agents/steer"):
+            from pocket.subagent_dispatch import steer
+
+            return self._json(
+                200,
+                steer(
+                    str(body.get("instruction") or body.get("text") or body.get("prompt") or ""),
+                    run_id=str(body.get("run_id") or body.get("id") or ""),
+                    agent=str(body.get("agent") or body.get("name") or ""),
+                ),
+            )
+        if path in ("/v1/agents/dm", "/v1/agents/message"):
+            from pocket.agent_social import dm
+
+            return self._json(
+                200,
+                dm(
+                    str(body.get("from") or body.get("from_agent") or "system"),
+                    str(body.get("to") or body.get("agent") or ""),
+                    str(body.get("text") or body.get("body") or body.get("message") or ""),
+                    also_email=bool(body.get("email") or body.get("also_email")),
+                ),
+            )
+        if path in ("/v1/agents/email", "/v1/agents/mail"):
+            from pocket.agent_social import email_agents
+
+            return self._json(
+                200,
+                email_agents(
+                    str(body.get("from") or body.get("from_agent") or "system"),
+                    str(body.get("to") or ""),
+                    subject=str(body.get("subject") or ""),
+                    body=str(body.get("body") or body.get("text") or ""),
+                ),
+            )
+        if path in ("/v1/agents/groups",):
+            from pocket.agent_social import create_group
+
+            return self._json(
+                200,
+                create_group(
+                    str(body.get("name") or "group"),
+                    members=list(body.get("members") or []),
+                    owner=str(body.get("owner") or "system"),
+                ),
+            )
+        if path in ("/v1/agents/groups/post", "/v1/agents/group"):
+            from pocket.agent_social import group_post
+
+            return self._json(
+                200,
+                group_post(
+                    str(body.get("group") or body.get("id") or ""),
+                    str(body.get("from") or body.get("from_agent") or "system"),
+                    str(body.get("text") or body.get("body") or ""),
+                ),
+            )
+        if path in ("/v1/agents/name", "/v1/agents/rename"):
+            from pocket.agent_social import name_agent
+
+            return self._json(
+                200,
+                name_agent(
+                    str(body.get("id") or body.get("agent") or ""),
+                    str(body.get("name") or ""),
+                    blurb=str(body.get("blurb") or ""),
+                ),
+            )
+        if path in ("/v1/browser/drive", "/v1/agents/browser", "/v1/web_ui/drive"):
+            from pocket.web_ui_engine import drive as browser_drive
+
+            return self._json(
+                200,
+                browser_drive(
+                    str(body.get("url") or ""),
+                    goal=str(body.get("goal") or body.get("prompt") or body.get("text") or ""),
+                    steps=body.get("steps") if isinstance(body.get("steps"), list) else None,
+                    profile=str(body.get("profile") or "Default"),
                 ),
             )
         if path in ("/v1/mesh/send",):

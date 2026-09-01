@@ -297,6 +297,13 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Agent eyes Antigravity", "eyes_see_anti", "GET /v1/eyes?which=anti", "Give agents a JPEG of the Antigravity window."),
         ("Agent eyes touch", "eyes_touch", "POST /v1/eyes/touch", "Tap/drag/type on portal or Antigravity from an agent."),
         ("Voice to screen", "voice_screen", "POST /v1/phoneai/voice-screen", "Say click File / scroll / open URL — fusion + eyes."),
+        ("Agent roster faces", "agent_people", "GET /v1/agents/people", "Named agents with faces and mailboxes."),
+        ("Agent DM", "agent_dm", "POST /v1/agents/dm", "Agents DM each other on this host."),
+        ("Agent email", "agent_email", "POST /v1/agents/email", "Agent Mail @agents.pocket.local."),
+        ("Agent group chat", "agent_group_post", "POST /v1/agents/groups/post", "Post into an agent group room."),
+        ("Steer sub-agent", "subagent_steer", "POST /v1/subagents/steer", "Push a mid-conversation instruction into a live sub-agent."),
+        ("Cron memory", "cron_memory", "GET /v1/cron/memory", "What scheduled agents did yesterday and last week."),
+        ("Drive desktop browser", "browser_drive", "POST /v1/browser/drive", "Open Edge, sense, click/type from the agent."),
         ("Glasses HUD", "glasses_hud", "GET /phoneai/glasses", "Meta glasses / HUD live stream + voice."),
         ("Wear command", "wear_command", "POST /v1/phoneai/wear", "AirPods + glasses: look, open app, focus window, coder."),
         ("AirPods", "airpods_open", "GET /phoneai/airpods", "Listen and speak-back through AirPods."),
@@ -519,6 +526,10 @@ def use_action(name: str, *, prompt: str = "") -> Dict[str, Any]:
                 fn = browse if inv == "web_ui_browse" else open_url
                 return {"ok": True, "used": a, "result": fn(a.get("href") or prompt or "")}
             return {"ok": True, "used": a, "result": act(prompt or a.get("name") or "")}
+        if inv in ("agent_people", "agent_dm", "agent_email", "agent_group_post", "subagent_steer", "cron_memory", "browser_drive"):
+            from pocket.mcp_bundle import invoke as mcp_invoke
+
+            return {"ok": True, "used": a, "result": mcp_invoke("pocket", inv, prompt=prompt, text=prompt, **(extra or {}))}
     except Exception as e:
         return {"ok": False, "used": a, "error": str(e)[:240]}
     return {"ok": True, "used": a, "note": "cataloged; invoke recorded", "extra": extra}

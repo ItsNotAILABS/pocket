@@ -1,6 +1,6 @@
 """POCKET — AI workspace that runs on your machine."""
 
-__version__ = "3.9.9"
+__version__ = "3.10.0"
 PRODUCT = "POCKET"
 PRODUCT_FULL = "POCKET"
 TAGLINE = "Native Agent OS — habitat · screen · studio · phone · MCP — on your computer."
@@ -23,6 +23,7 @@ USES = (
     "Coding swarm · harness · pixel memory · native projects",
     "Codex · Grok · Claude · Aria · Studio · GitHub — multi-engine on host",
     "Agent Mail — our own accounts @agents.pocket.local + inboxes",
+    "Named agents with faces, DMs, group chats, cron memory, steered sub-agents",
     "Internal models as modules · genetic flow evolves which run",
     "Website UI engines — models drive the web via Python MCP",
     "One-line install slices · SDK · skills · plug-n-play agents",
