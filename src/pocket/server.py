@@ -1004,6 +1004,22 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.contracts import catalog
 
             return self._json(200, catalog())
+        if path in ("/v1/phoneai/tv/frame", "/v1/tv/frame"):
+            from pocket.home_mesh import grab_tv_to_phone
+
+            q = parse_qs(urlparse(self.path).query)
+            data, meta = grab_tv_to_phone((q.get("id") or [""])[0])
+            self.send_response(200)
+            self.send_header("Content-Type", "image/jpeg")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self._sec_headers()
+            self.end_headers()
+            try:
+                self.wfile.write(data)
+            except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError, OSError):
+                self.close_connection = True
+            return None
         if path in ("/v1/phoneai/doorbell/frame", "/v1/doorbell/frame"):
             from pocket.home_mesh import grab_doorbell
 

@@ -29,9 +29,30 @@ _SM_W = 78
 _SM_H = 79
 
 
+_DPI = False
+
+
+def _dpi_aware() -> None:
+    """Python defaults to DPI-unaware; SM_CXSCREEN then crops the right and bottom."""
+    global _DPI
+    if _DPI:
+        return
+    import ctypes
+
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+    _DPI = True
+
+
 def _user32():
     import ctypes
 
+    _dpi_aware()
     return ctypes.windll.user32
 
 
@@ -490,8 +511,10 @@ def _placeholder(msg: str = "Portal") -> bytes:
 def _capture_primary():
     from PIL import ImageGrab
 
+    _dpi_aware()
     ps = primary_screen()
-    return ImageGrab.grab(bbox=(0, 0, ps["w"], ps["h"]))
+    # Grab the full primary framebuffer (physical pixels after DPI awareness).
+    return ImageGrab.grab(bbox=(int(ps["x"]), int(ps["y"]), int(ps["x"] + ps["w"]), int(ps["y"] + ps["h"])))
 
 
 def _capture_rect(x: int, y: int, w: int, h: int):
@@ -538,11 +561,11 @@ def _blackout_self(img) -> None:
 
 def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, hwnd: int = 0) -> Tuple[bytes, Dict[str, Any]]:
     """Primary-monitor JPEG, or the focused window when hwnd/target=focus."""
-    q = int(quality) if quality else (82 if max_w >= 1280 else 62)
-    q = max(40, min(q, 90))
+    q = int(quality) if quality else (62 if max_w >= 1280 else 52)
+    q = max(40, min(q, 80))
     key = f"{target}:{int(hwnd or 0)}:{max_w}:{q}"
     now = time.time()
-    coalesce = 0.07 if max_w <= 1280 else 0.12
+    coalesce = 0.04 if max_w <= 1280 else 0.08
     with _grab_lock:
         if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < coalesce and _last_jpeg.get("data"):
             return _last_jpeg["data"], _last_jpeg["meta"]
@@ -579,22 +602,8 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
             except (FutTimeout, Exception):
                 img = None
     if img is None and tlow in ("desktop", "", "primary"):
-        if max_w < 1280:
-            try:
-                from pocket.live_vision import FRAME_PATH, ensure_vision
-
-                ensure_vision(interval=0.9)
-                if FRAME_PATH.is_file() and time.time() - FRAME_PATH.stat().st_mtime < 3:
-                    data = FRAME_PATH.read_bytes()
-                    if len(data) > 800:
-                        meta = {**g, "via": "live_vision", "bytes": len(data)}
-                        with _grab_lock:
-                            _last_jpeg.update({"t": now, "key": key, "data": data, "meta": meta})
-                        return data, meta
-            except Exception:
-                pass
         try:
-            img = _ex.submit(_capture_primary).result(timeout=1.6)
+            img = _ex.submit(_capture_primary).result(timeout=0.8)
         except (FutTimeout, Exception):
             img = None
     if img is None and tlow not in ("desktop", "", "primary"):
@@ -619,8 +628,7 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
             resample = 2 if q < 80 else 1
         img = img.resize((max_w, max(1, int(img.height * ratio))), resample)
     buf = io.BytesIO()
-    sub = 0 if q >= 80 else 2
-    img.save(buf, format="JPEG", quality=q, subsampling=sub)
+    img.save(buf, format="JPEG", quality=q, subsampling=2, optimize=False)
     data = buf.getvalue()
     g["frame_w"] = img.width
     g["frame_h"] = img.height

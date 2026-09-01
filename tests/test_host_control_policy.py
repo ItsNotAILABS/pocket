@@ -124,6 +124,7 @@ def test_tv_html_is_wifi_node():
 
     html = tv_html()
     assert "object-fit:contain" in html
+    assert "max-width:100%" in html or "object-fit:contain" in html
     assert "/v1/nodes/view" in html
     assert "target=desktop" in html or "target:'desktop'" in html
     r = register_view_node(kind="tv", label="test-tv", ip="192.168.1.50")

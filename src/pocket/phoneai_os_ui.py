@@ -107,7 +107,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/web"><div class="icon">🌐</div><span>Web live</span></a>
     <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
     <a class="app" href="/agents"><div class="icon">🙂</div><span>Agents</span></a>
-    <a class="app" href="/phoneai/tv"><div class="icon">📺</div><span>TV</span></a>
+    <a class="app" href="/phoneai/tv"><div class="icon">📺</div><span>TV node</span></a>
     <a class="app" href="/phoneai/doorbell"><div class="icon">🔔</div><span>Doorbell</span></a>
     <a class="app" href="/phoneai/cam"><div class="icon">💻</div><span>PC cam</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
@@ -636,7 +636,7 @@ html{position:fixed;inset:0}
 body{position:fixed;inset:0;padding:0;touch-action:manipulation}
 .stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
 .view{position:absolute;inset:0;transform-origin:0 0}
-.view img{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;max-height:none;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto;-webkit-optimize-contrast:high}
+.view img{position:absolute;left:0;top:0;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
 .joy{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;background:rgba(20,20,28,.45);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
@@ -719,7 +719,7 @@ let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=fa
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
-let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1600, q:82, fps:14};
+let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1024, q:58, fps:14};
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -762,7 +762,7 @@ function netProfile(){
     return {label:'LTE', max_w:960, q:62, fps:10};
   }
   if(cellular) return {label:'CELL', max_w:960, q:60, fps:8};
-  return {label:'LAN', max_w:1440, q:68, fps:22};
+  return {label:'LAN', max_w:1024, q:58, fps:14};
 }
 function applyNet(){
   net=netProfile();
@@ -782,9 +782,8 @@ function layout(){
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
   const ar=iw/Math.max(1,ih);
   let w=s.width, h=w/ar;
-  if(fitMode==='cover'){
-    if(h<s.height){ h=s.height; w=h*ar; }
-  } else if(h>s.height){ h=s.height; w=h*ar; }
+  if(h>s.height){ h=s.height; w=h*ar; }
+  w=Math.min(w,s.width); h=Math.min(h,s.height);
   img.style.left=((s.width-w)/2)+'px';
   img.style.top=((s.height-h)/2)+'px';
   img.style.width=w+'px';

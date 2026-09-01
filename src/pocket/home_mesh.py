@@ -281,6 +281,40 @@ def register_view_node(
     return {"ok": True, "node": rec, "nodes": rows}
 
 
+def grab_tv_to_phone(node_id: str = "") -> Tuple[bytes, Dict[str, Any]]:
+    """What a Wi-Fi TV node is showing: the laptop desktop stream, plus optional TV snapshot."""
+    nodes = list_view_nodes().get("nodes") or []
+    node = None
+    if node_id:
+        node = next((n for n in nodes if n.get("id") == node_id or n.get("ip") == node_id), None)
+    if not node:
+        node = next((n for n in nodes if n.get("kind") == "tv"), None)
+    snap = None
+    ip = (node or {}).get("ip") or ""
+    if ip and ip not in ("127.0.0.1", "localhost"):
+        for url in (
+            f"http://{ip}:8080/snapshot",
+            f"http://{ip}/live.jpg",
+            f"http://{ip}:8001/api/v2/images/tv.jpg",
+        ):
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "PhoneAI-tv"})
+                with urllib.request.urlopen(req, timeout=0.8) as r:
+                    blob = r.read(500_000)
+                if blob[:2] == b"\xff\xd8":
+                    snap = blob
+                    break
+            except Exception:
+                continue
+    if snap:
+        return snap, {"ok": True, "via": "tv-snapshot", "node": node, "ip": ip}
+    from pocket.phoneai_portal import grab_jpeg
+
+    data, meta = grab_jpeg(target="desktop", max_w=1024, quality=58)
+    meta = {**meta, "via": "tv-node-laptop", "node": node, "note": "TV node shows this laptop screen over Wi-Fi"}
+    return data, meta
+
+
 def list_view_nodes() -> Dict[str, Any]:
     rows = []
     if VIEW_NODES.is_file():

@@ -23,7 +23,7 @@ img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;backgrou
 .nodes{margin-left:auto}
 </style></head>
 <body>
-<div class="top"><b id="h">TV node · Wi-Fi</b><span id="join"></span><a href="/phoneai/portal">Phone</a><span class="nodes" id="nodes"></span></div>
+<div class="top"><b id="h">TV ↔ phone · Wi-Fi</b><span id="join"></span><a href="/phoneai/portal">Laptop</a><span class="nodes" id="nodes"></span></div>
 <div class="stage" id="stage"><img id="f" alt="Laptop" src="/v1/phoneai/portal/frame?target=desktop&max_w=1600&q=72&t=1" draggable="false"/></div>
 <div class="hud">
   <button class="go" type="button" id="l">Click</button>
