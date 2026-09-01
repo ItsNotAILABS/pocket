@@ -167,7 +167,8 @@ def dispatch(
     if not targets:
         targets = ["ARCHON"]
     results = []
-    for name in targets:
+
+    def _one(name: str) -> Dict[str, Any]:
         ensure_agent(name)
         # strip @tags for payload
         clean = MENTION_RE.sub("", text).strip() or text
@@ -205,14 +206,28 @@ def dispatch(
             f"# Dispatch to {name}\n\n{clean}\n\n## Result\n```\n{str(run)[:4000]}\n```\n",
             notify=["ARCHON"],
         )
-        results.append({"agent": name, "message": msg, "run": run, "artifact": art})
         emit("subagents", f"dispatch @{name} ok={run.get('ok')}", agent=name, role="python")
+        return {"agent": name, "message": msg, "run": run, "artifact": art}
+
+    if len(targets) == 1:
+        results = [_one(targets[0])]
+    else:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        with ThreadPoolExecutor(max_workers=min(6, len(targets)), thread_name_prefix="mention") as pool:
+            futs = [pool.submit(_one, n) for n in targets]
+            for fut in as_completed(futs):
+                try:
+                    results.append(fut.result())
+                except Exception as e:
+                    results.append({"agent": "?", "run": {"ok": False, "error": str(e)[:200]}})
     return {
         "ok": all(r.get("run", {}).get("ok", True) for r in results),
         "dispatched": len(results),
         "results": results,
         "mentions": targets,
         "mesh": True,
+        "parallel": len(targets) > 1,
     }
 
 

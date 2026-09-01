@@ -737,14 +737,39 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "", wrap_cod
         if not codex:
             return {"ok": False, "engine": "codex", "error": "Codex CLI is not installed on the host"}
         cmd = _codex_argv(codex) + ["exec", "--skip-git-repo-check", "-C", cwd, "-s", "workspace-write"]
-        if resume_id:
+        # Never resume a live Grok/Pocket session id into Codex.
+        if resume_id and not resume_id.startswith(("s-", "pa-")) and len(resume_id) > 8:
             cmd += ["resume", resume_id, "-"]
         else:
             cmd += ["-"]
-        rc, out, err = _run_timeout(cmd, cwd=cwd, timeout=25, stdin=text[:8000])
+        rc, out, err = _run_timeout(cmd, cwd=cwd, timeout=float(os.environ.get("POCKET_CODEX_TIMEOUT") or "180"), stdin=text[:8000])
         reply = (out or err or "").strip() or f"codex exit {rc}"
+        if rc == 124:
+            return {"ok": False, "engine": "codex", "error": "Codex timed out — try a shorter ask", "reply": reply[-4000:], **where}
         return {"ok": rc == 0, "engine": "codex", "reply": reply[-8000:], "returncode": rc, **where}
-    # Do not spawn Grok CLI from PhoneAI — it deadlocks the live desk session.
+    if chosen == "grok":
+        try:
+            from pocket.grok_bridge import run_grok_phone, which_grok
+
+            if not which_grok():
+                fb = _local_chat(text, thought, where)
+                fb["error"] = "Grok CLI is not on PATH"
+                fb["engine"] = "grok"
+                return fb
+            md, err, _eng = run_grok_phone(text, cwd)
+            ok = bool((md or "").strip()) and "CLI not found" not in (md or "")
+            return {
+                "ok": ok,
+                "engine": "grok",
+                "reply": (md or err or "")[-8000:],
+                "error": "" if ok else (err or "grok empty"),
+                **where,
+            }
+        except Exception as e:
+            fb = _local_chat(text, thought, where)
+            fb["cli"] = str(e)[:200]
+            fb["engine"] = "grok"
+            return fb
     return _local_chat(text, thought, where)
 
 

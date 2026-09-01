@@ -66,14 +66,16 @@ def test_snapshot_documents_phone_zoom():
 
 def test_touch_allowed_on_named_tunnel():
     assert touch_allowed({}, ("127.0.0.1", 1)) is True
-    tok = mint_portal_token()
+    tok = mint_portal_token("phoneai")
     assert check_portal_token(tok)
+    assert check_portal_token("123.abc") is False
     assert touch_allowed({"Cookie": "pocket_portal=" + tok, "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is True
     assert touch_allowed({"Host": "evil.example", "CF-Connecting-IP": "1.2.3.4"}, ("1.2.3.4", 443)) is False
 
 
 def test_origin_and_token_security():
-    assert origin_ok({}) is True
+    assert origin_ok({}, ("127.0.0.1", 1)) is True
+    assert origin_ok({"CF-Connecting-IP": "8.8.8.8"}, ("127.0.0.1", 1)) is False
     assert origin_ok({"Origin": "https://pocket.medinatechlabs.net", "Host": "pocket.medinatechlabs.net"}) is True
     assert origin_ok({"Origin": "https://evil.example", "Host": "pocket.medinatechlabs.net"}) is False
     assert check_portal_token("nope") is False

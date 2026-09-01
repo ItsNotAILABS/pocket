@@ -321,7 +321,9 @@ def run_grok_exec(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, st
             "grok",
         )
 
-    env = {**os.environ}
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GROK_")}
+    env.pop("GROK_SESSION_ID", None)
+    env.pop("GROK_AGENT", None)
     gbin = str(Path(grok).parent)
     env["PATH"] = gbin + os.pathsep + env.get("PATH", "")
     env["CI"] = "1"
@@ -391,6 +393,50 @@ def run_grok_exec(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, st
     if rc != 0 and not out:
         return header + format_pull_markdown(pkg), f"grok exit {rc}", "grok"
     return header + (polished or "(empty)"), ("" if rc == 0 else f"grok exit {rc}"), "grok"
+
+
+def run_grok_phone(prompt: str, cwd: str) -> Tuple[str, str, str]:
+    """PhoneAI/Pocket chat Grok: real CLI, never the live desk session."""
+    grok = which_grok()
+    if not grok:
+        return "", "grok CLI missing", "grok"
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GROK_")}
+    env.pop("GROK_SESSION_ID", None)
+    env.pop("GROK_AGENT", None)
+    env["CI"] = "1"
+    env["PATH"] = str(Path(grok).parent) + os.pathsep + env.get("PATH", "")
+    work = cwd or str(Path.home() / ".pocket" / "phoneai_ws")
+    Path(work).mkdir(parents=True, exist_ok=True)
+    cmd = [
+        grok,
+        "--single",
+        (prompt or "")[:6000],
+        "--cwd",
+        work,
+        "--max-turns",
+        "6",
+        "--always-approve",
+        "--output-format",
+        "plain",
+    ]
+    try:
+        r = subprocess.run(
+            cmd,
+            cwd=work,
+            capture_output=True,
+            text=True,
+            timeout=float(os.environ.get("POCKET_GROK_PHONE_TIMEOUT") or "120"),
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
+        out = ((r.stdout or "") + ("\n" + r.stderr if r.stderr else "")).strip()
+        err = "" if r.returncode == 0 else f"grok exit {r.returncode}"
+        return out[-8000:], err, "grok"
+    except subprocess.TimeoutExpired:
+        return "", "timeout", "grok"
+    except Exception as e:
+        return "", str(e)[:200], "grok"
 
 
 def can_codex_start_grok() -> Dict[str, object]:

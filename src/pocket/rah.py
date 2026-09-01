@@ -274,9 +274,10 @@ def maybe_auto_rah(
     mode: str = "",
     job: Optional[Dict[str, Any]] = None,
     cwd: str = "",
-    execute: bool = True,
+    execute: bool = False,
+    grant_id: str = "",
 ) -> Optional[Dict[str, Any]]:
-    """If task fits RAH, run it (or return plan). Returns None if linear agent should handle."""
+    """Plan by default. Leaves run only with a valid WorkGrant."""
     job = job or {}
     if job.get("_rah_done") or job.get("rah_skip") or job.get("_harness_inner"):
         return None
@@ -298,6 +299,17 @@ def maybe_auto_rah(
             hint="auto-selected by POCKET RAH detector",
         )
         return {"ok": True, "auto": True, "execute": False, "fit": fit, "plan": plan}
+
+    from pocket.work_grant import valid as grant_valid
+
+    g = grant_valid(grant_id or str((job or {}).get("grant_id") or ""), capability="rah")
+    if not g.get("ok"):
+        plan = plan_fanout(
+            prompt,
+            max_leaves=int(fit.get("suggested_leaves") or 8),
+            hint="RAH plan only — WorkGrant required to execute",
+        )
+        return {"ok": True, "auto": True, "execute": False, "fit": fit, "plan": plan, "grant": g}
 
     # Cap auto runs for host safety
     max_leaves = min(int(fit.get("suggested_leaves") or 8), int(os.environ.get("POCKET_RAH_AUTO_MAX_LEAVES") or "10"))
@@ -646,13 +658,20 @@ def _run_leaf_harness(
                 pth = str(root)
                 if pth not in sys.path:
                     sys.path.insert(0, pth)
-                from auro_native_llm.rah import run_rah as auro_run_rah
+                from pocket.auro_rah_adapter import run_auro_rah
 
-                ar = auro_run_rah(goal, max_parallel=1, depth=0)
+                ar = run_auro_rah(
+                    goal,
+                    max_parallel=int(leaf.get("max_parallel") or 4),
+                    depth=1,
+                    grant_id=str(parent_job_id or ""),
+                    tenant=str(session_id or ""),
+                )
                 rec["status"] = "done" if ar.get("ok") else "fail"
                 rec["ok"] = bool(ar.get("ok"))
                 rec["result"] = (ar.get("synthesis") or json.dumps(ar, default=str))[:12000]
-                rec["auro_run_id"] = ar.get("run_id")
+                rec["auro_run_id"] = ar.get("auro_run_id")
+                rec["adapter"] = ar.get("adapter")
                 rec["finished_at"] = time.time()
                 rec["duration_sec"] = round(rec["finished_at"] - started, 2)
                 return rec

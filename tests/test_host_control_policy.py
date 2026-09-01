@@ -13,6 +13,12 @@ def test_prefixes_do_not_open_host_control():
     assert path_is_public("/v1/runtime/ensure") is False
     assert path_is_public("/v1/runtime/install") is False
     assert path_is_public("/v1/twin/agent/run") is False
+    assert path_is_public("/v1/twin/vault") is False
+    assert path_is_public(
+        "/v1/twin/vault",
+        headers={"CF-Connecting-IP": "8.8.8.8"},
+        client_address=("127.0.0.1", 443),
+    ) is False
     assert path_is_public(
         "/v1/phoneai/shell",
         headers={"CF-Connecting-IP": "8.8.8.8"},
@@ -68,6 +74,32 @@ def test_portal_html_has_face_id():
     assert "Face ID" in html
     assert "/v1/auth/passkey" in html
     assert 'id="faceBtn"' in html
+
+
+def test_anonymous_legacy_portal_token_is_dead():
+    from pocket.phoneai_portal import check_portal_token, mint_portal_token
+
+    assert check_portal_token("1710000000.deadbeef") is False
+    tok = mint_portal_token("alice")
+    assert check_portal_token(tok) is True
+
+
+def test_work_grant_required_for_rah_execute():
+    from pocket.rah import maybe_auto_rah
+    from pocket.work_grant import issue, valid
+
+    plan = maybe_auto_rah("split this into parallel research and code leaves", execute=True)
+    assert plan is None or plan.get("execute") is False or plan.get("skipped")
+    g = issue(principal="alice", capability="rah", tools=["rah", "think"])
+    assert valid(g["id"], capability="rah").get("ok") is True
+
+
+def test_auro_adapter_does_not_crash():
+    from pocket.auro_rah_adapter import ADAPTER, run_auro_rah
+
+    r = run_auro_rah("say ok", max_parallel=2, depth=1, grant_id="wg-test", tenant="t")
+    assert r.get("adapter") == ADAPTER
+    assert "via" in r
 
 
 def test_vault_scan_clean_tmp(tmp_path, monkeypatch):

@@ -8,6 +8,7 @@ import hmac
 import io
 import json
 import os
+import secrets
 import struct
 import threading
 import time
@@ -846,7 +847,8 @@ def touch(
         return {"ok": False, "kind": kind, "error": str(e)[:200], **pt}
 
 
-_TOKEN_TTL = 60 * 60 * 8
+_TOKEN_TTL = 60 * 60 * 2
+_TOKEN_REG = Path.home() / ".pocket" / "portal_tokens.json"
 _WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
@@ -864,25 +866,56 @@ def _portal_secret() -> bytes:
     return raw
 
 
-def mint_portal_token() -> str:
+def mint_portal_token(principal: str = "") -> str:
+    """Bind a short-lived Portal capability to a principal. Never mint for anonymous."""
+    who = (principal or "").strip()[:80]
+    if not who:
+        raise ValueError("portal token requires a principal")
     ts = str(int(time.time()))
-    sig = hmac.new(_portal_secret(), ts.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
-    return f"{ts}.{sig}"
+    nonce = secrets.token_hex(8)
+    msg = f"{ts}.{who}.{nonce}".encode("utf-8")
+    sig = hmac.new(_portal_secret(), msg, hashlib.sha256).hexdigest()[:32]
+    tok = f"{ts}.{who}.{nonce}.{sig}"
+    try:
+        reg = {}
+        if _TOKEN_REG.is_file():
+            reg = json.loads(_TOKEN_REG.read_text(encoding="utf-8"))
+        live = reg.get("live") or {}
+        live[tok[-40:]] = {"principal": who, "at": time.time(), "revoked": False}
+        cut = time.time() - _TOKEN_TTL
+        live = {k: v for k, v in live.items() if float(v.get("at") or 0) > cut and not v.get("revoked")}
+        _TOKEN_REG.parent.mkdir(parents=True, exist_ok=True)
+        _TOKEN_REG.write_text(json.dumps({"live": live}, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+    return tok
 
 
 def check_portal_token(token: str) -> bool:
     raw = (token or "").strip()
-    if "." not in raw:
+    parts = raw.split(".")
+    # Legacy timestamp-only tokens (ts.sig) never confer authority.
+    if len(parts) != 4:
         return False
-    ts, _, sig = raw.partition(".")
+    ts, who, nonce, sig = parts
     try:
         age = time.time() - int(ts)
     except Exception:
         return False
-    if age < 0 or age > _TOKEN_TTL:
+    if age < 0 or age > _TOKEN_TTL or not who:
         return False
-    expect = hmac.new(_portal_secret(), ts.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
-    return hmac.compare_digest(expect, sig[:32])
+    expect = hmac.new(_portal_secret(), f"{ts}.{who}.{nonce}".encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+    if not hmac.compare_digest(expect, sig[:32]):
+        return False
+    try:
+        if _TOKEN_REG.is_file():
+            live = (json.loads(_TOKEN_REG.read_text(encoding="utf-8")).get("live") or {})
+            rec = live.get(raw[-40:])
+            if rec and rec.get("revoked"):
+                return False
+    except Exception:
+        pass
+    return True
 
 
 def portal_cookie(token: str, *, secure: bool = False) -> str:
@@ -913,12 +946,14 @@ def token_from_headers(headers=None, query: Optional[Dict[str, Any]] = None) -> 
     return ""
 
 
-def origin_ok(headers=None) -> bool:
-    """POST/WS must come from this host, LAN, or the named public URL. No random sites."""
+def origin_ok(headers=None, client_address=None) -> bool:
+    """Same-origin or LAN. Hostname suffix is not authority."""
     headers = headers or {}
     origin = (headers.get("Origin") or headers.get("origin") or "").strip()
     if not origin:
-        return True
+        from pocket.auth import is_home_lan_client
+
+        return is_home_lan_client(headers, client_address)
     host = str(headers.get("Host") or headers.get("host") or "").split(":")[0].lower()
     oh = (urlparse(origin).hostname or "").lower()
     if not oh:
@@ -926,12 +961,6 @@ def origin_ok(headers=None) -> bool:
     if host and oh == host:
         return True
     if oh in ("127.0.0.1", "localhost") or oh.startswith("192.168.") or oh.startswith("10."):
-        return True
-    pub = os.environ.get("POCKET_PUBLIC_URL") or "https://pocket.medinatechlabs.net"
-    pub_host = (urlparse(pub).hostname or "").lower()
-    if pub_host and oh == pub_host:
-        return True
-    if oh.endswith(".medinatechlabs.net"):
         return True
     return False
 
@@ -1076,6 +1105,17 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
         except Exception:
             continue
         if not isinstance(msg, dict):
+            continue
+        if not touch_allowed(headers, client_address):
+            try:
+                _ws_send(sock, json.dumps({"ok": False, "error": "reauth"}).encode("utf-8"), 1)
+            except Exception:
+                break
+            continue
+        from pocket.ratelimit import hit as rl_hit
+
+        ok_rl, _reason = rl_hit("portal_ws_msg", str((client_address or ("?", 0))[0]), kind="portal_touch")
+        if not ok_rl:
             continue
         kind = str(msg.get("kind") or "")
         if kind in ("cfg", "config", "net"):

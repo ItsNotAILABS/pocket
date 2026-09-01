@@ -955,8 +955,14 @@ class Handler(BaseHTTPRequestHandler):
                     pairing_open(minutes=10)
                 except Exception:
                     pass
-            if lan or seated:
-                tok = mint_portal_token()
+            who = ""
+            if seated:
+                rec = current_user(self.headers) or {}
+                who = str(rec.get("user") or "seat")
+            elif lan:
+                who = "lan"
+            if who:
+                tok = mint_portal_token(who)
                 host = (self.headers.get("Host") or "").lower()
                 xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
                 secure = xf == "https" or "medinatechlabs.net" in host or "trycloudflare.com" in host
@@ -1046,7 +1052,7 @@ class Handler(BaseHTTPRequestHandler):
 
             if not touch_allowed(self.headers, getattr(self, "client_address", None), parse_qs(urlparse(self.path).query)):
                 return self._json(403, {"ok": False, "error": "portal session required"})
-            if not origin_ok(self.headers):
+            if not origin_ok(self.headers, getattr(self, "client_address", None)):
                 return self._json(403, {"ok": False, "error": "origin blocked"})
             key = (self.headers.get("Sec-WebSocket-Key") or "").strip()
             if (self.headers.get("Upgrade") or "").lower() != "websocket" or not key:
@@ -4138,7 +4144,7 @@ class Handler(BaseHTTPRequestHandler):
             secure = xf == "https" or "medinatechlabs.net" in host.lower() or "trycloudflare.com" in host.lower()
             extra = [
                 ("Set-Cookie", self._session_cookie(res["token"])),
-                ("Set-Cookie", portal_cookie(mint_portal_token(), secure=secure)),
+                ("Set-Cookie", portal_cookie(mint_portal_token(str(res.get("user") or "face")), secure=secure)),
             ]
             return self._json(200, res, extra_headers=extra)
         if path in ("/v1/auth/passkey/login",):
@@ -4153,7 +4159,7 @@ class Handler(BaseHTTPRequestHandler):
             secure = xf == "https" or "medinatechlabs.net" in host.lower() or "trycloudflare.com" in host.lower()
             extra = [
                 ("Set-Cookie", self._session_cookie(res["token"])),
-                ("Set-Cookie", portal_cookie(mint_portal_token(), secure=secure)),
+                ("Set-Cookie", portal_cookie(mint_portal_token(str(res.get("user") or "face")), secure=secure)),
             ]
             return self._json(200, res, extra_headers=extra)
         if path == "/v1/auth/login":
@@ -4419,7 +4425,7 @@ class Handler(BaseHTTPRequestHandler):
                     403,
                     {"ok": False, "error": "Touch blocked. Open Portal on this phone so a session cookie is set, or use LAN / sign in."},
                 )
-            if not origin_ok(self.headers):
+            if not origin_ok(self.headers, getattr(self, "client_address", None)):
                 return self._json(403, {"ok": False, "error": "origin blocked"})
             ok_rl, reason = rl_hit("portal_touch", ip, kind="portal_touch")
             if not ok_rl:
@@ -7066,27 +7072,27 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.rbac import principal as rbac_p
 
             p = rbac_p(self.headers)
-            user = str(body.get("user") or p.get("user") or "phoneai")
-            if p.get("role") == "member":
-                user = p.get("user") or user
+            user = str(p.get("user") or "").strip()
+            if not user:
+                return self._json(401, {"ok": False, "error": "vault identity from signed-in seat only"})
             return self._json(200, twin_mint(user))
         if path in ("/v1/twin/open", "/api/twin/open"):
             from pocket.twin_mint import open_on_pc
             from pocket.rbac import principal as rbac_p
 
             p = rbac_p(self.headers)
-            user = str(body.get("user") or p.get("user") or "phoneai")
-            if p.get("role") == "member":
-                user = p.get("user") or user
+            user = str(p.get("user") or "").strip()
+            if not user:
+                return self._json(401, {"ok": False, "error": "vault identity from signed-in seat only"})
             return self._json(200, open_on_pc(user))
         if path in ("/v1/twin/vault", "/api/twin/vault"):
             from pocket.twin_mint import vault_get, vault_put
             from pocket.rbac import principal as rbac_p
 
             p = rbac_p(self.headers)
-            user = str(body.get("user") or p.get("user") or "phoneai")
-            if p.get("role") == "member":
-                user = p.get("user") or user
+            user = str(p.get("user") or "").strip()
+            if not user:
+                return self._json(401, {"ok": False, "error": "vault identity from signed-in seat only"})
             name = str(body.get("name") or body.get("path") or "note.md")
             if body.get("text") is not None or body.get("content") is not None:
                 return self._json(
@@ -7099,18 +7105,18 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.rbac import principal as rbac_p
 
             p = rbac_p(self.headers)
-            user = str(body.get("user") or p.get("user") or "phoneai")
-            if p.get("role") == "member":
-                user = p.get("user") or user
+            user = str(p.get("user") or "").strip()
+            if not user:
+                return self._json(401, {"ok": False, "error": "vault identity from signed-in seat only"})
             return self._json(200, create_agent(user, body if isinstance(body, dict) else {}))
         if path in ("/v1/twin/agent/run", "/api/twin/agent/run"):
             from pocket.twin_mint import run_agent as twin_run
             from pocket.rbac import principal as rbac_p
 
             p = rbac_p(self.headers)
-            user = str(body.get("user") or p.get("user") or "phoneai")
-            if p.get("role") == "member":
-                user = p.get("user") or user
+            user = str(p.get("user") or "").strip()
+            if not user:
+                return self._json(401, {"ok": False, "error": "vault identity from signed-in seat only"})
             return self._json(
                 200,
                 twin_run(user, str(body.get("id") or body.get("agent") or ""), str(body.get("prompt") or body.get("text") or "")),

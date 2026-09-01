@@ -182,12 +182,10 @@ def put_bytes(
                 "kind": kind,
             }
             path.write_text(json.dumps(rec, indent=2), encoding="utf-8")
-            rgb_path = LATTICE / f"{pid}.rgb"
-            rgb_path.write_bytes(pix)
             idx["pages"][pid] = {
                 "page_id": pid,
                 "path": str(path),
-                "rgb": str(rgb_path),
+                "rgb": "",
                 "stored_bytes": len(chunk),
                 "sha256": rec["sha256"],
                 "created_at": rec["created_at"],
@@ -416,16 +414,17 @@ def store_agent_run(
     m = re.search(r"```([a-zA-Z0-9_+#.\-]*)", result or "")
     if m and m.group(1):
         lang = m.group(1)
+    summary = (result or "")[:2000]
     return put_artifact(
-        result or "",
+        summary,
         title=title,
         language=lang,
         agent=agent or mode or "agent",
         agent_role=mode or "agent",
         ai_version=mode or "",
         run_id=job_id or f"job{int(time.time())}",
-        tags=["agent-run", mode or "agent"],
-        note=f"auto-saved from {mode or agent}",
+        tags=["episodic", "agent-run", mode or "agent"],
+        note=f"episodic summary — not a visual/pixel source of truth ({mode or agent})",
     )
 
 

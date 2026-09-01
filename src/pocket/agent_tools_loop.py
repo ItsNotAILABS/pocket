@@ -673,7 +673,7 @@ def run_tools_for_prompt(
         fit = score_rah_fit(prompt, mode=mode)
         if fit.get("use_rah") and mode not in ("shell", "term", "rah", "recursive_harness"):
             # Prefer full execute once; inject synthesis so the model doesn't re-do linear work
-            auto = maybe_auto_rah(prompt, mode=mode, execute=True)
+            auto = maybe_auto_rah(prompt, mode=mode, execute=False)
             if auto and auto.get("execute"):
                 rah_auto_result = auto
                 md = str(auto.get("markdown") or "")[:12000]
