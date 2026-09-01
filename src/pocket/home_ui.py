@@ -60,7 +60,7 @@ function openLive(){
   try{ live=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/v1/phoneai/portal/ws'); }
   catch(_){ return; }
   live.binaryType='blob';
-  live.onopen=()=>{ liveOk=true; live.send(JSON.stringify({kind:'cfg',target:'desktop',max_w:1600,q:70,fps:16})); };
+  live.onopen=()=>{ liveOk=true; live.send(JSON.stringify({kind:'cfg',target:'desktop',max_w:1600,q:74,fps:16})); };
   live.onclose=()=>{ liveOk=false; setTimeout(openLive,800); };
   live.onmessage=ev=>{ if(typeof ev.data==='string') return; const u=URL.createObjectURL(ev.data); img.onload=()=>URL.revokeObjectURL(u); img.src=u; };
 }

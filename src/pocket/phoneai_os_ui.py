@@ -636,7 +636,7 @@ html{position:fixed;inset:0}
 body{position:fixed;inset:0;padding:0;touch-action:manipulation}
 .stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
 .view{position:absolute;inset:0;transform-origin:0 0}
-.view img{position:absolute;left:0;top:0;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
+.view img{position:absolute;left:0;top:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
 .joy{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;background:rgba(20,20,28,.45);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
@@ -719,7 +719,7 @@ let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=fa
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
-let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1024, q:58, fps:14};
+let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1600, q:74, fps:16};
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -758,11 +758,11 @@ function netProfile(){
   if(save || type==='2g' || type==='slow-2g') return {label:'2G', max_w:720, q:48, fps:5};
   if(type==='3g') return {label:'3G', max_w:800, q:52, fps:6};
   if(cellular && (type==='4g' || type==='5g' || downlink>=8)){
-    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:1280, q:72, fps:14};
+    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:1280, q:70, fps:12};
     return {label:'LTE', max_w:960, q:62, fps:10};
   }
-  if(cellular) return {label:'CELL', max_w:960, q:60, fps:8};
-  return {label:'LAN', max_w:1024, q:58, fps:14};
+  if(cellular) return {label:'CELL', max_w:960, q:58, fps:8};
+  return {label:'LAN', max_w:1600, q:74, fps:16};
 }
 function applyNet(){
   net=netProfile();
@@ -893,8 +893,10 @@ function openLive(){
   live.onmessage=ev=>{
     if(typeof ev.data==='string') return;
     const url=URL.createObjectURL(ev.data);
-    img.onload=()=>{ layout(); if(blobUrl) URL.revokeObjectURL(blobUrl); blobUrl=url; };
     img.src=url;
+    if(blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl=url;
+    if(img.naturalWidth) layout();
   };
 }
 function b64urlToBuf(s){

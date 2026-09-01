@@ -615,17 +615,17 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
         meta = {**g, "via": "placeholder", "bytes": len(data)}
         return data, meta
     img = img.convert("RGB")
-    if tlow in ("desktop", "", "primary"):
+    if tlow in ("desktop", "", "primary") and (now - float(_last_jpeg.get("blackout_t") or 0) > 2.5):
         _blackout_self(img)
+        _last_jpeg["blackout_t"] = now
     if img.width > max_w:
         ratio = max_w / float(img.width)
         try:
             from PIL import Image as _PILImage
 
-            kind = "BILINEAR" if q < 80 else "LANCZOS"
-            resample = getattr(getattr(_PILImage, "Resampling", _PILImage), kind, 2 if q < 80 else 1)
+            resample = getattr(getattr(_PILImage, "Resampling", _PILImage), "BILINEAR", 2)
         except Exception:
-            resample = 2 if q < 80 else 1
+            resample = 2
         img = img.resize((max_w, max(1, int(img.height * ratio))), resample)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=q, subsampling=2, optimize=False)
@@ -1089,7 +1089,7 @@ def _ws_recv_frame(sock) -> Optional[Tuple[int, bytes]]:
     elif n == 127:
         ext = sock.recv(8)
         n = struct.unpack("!Q", ext)[0]
-    if n > 262144:
+    if n > 2_000_000:
         return None
     mask = sock.recv(4) if masked else b""
     data = b""
@@ -1134,7 +1134,7 @@ def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72, 
 def run_portal_ws(sock, headers=None, client_address=None) -> None:
     """One connection: binary JPEGs out, JSON touch in. No HTTP round-trip per move."""
     sock.settimeout(0.02)
-    cfg = {"max_w": 1280, "q": 72, "target": "desktop", "fps": 12.0, "hwnd": 0}
+    cfg = {"max_w": 1600, "q": 74, "target": "desktop", "fps": 16.0, "hwnd": 0}
     last = 0.0
     hello = json.dumps({"ok": True, "kind": "hello", "ws": True, "spatial": True}).encode("utf-8")
     try:
