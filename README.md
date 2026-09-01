@@ -21,6 +21,8 @@ Sign in without the Edge password box:
 
 **Invention claims (Alfredo Medina, ItsNotAI Labs, 31 Aug 2026):** [docs/research/INVENTION_CLAIMS_2026.md](docs/research/INVENTION_CLAIMS_2026.md) — Portal stream, Antigravity desktop-app view, twin mint, WebMCP work functions. Defensive publication.
 
+The substantive Pocket **3.8** expansion reached `main` on **31 August 2026**. It introduced the PhoneAI kernel seat, first-class Portal (live PC stream + touch-to-mouse), Antigravity as a separate HWND desktop-app surface, twin mint on the operator machine, and WebMCP work functions (studios as agent tools — not extra screens). Live host is **3.12+** (immersive phone glass, Focus as a mobile window, vault encrypt-then-MAC, RAH).
+
 **Portal** (first-class PC stream): [http://127.0.0.1:8787/phoneai/portal](http://127.0.0.1:8787/phoneai/portal)  
 **Antigravity** (HWND stream + touch): [http://127.0.0.1:8787/phoneai/anti](http://127.0.0.1:8787/phoneai/anti)  
 **Agent eyes:** `GET /v1/eyes?which=portal` · `GET /v1/eyes?which=anti` · MCP `eyes_see` / `eyes_touch`  

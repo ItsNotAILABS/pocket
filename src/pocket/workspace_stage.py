@@ -47,6 +47,11 @@ CSS = r"""
 .ws-prev{border-left:1px solid var(--ws-line);background:#050508}
 .ws-prev iframe,.ws-prev img{display:block;width:100%;height:100%;border:0;background:#000;object-fit:contain}
 .ws-stage.cover .ws-prev img,.ws-stage.cover .ws-prev iframe{object-fit:cover}
+.ws-stage.fill{aspect-ratio:auto;max-height:none;width:100%;height:100%;margin:0;border:0;border-radius:0}
+.ws-stage.fill .ws-chrome,.ws-stage.fill .ws-side,.ws-stage.fill .ws-main,.ws-stage.fill .ws-scan{display:none!important}
+.ws-stage.fill .ws-body{display:block;position:absolute;inset:0}
+.ws-stage.fill .ws-prev{position:absolute;inset:0;border:0;height:100%;width:100%}
+.ws-stage.fill .ws-prev iframe,.ws-stage.fill .ws-prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .ws-empty{padding:16px;color:#71717a;font-size:12px;line-height:1.45}
 .ws-scan{
   pointer-events:none;position:absolute;left:0;right:0;height:14%;
@@ -145,12 +150,12 @@ function coverWorkspaceWith(url, kind){
   const stage=document.getElementById('buildStage');
   const prev=document.getElementById('wsPrev');
   if(!stage||!prev||!url) return;
-  stage.classList.add('wide','cover');
+  stage.classList.add('wide','cover','fill');
   prev.hidden=false;
   if(kind==='img'){
     prev.innerHTML='<img alt="PC" src="'+url+'"/>';
   } else {
-    prev.innerHTML='<iframe title="workspace" src="'+url+'"></iframe>';
+    prev.innerHTML='<iframe title="workspace" src="'+url+'" allow="fullscreen"></iframe>';
   }
 }
 if(!_wsTimer){ _wsTimer=setInterval(fillRealWorkspace, 4000); fillRealWorkspace(); }

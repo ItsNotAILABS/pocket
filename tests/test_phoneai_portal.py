@@ -41,6 +41,10 @@ def test_portal_html_phone_zoom_and_controls():
     assert "/v1/phoneai/portal/touch" in html
     assert "/v1/phoneai/portal/ws" in html
     assert "touchstart" in html
+    assert "hud-off" in html
+    assert "position:fixed" in html
+    assert 'id="hudbtn"' in html
+    assert "visualViewport" in html
     assert "credentials:'include'" in html or 'credentials:"include"' in html
     assert "emitScroll" in html or "kind:'scroll'" in html or 'kind,"scroll"' in html or "send('scroll'" in html
 

@@ -56,29 +56,23 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 .more a{color:var(--c)}
 .ws-desk{display:none}
 @media (orientation:landscape){
-  html,body{max-width:none!important;width:100%!important;height:100dvh!important;margin:0;overflow:hidden;padding:0}
+  html,body{max-width:none!important;width:100%!important;height:100dvh!important;height:100svh!important;margin:0;overflow:hidden;padding:0}
   body.desk{
-    display:grid!important;
-    grid-template-columns:56px minmax(0,1fr) minmax(240px,32vw);
-    grid-template-rows:24px 1fr;
-    height:100dvh;background:#05060a
+    display:block!important;
+    height:100dvh;height:100svh;background:#000
   }
-  body.desk .status{grid-column:1/-1;padding:4px 10px;border-bottom:1px solid var(--line)}
+  body.desk .status,body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock,body.desk .lead,
+  body.desk .grid,body.desk #v-chat{display:none!important}
   body.desk #v-home.view.on,body.desk #v-home{display:contents!important}
-  body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock,body.desk .lead{display:none!important}
-  body.desk .grid{
-    grid-column:1;grid-row:2;grid-template-columns:1fr;align-content:start;overflow:auto;
-    padding:8px 4px;gap:8px;border-right:1px solid var(--line)
+  body.desk .ws-desk{
+    display:flex!important;flex-direction:column;
+    position:fixed;inset:0;z-index:3;padding:0;margin:0;width:100%;height:100%;background:#000
   }
-  body.desk .grid .app span{display:none}
-  body.desk .icon{width:40px;height:40px;border-radius:11px;font-size:16px}
-  body.desk .ws-desk{display:flex!important;flex-direction:column;grid-column:2;grid-row:2;min-width:0;min-height:0;padding:0}
-  body.desk .ws-stage{flex:1;aspect-ratio:auto;max-height:none;width:100%;height:100%;margin:0;border-radius:0;border:0}
-  body.desk #v-chat.view.on,body.desk #v-chat{
-    display:flex!important;flex-direction:column;grid-column:3;grid-row:2;border-left:1px solid var(--line);min-width:0;min-height:0
+  body.desk .ws-stage{
+    position:absolute;inset:0;aspect-ratio:auto;max-height:none;width:100%;height:100%;
+    margin:0;border-radius:0;border:0;max-width:none
   }
-  body.desk #v-chat .hero{display:none!important}
-  body.desk .view:not(#v-home):not(#v-chat).on{grid-column:2/-1;grid-row:2}
+  body.desk .view:not(#v-home):not(#v-chat).on{position:fixed;inset:0;z-index:4}
 }
 </style>
 </head>
@@ -608,49 +602,59 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="theme-color" content="#05060a"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#000000"/>
 <title>Portal · PhoneAI</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden}
-body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);touch-action:manipulation}
-.top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#05060a;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.top a{color:var(--muted);text-decoration:none;font-size:13px}
-.top b{flex:1}
-.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
-.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
-.seg button.on{background:var(--g);color:#042}
-.stage{flex:1;position:relative;background:#000;min-height:0;overflow:hidden;touch-action:none}
+html,body{width:100%;height:100%;height:100dvh;height:100svh;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden}
+html{position:fixed;inset:0}
+body{position:fixed;inset:0;padding:0;touch-action:manipulation}
+.stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
 .view{position:absolute;inset:0;transform-origin:0 0}
 .view img{position:absolute;left:0;top:0;width:100%;height:100%;max-width:none;max-height:none;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto;-webkit-optimize-contrast:high}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
-.joy{position:absolute;left:12px;bottom:48px;width:92px;height:92px;border-radius:50%;background:rgba(20,20,28,.55);border:1px solid var(--line);z-index:6;touch-action:none}
+.joy{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;background:rgba(20,20,28,.45);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
-.bar,.ctrl{display:flex;gap:8px;padding:8px 10px;background:#05060a;border-top:1px solid var(--line)}
-.ctrl{display:grid;grid-template-columns:repeat(6,1fr)}
+.top,.tabs,.apps,.ctrl,.bar{position:fixed;left:0;right:0;z-index:8;background:rgba(5,6,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .22s ease,opacity .22s ease}
+.top{top:0;display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top a{color:var(--muted);text-decoration:none;font-size:13px}
+.top b{flex:1}
+.tabs{top:calc(48px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.apps{top:calc(88px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.bar{bottom:0;display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.ctrl{bottom:calc(56px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:8px 10px;border-top:1px solid var(--line)}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
+.seg button.on{background:var(--g);color:#042}
 .ctrl button{min-height:48px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:13px}
 .ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
 .bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.55);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
-.tabs,.apps{display:flex;gap:6px;overflow:auto;padding:6px 10px;background:#05060a;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
 .net{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
-body.mobile .stage{max-width:min(430px,100%);margin:0 auto;aspect-ratio:9/16;width:100%}
-body.mobile .hint{max-width:min(430px,100%);left:50%;right:auto;transform:translateX(-50%)}
+.pills{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;z-index:12;display:flex;gap:6px}
+.pills button{min-width:44px;min-height:36px;border-radius:999px;border:1px solid var(--line);background:rgba(5,6,10,.72);color:#fff;font-weight:800;font-size:11px;letter-spacing:.04em}
+.pills button.on{background:var(--g);color:#042}
+body.hud-off .top,body.hud-off .tabs,body.hud-off .apps{transform:translateY(-120%);opacity:0;pointer-events:none}
+body.hud-off .ctrl,body.hud-off .bar{transform:translateY(120%);opacity:0;pointer-events:none}
+body.hud-off .hint{opacity:0}
+body.mobile .hint{left:10px;right:10px;transform:none}
 @media (orientation:landscape){
-  html,body{width:100%;height:100dvh;overflow:hidden}
-  .apps{max-height:36px}
-  .top,.hint{padding-top:4px;padding-bottom:4px}
-  .ctrl button{min-height:36px}
-  .stage{flex:1;min-height:0}
+  html,body,.stage{width:100%;height:100dvh;height:100svh;overflow:hidden}
   .ctrl button{min-height:40px;font-size:12px}
-  .joy{width:72px;height:72px;bottom:12px}
+  .joy{width:72px;height:72px}
 }
 </style></head>
-<body>
+<body class="hud-off">
+<div class="pills">
+  <button type="button" id="focusPill">Focus</button>
+  <button type="button" id="hudbtn">HUD</button>
+</div>
 <div class="top">
   <a href="/phoneai/app">Home</a>
   <b>Portal</b>
@@ -699,6 +703,27 @@ const dot=document.getElementById('dot');
 const hint=document.getElementById('hint');
 const keys=document.getElementById('keys');
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function glass(){
+  const vv=window.visualViewport;
+  if(vv) return {width:vv.width, height:vv.height, left:vv.offsetLeft||0, top:vv.offsetTop||0};
+  return {width:window.innerWidth, height:window.innerHeight, left:0, top:0};
+}
+let hudTimer=0;
+function setHud(on){
+  document.body.classList.toggle('hud-off', !on);
+  const b=document.getElementById('hudbtn');
+  if(b) b.classList.toggle('on', !!on);
+  if(on){
+    clearTimeout(hudTimer);
+    hudTimer=setTimeout(()=>{ if(document.activeElement!==keys) setHud(false); }, 4500);
+  }
+  applyView();
+}
+function goGlass(){
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen;
+  if(req){ try{ req.call(el); }catch(_){} }
+}
 function netProfile(){
   const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection||{};
   const type=(c.effectiveType||'').toLowerCase();
@@ -724,6 +749,11 @@ function applyNet(){
   }
 }
 function layout(){
+  const g=glass();
+  stage.style.left=g.left+'px';
+  stage.style.top=g.top+'px';
+  stage.style.width=g.width+'px';
+  stage.style.height=g.height+'px';
   const s=stage.getBoundingClientRect();
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
   const ar=iw/Math.max(1,ih);
@@ -746,11 +776,17 @@ function applyView(){
 }
 window.addEventListener('resize', ()=>{ autoFit(); applyView(); });
 window.addEventListener('orientationchange', ()=>{ autoFit(); setTimeout(applyView, 120); });
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', applyView);
+  window.visualViewport.addEventListener('scroll', applyView);
+}
 function autoFit(){
   if(phoneFocus){
-    fitMode='contain';
+    fitMode='cover';
     document.body.classList.add('mobile');
-    if(hint) hint.textContent='Focus on · active app as a phone screen. Tap Focus to return to the full PC.';
+    const fill=document.querySelector('#fitseg [data-f="cover"]');
+    if(fill) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fill));
+    if(hint) hint.textContent='Focus on · active app fills this phone. HUD → Focus to return to the full PC.';
     return;
   }
   document.body.classList.remove('mobile');
@@ -758,13 +794,16 @@ function autoFit(){
   const fit=document.querySelector('#fitseg [data-f="contain"]');
   if(fit) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fit));
   if(hint) hint.textContent=window.innerWidth>window.innerHeight
-    ? 'Full computer screen · every pixel visible. Focus for the active app as a phone.'
-    : 'Full PC on this phone. Rotate for landscape. Focus = mobile view of the active window.';
+    ? 'Full computer on the whole phone. HUD for clicks. Focus = active app as a phone.'
+    : 'Full PC on the whole phone glass. Rotate for landscape. HUD = controls.';
 }
 function setPhoneFocus(on){
   phoneFocus=!!on;
   target=phoneFocus?'focus':'desktop';
-  document.getElementById('focusBtn').classList.toggle('on', phoneFocus);
+  const fb=document.getElementById('focusBtn');
+  const fp=document.getElementById('focusPill');
+  if(fb) fb.classList.toggle('on', phoneFocus);
+  if(fp) fp.classList.toggle('on', phoneFocus);
   autoFit(); applyView(); applyNet();
   if(phoneFocus){
     send('focus', lastNx, lastNy, activeHwnd?{hwnd:activeHwnd}:{});
@@ -1087,6 +1126,14 @@ bindPress(document.getElementById('sdn'), ()=>holdScroll(0.5), endScroll);
 bindPress(document.getElementById('focusBtn'), ()=>{
   setPhoneFocus(!phoneFocus);
 });
+document.getElementById('hudbtn').onclick=()=>{
+  const off=document.body.classList.contains('hud-off');
+  if(off) goGlass();
+  setHud(off);
+};
+document.getElementById('focusPill').onclick=()=>setPhoneFocus(!phoneFocus);
+keys.addEventListener('focus', ()=>setHud(true));
+setHud(false); autoFit(); applyView();
 
 keys.addEventListener('input', ()=>{
   const v=keys.value; let i=0;
