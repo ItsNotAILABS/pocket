@@ -3549,6 +3549,17 @@ class Handler(BaseHTTPRequestHandler):
             if qs.get("refresh") in ("1", "true", "yes"):
                 refresh_index(ws, qs.get("cwd") or "")
             return self._json(200, get_workspace_view(ws, session_id=sid))
+        if path in ("/v1/ai-workspace/file", "/v1/workspace/file"):
+            from pocket.ai_workspace import read_workspace_file
+
+            qs = {k: (v[0] if v else "") for k, v in parse_qs(urlparse(self.path).query).items()}
+            p = rbac_principal(self.headers)
+            if not is_founder(p):
+                return self._json(403, {"ok": False, "error": "workspace files are founder-host"})
+            return self._json(
+                200,
+                read_workspace_file(qs.get("path") or "", workspace=qs.get("workspace") or "parallax"),
+            )
         if path in ("/v1/capabilities", "/v1/capability-map", "/v1/caps"):
             from pocket.capability_map import build_capability_map, capability_markdown
 

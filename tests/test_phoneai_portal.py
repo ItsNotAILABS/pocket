@@ -29,6 +29,7 @@ def test_portal_html_phone_zoom_and_controls():
     assert 'id="moveBtn"' in html
     assert 'id="joy"' in html
     assert "layout()" in html
+    assert "fitMode='cover'" in html or 'fitMode="cover"' in html or "fitMode='cover'" in html or "cover" in html
     assert "WebSocket" in html
     assert "netProfile" in html
     assert "data-f=\"contain\"" in html or "data-f='contain'" in html

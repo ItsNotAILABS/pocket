@@ -56,24 +56,28 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 .more a{color:var(--c)}
 .ws-desk{display:none}
 @media (orientation:landscape){
-  html,body{height:100%;max-width:none;margin:0}
-  body{flex-direction:column;padding:0;background:#05060a}
-  body.desk{display:grid;grid-template-columns:72px minmax(0,1fr) minmax(280px,34vw);grid-template-rows:28px 1fr;height:100dvh}
-  body.desk .status{grid-column:1/-1;padding:6px 12px;border-bottom:1px solid var(--line)}
-  body.desk #v-home{display:contents}
-  body.desk .hero,.body.desk .quick,.body.desk .more{display:none}
-  body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock{display:none}
+  html,body{max-width:none!important;width:100%!important;height:100dvh!important;margin:0;overflow:hidden;padding:0}
+  body.desk{
+    display:grid!important;
+    grid-template-columns:56px minmax(0,1fr) minmax(240px,32vw);
+    grid-template-rows:24px 1fr;
+    height:100dvh;background:#05060a
+  }
+  body.desk .status{grid-column:1/-1;padding:4px 10px;border-bottom:1px solid var(--line)}
+  body.desk #v-home.view.on,body.desk #v-home{display:contents!important}
+  body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock,body.desk .lead{display:none!important}
   body.desk .grid{
     grid-column:1;grid-row:2;grid-template-columns:1fr;align-content:start;overflow:auto;
-    padding:8px 6px;gap:10px;border-right:1px solid var(--line)
+    padding:8px 4px;gap:8px;border-right:1px solid var(--line)
   }
   body.desk .grid .app span{display:none}
-  body.desk .icon{width:44px;height:44px;border-radius:12px;font-size:18px}
-  body.desk .ws-desk{display:flex;flex-direction:column;grid-column:2;grid-row:2;min-width:0;min-height:0;padding:10px}
-  body.desk .ws-stage{flex:1;aspect-ratio:auto;max-height:none;width:100%;margin:0;border-radius:10px}
+  body.desk .icon{width:40px;height:40px;border-radius:11px;font-size:16px}
+  body.desk .ws-desk{display:flex!important;flex-direction:column;grid-column:2;grid-row:2;min-width:0;min-height:0;padding:0}
+  body.desk .ws-stage{flex:1;aspect-ratio:auto;max-height:none;width:100%;height:100%;margin:0;border-radius:0;border:0}
   body.desk #v-chat.view.on,body.desk #v-chat{
-    display:flex;grid-column:3;grid-row:2;border-left:1px solid var(--line);min-width:0
+    display:flex!important;flex-direction:column;grid-column:3;grid-row:2;border-left:1px solid var(--line);min-width:0;min-height:0
   }
+  body.desk #v-chat .hero{display:none!important}
   body.desk .view:not(#v-home):not(#v-chat).on{grid-column:2/-1;grid-row:2}
 }
 </style>
@@ -188,12 +192,13 @@ function show(id){
   }
 }
 function layoutPhone(){
-  const land=window.matchMedia('(orientation: landscape)').matches && Math.min(window.innerWidth,window.innerHeight)>=360 && window.innerWidth>window.innerHeight;
+  const land=window.innerWidth>window.innerHeight;
   document.body.classList.toggle('desk', land);
   if(land){
     document.getElementById('v-home').classList.add('on');
     document.getElementById('v-chat').classList.add('on');
-    if(typeof setBuildStage==='function') setBuildStage(true,'Workspace');
+    if(typeof setBuildStage==='function') setBuildStage(true,'PC');
+    if(typeof coverWorkspaceWith==='function') coverWorkspaceWith('/phoneai/portal');
   }
 }
 layoutPhone();
@@ -634,7 +639,11 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
 .net{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
 @media (orientation:landscape){
-  .top,.tabs,.apps,.hint{padding-top:4px;padding-bottom:4px}
+  html,body{width:100%;height:100dvh;overflow:hidden}
+  .tabs,.apps{display:none}
+  .top,.hint{padding-top:4px;padding-bottom:4px}
+  .ctrl button{min-height:36px}
+  .stage{flex:1;min-height:0}
   .ctrl button{min-height:40px;font-size:12px}
   .joy{width:72px;height:72px;bottom:12px}
 }
@@ -736,8 +745,13 @@ function applyView(){
 window.addEventListener('resize', ()=>{ autoFit(); applyView(); });
 window.addEventListener('orientationchange', ()=>{ autoFit(); setTimeout(applyView, 120); });
 function autoFit(){
-  if(window.innerWidth<window.innerHeight && fitMode==='contain'){
-    hint.textContent='Portrait · Fill shows more of the PC. Rotate for the full desk.';
+  if(window.innerWidth>window.innerHeight){
+    fitMode='cover';
+    const fill=document.querySelector('#fitseg [data-f="cover"]');
+    [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fill));
+    if(hint) hint.textContent='Landscape · PC covers the glass';
+  } else if(fitMode==='contain'){
+    if(hint) hint.textContent='Portrait · Fill shows more of the PC. Rotate for the full desk.';
   }
 }
 document.getElementById('fitseg').onclick=e=>{

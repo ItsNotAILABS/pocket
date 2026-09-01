@@ -1,7 +1,8 @@
-"""Production workspace stage — square pane that constructs while agents build.
+"""Real Pocket workspace interior — files, editor, live preview.
 
-This is the grok.com Build *workspace* (chrome, sidebar, editor, preview),
-not a character. CSS-only; reduced-motion respected.
+Not a character. Not skeleton bars. The square pane is the workspace:
+sidebar of real files, editor of the open file, preview of HTML/output.
+While agents build, the pane polls /v1/ai-workspace and lights the live badge.
 """
 
 from __future__ import annotations
@@ -9,73 +10,51 @@ from __future__ import annotations
 CSS = r"""
 .ws-stage{
   --ws-line:rgba(255,255,255,.1);
-  --ws-fill:rgba(255,255,255,.06);
   position:relative;margin:8px 10px 0;aspect-ratio:1/1;width:calc(100% - 20px);
-  max-height:min(42vh,360px);border-radius:12px;overflow:hidden;
+  max-height:min(48vh,420px);border-radius:12px;overflow:hidden;
   border:1px solid var(--ws-line);background:#08080d;
-  display:flex;flex-direction:column;min-height:180px
+  display:flex;flex-direction:column;min-height:200px
 }
 .ws-chrome{
   flex:0 0 28px;display:flex;align-items:center;gap:8px;padding:0 10px;
-  border-bottom:1px solid var(--ws-line);background:#0e0e14
+  border-bottom:1px solid var(--ws-line);background:#0e0e14;z-index:2
 }
 .ws-dots{display:flex;gap:5px}
 .ws-dots i{width:7px;height:7px;border-radius:50%;background:#3f3f46;display:block}
-.ws-dots i:nth-child(1){background:#52525b}
-.ws-title{flex:1;font-size:10.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:#71717a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-title{flex:1;font-size:10.5px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:#a1a1aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ws-live{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#52525b}
 .ws-stage.on .ws-live{color:#34d399}
-.ws-body{flex:1;display:grid;grid-template-columns:22% 1fr 28%;min-height:0;position:relative}
-.ws-side,.ws-main,.ws-prev{min-width:0;min-height:0}
-.ws-side{border-right:1px solid var(--ws-line);padding:8px 6px;display:flex;flex-direction:column;gap:6px}
-.ws-side b{display:block;height:7px;border-radius:3px;background:var(--ws-fill);transform:scaleX(.2);transform-origin:left;opacity:.35}
-.ws-stage.on .ws-side b{animation:wsBar .9s cubic-bezier(.22,1,.36,1) forwards}
-.ws-stage.on .ws-side b:nth-child(1){animation-delay:.05s}
-.ws-stage.on .ws-side b:nth-child(2){animation-delay:.14s;width:78%}
-.ws-stage.on .ws-side b:nth-child(3){animation-delay:.22s;width:62%}
-.ws-stage.on .ws-side b:nth-child(4){animation-delay:.3s;width:88%}
-.ws-stage.on .ws-side b:nth-child(5){animation-delay:.38s;width:54%}
-.ws-main{display:flex;flex-direction:column;border-right:1px solid var(--ws-line)}
-.ws-tabs{display:flex;gap:4px;padding:6px 8px;border-bottom:1px solid var(--ws-line)}
-.ws-tabs em{display:block;height:8px;width:28%;border-radius:3px;background:var(--ws-fill);opacity:.3}
-.ws-stage.on .ws-tabs em{animation:wsTab .7s cubic-bezier(.22,1,.36,1) forwards}
-.ws-stage.on .ws-tabs em:nth-child(1){animation-delay:.2s}
-.ws-stage.on .ws-tabs em:nth-child(2){animation-delay:.32s}
-.ws-stage.on .ws-tabs em:nth-child(3){animation-delay:.44s}
-.ws-code{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px}
-.ws-code span{display:block;height:5px;border-radius:2px;background:var(--ws-fill);width:92%;transform:scaleX(0);transform-origin:left;opacity:.4}
-.ws-code span:nth-child(2){width:74%}
-.ws-code span:nth-child(3){width:86%}
-.ws-code span:nth-child(4){width:58%}
-.ws-code span:nth-child(5){width:80%}
-.ws-code span:nth-child(6){width:46%}
-.ws-stage.on .ws-code span{animation:wsBar .8s cubic-bezier(.22,1,.36,1) forwards}
-.ws-stage.on .ws-code span:nth-child(1){animation-delay:.28s}
-.ws-stage.on .ws-code span:nth-child(2){animation-delay:.38s}
-.ws-stage.on .ws-code span:nth-child(3){animation-delay:.48s}
-.ws-stage.on .ws-code span:nth-child(4){animation-delay:.58s}
-.ws-stage.on .ws-code span:nth-child(5){animation-delay:.68s}
-.ws-stage.on .ws-code span:nth-child(6){animation-delay:.78s}
-.ws-prev{padding:8px}
-.ws-frame{
-  height:100%;border-radius:6px;border:1px solid var(--ws-line);background:
-    linear-gradient(180deg,rgba(16,163,127,.08),transparent 40%),#0c0c12;
-  opacity:.35
+.ws-body{flex:1;display:grid;grid-template-columns:28% 1fr;min-height:0;position:relative}
+.ws-stage.wide .ws-body{grid-template-columns:22% 1fr 36%}
+.ws-side,.ws-main,.ws-prev{min-width:0;min-height:0;overflow:auto}
+.ws-side{border-right:1px solid var(--ws-line);padding:6px;font-size:10.5px;color:#a1a1aa;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ws-side button{
+  display:block;width:100%;text-align:left;border:0;background:transparent;color:#d4d4d8;
+  padding:4px 6px;border-radius:6px;font:inherit;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
-.ws-stage.on .ws-frame{animation:wsPrev 1.6s ease-in-out infinite;opacity:1}
+.ws-side button:hover,.ws-side button.on{background:rgba(16,163,127,.12);color:#ecfdf5}
+.ws-main{display:flex;flex-direction:column}
+.ws-tabs{display:flex;gap:4px;padding:4px 6px;border-bottom:1px solid var(--ws-line);overflow:auto}
+.ws-tabs em{
+  flex:0 0 auto;font-style:normal;font-size:10px;padding:3px 7px;border-radius:6px;
+  border:1px solid var(--ws-line);color:#a1a1aa;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.ws-tabs em.on{color:#ecfdf5;border-color:rgba(16,163,127,.45);background:rgba(16,163,127,.1)}
+.ws-code{
+  flex:1;margin:0;padding:8px;overflow:auto;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;
+  color:#bbf7d0;background:#07070c;white-space:pre-wrap;word-break:break-word
+}
+.ws-prev{border-left:1px solid var(--ws-line);background:#050508}
+.ws-prev iframe,.ws-prev img{display:block;width:100%;height:100%;border:0;background:#000;object-fit:contain}
+.ws-stage.cover .ws-prev img,.ws-stage.cover .ws-prev iframe{object-fit:cover}
+.ws-empty{padding:16px;color:#71717a;font-size:12px;line-height:1.45}
 .ws-scan{
-  pointer-events:none;position:absolute;left:0;right:0;height:18%;
-  background:linear-gradient(180deg,transparent,rgba(16,163,127,.12),transparent);
-  opacity:0
+  pointer-events:none;position:absolute;left:0;right:0;height:14%;
+  background:linear-gradient(180deg,transparent,rgba(16,163,127,.1),transparent);opacity:0
 }
-.ws-stage.on .ws-scan{animation:wsScan 2.4s linear infinite;opacity:1}
-@keyframes wsBar{from{transform:scaleX(0);opacity:.2}to{transform:scaleX(1);opacity:1}}
-@keyframes wsTab{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:none}}
-@keyframes wsPrev{0%,100%{box-shadow:inset 0 0 0 1px rgba(16,163,127,.12)}50%{box-shadow:inset 0 0 24px rgba(16,163,127,.18)}}
-@keyframes wsScan{from{top:-18%}to{top:100%}}
-@media (prefers-reduced-motion:reduce){
-  .ws-stage.on .ws-side b,.ws-stage.on .ws-code span,.ws-stage.on .ws-tabs em,.ws-stage.on .ws-frame,.ws-stage.on .ws-scan{animation:none;transform:none;opacity:1}
-}
+.ws-stage.on .ws-scan{animation:wsScan 2.8s linear infinite;opacity:1}
+@keyframes wsScan{from{top:-14%}to{top:100%}}
+@media (prefers-reduced-motion:reduce){.ws-stage.on .ws-scan{animation:none;opacity:0}}
 """
 
 HTML = """
@@ -86,12 +65,12 @@ HTML = """
     <span class="ws-live" id="wsLive">idle</span>
   </div>
   <div class="ws-body">
-    <div class="ws-side" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></div>
-    <div class="ws-main" aria-hidden="true">
-      <div class="ws-tabs"><em></em><em></em><em></em></div>
-      <div class="ws-code"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="ws-side" id="wsFiles"><div class="ws-empty">No files yet</div></div>
+    <div class="ws-main">
+      <div class="ws-tabs" id="wsTabs"></div>
+      <pre class="ws-code" id="wsCode">Open a file. Agent output lands here.</pre>
     </div>
-    <div class="ws-prev" aria-hidden="true"><div class="ws-frame"></div></div>
+    <div class="ws-prev" id="wsPrev" hidden></div>
     <div class="ws-scan"></div>
   </div>
 </div>
@@ -104,7 +83,75 @@ function setBuildStage(on, label){
   el.classList.toggle('idle', !on);
   const cap=document.getElementById('buildCap');
   const live=document.getElementById('wsLive');
-  if(cap) cap.textContent=on?(label||'Building workspace'):'Workspace';
+  if(cap && label) cap.textContent=label;
   if(live) live.textContent=on?'building':'idle';
+  if(on) fillRealWorkspace();
 }
+let _wsFiles=[], _wsTimer=0;
+function fillRealWorkspace(){
+  const filesEl=document.getElementById('wsFiles');
+  const codeEl=document.getElementById('wsCode');
+  const tabsEl=document.getElementById('wsTabs');
+  const prevEl=document.getElementById('wsPrev');
+  const stage=document.getElementById('buildStage');
+  if(!filesEl) return;
+  const sid=(typeof activeId!=='undefined' && activeId)||'';
+  const ws=(document.getElementById('wsSelect')&&document.getElementById('wsSelect').value)||'parallax';
+  fetch('/v1/ai-workspace?workspace='+encodeURIComponent(ws)+'&session_id='+encodeURIComponent(sid),{credentials:'include'})
+    .then(r=>r.json()).then(j=>{
+      const index=j.index||[];
+      _wsFiles=index;
+      if(!index.length){
+        filesEl.innerHTML='<div class="ws-empty">Workspace empty until the first job writes a file</div>';
+      } else {
+        filesEl.innerHTML=index.slice(0,40).map((f,i)=>'<button type="button" data-i="'+i+'">'+(f.path||f.name||'file')+'</button>').join('');
+      }
+      const previews=j.previews||[];
+      const first=previews[0]||null;
+      if(first && codeEl && !(codeEl.dataset.locked==='1')){
+        codeEl.textContent=(first.preview||first.body||'').slice(0,8000) || (j.brief||'');
+        if(tabsEl) tabsEl.innerHTML='<em class="on">'+(first.name||'preview')+'</em>';
+      } else if(j.brief && codeEl && !codeEl.dataset.locked){
+        codeEl.textContent=j.brief;
+      }
+      const htmlPrev=previews.find(p=>/\.html?$/i.test(p.name||'') || /<html/i.test(p.preview||''));
+      if(prevEl && htmlPrev){
+        prevEl.hidden=false; stage.classList.add('wide');
+        let ifr=prevEl.querySelector('iframe');
+        if(!ifr){ ifr=document.createElement('iframe'); ifr.setAttribute('sandbox','allow-scripts allow-same-origin'); prevEl.innerHTML=''; prevEl.appendChild(ifr); }
+        ifr.srcdoc=htmlPrev.preview||'';
+      }
+      const cap=document.getElementById('buildCap');
+      if(cap && (j.cwd||j.workspace)) cap.textContent=(j.cwd||j.workspace||'Workspace').split(/[\\/]/).slice(-2).join('/');
+    }).catch(()=>{});
+}
+function openWsFile(i){
+  const f=_wsFiles[i]; if(!f) return;
+  const path=f.path||f.name||'';
+  const codeEl=document.getElementById('wsCode');
+  const tabsEl=document.getElementById('wsTabs');
+  if(tabsEl) tabsEl.innerHTML='<em class="on">'+path.split(/[\\/]/).pop()+'</em>';
+  [...document.querySelectorAll('#wsFiles button')].forEach((b,n)=>b.classList.toggle('on', n===i));
+  fetch('/v1/ai-workspace/file?path='+encodeURIComponent(path),{credentials:'include'}).then(r=>r.json()).then(j=>{
+    if(codeEl){ codeEl.textContent=j.text||j.preview||j.error||''; codeEl.dataset.locked='1'; }
+  }).catch(()=>{ if(codeEl) codeEl.textContent=path; });
+}
+document.addEventListener('click', e=>{
+  const b=e.target.closest && e.target.closest('#wsFiles [data-i]');
+  if(!b) return;
+  openWsFile(parseInt(b.getAttribute('data-i'),10));
+});
+function coverWorkspaceWith(url, kind){
+  const stage=document.getElementById('buildStage');
+  const prev=document.getElementById('wsPrev');
+  if(!stage||!prev||!url) return;
+  stage.classList.add('wide','cover');
+  prev.hidden=false;
+  if(kind==='img'){
+    prev.innerHTML='<img alt="PC" src="'+url+'"/>';
+  } else {
+    prev.innerHTML='<iframe title="workspace" src="'+url+'"></iframe>';
+  }
+}
+if(!_wsTimer){ _wsTimer=setInterval(fillRealWorkspace, 4000); fillRealWorkspace(); }
 """

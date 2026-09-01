@@ -8,16 +8,19 @@ def test_desk_has_square_workspace_stage():
     assert 'id="buildStage"' in HTML
     assert "setBuildStage" in HTML
     assert "ws-chrome" in HTML
+    assert "fillRealWorkspace" in HTML
     assert "bb-eye" not in HTML
     assert "startBuildDust" not in HTML
-    assert "wsBar" in CSS
-    assert "ws-side" in WS
+    assert "ws-code" in WS
+    assert "wsFiles" in WS
 
 
 def test_phoneai_landscape_computer_and_workspace():
     home = phoneai_os_html()
     assert "orientation:landscape" in home
     assert "body.desk" in home
+    assert "display:contents" in home
+    assert "coverWorkspaceWith" in home
     assert "ws-stage" in home
     work = phoneai_twin_html()
     assert "ws-stage" in work

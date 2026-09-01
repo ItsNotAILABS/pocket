@@ -570,6 +570,29 @@ def get_workspace_view(
     }
 
 
+def read_workspace_file(rel: str, *, workspace: str = "parallax") -> Dict[str, Any]:
+    """Read one file inside the product cwd. No path escape."""
+    cwd = resolve_product_cwd(workspace)
+    base = Path(cwd).resolve()
+    raw = (rel or "").replace("\\", "/").lstrip("/")
+    if not raw or ".." in raw.split("/"):
+        return {"ok": False, "error": "path required"}
+    target = (base / raw).resolve()
+    try:
+        target.relative_to(base)
+    except Exception:
+        return {"ok": False, "error": "outside workspace"}
+    if not target.is_file():
+        return {"ok": False, "error": "not a file", "path": raw}
+    if target.stat().st_size > 400_000:
+        return {"ok": False, "error": "file too large", "path": raw}
+    try:
+        text = target.read_text(encoding="utf-8", errors="replace")[:24000]
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:120], "path": raw}
+    return {"ok": True, "path": raw, "text": text, "bytes": target.stat().st_size}
+
+
 def build_codex_locus_digest(
     workspace: str = "parallax",
     *,
