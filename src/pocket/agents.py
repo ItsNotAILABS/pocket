@@ -46,6 +46,25 @@ AGENTS: Dict[str, Dict[str, Any]] = {
         "system": "PLAN ONLY. No code. Ordered steps, risks, acceptance criteria.",
         "examples": ["Plan a multi-user seat billing system"],
     },
+    "pocket": {
+        "id": "pocket",
+        "name": "Pocket",
+        "role": "Host orchestrator — parallel agents + workspace",
+        "engine": "grok",
+        "tier": "pro",
+        "pock": 40,
+        "usd_hint": 0.12,
+        "sell": True,
+        "headless": True,
+        "long_term": True,
+        "description": "Runs the POCKET host: RAH fan-out, mesh dispatch, PhoneAI, Portal.",
+        "system": (
+            "You are POCKET, the host agent. Fan independent work to parallel sub-agents. "
+            "Keep PhoneAI, Portal, and the desk workspace first-class. Do not serialize "
+            "independent tasks. Verify after the fan-out."
+        ),
+        "examples": ["Ship Portal HD and PhoneAI landscape in parallel"],
+    },
     "coder": {
         "id": "coder",
         "name": "Coder",

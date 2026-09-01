@@ -54,6 +54,28 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 .gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
 .more{padding:8px 16px 20px;color:var(--muted);font-size:12px}
 .more a{color:var(--c)}
+.ws-desk{display:none}
+@media (orientation:landscape){
+  html,body{height:100%;max-width:none;margin:0}
+  body{flex-direction:column;padding:0;background:#05060a}
+  body.desk{display:grid;grid-template-columns:72px minmax(0,1fr) minmax(280px,34vw);grid-template-rows:28px 1fr;height:100dvh}
+  body.desk .status{grid-column:1/-1;padding:6px 12px;border-bottom:1px solid var(--line)}
+  body.desk #v-home{display:contents}
+  body.desk .hero,.body.desk .quick,.body.desk .more{display:none}
+  body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock{display:none}
+  body.desk .grid{
+    grid-column:1;grid-row:2;grid-template-columns:1fr;align-content:start;overflow:auto;
+    padding:8px 6px;gap:10px;border-right:1px solid var(--line)
+  }
+  body.desk .grid .app span{display:none}
+  body.desk .icon{width:44px;height:44px;border-radius:12px;font-size:18px}
+  body.desk .ws-desk{display:flex;flex-direction:column;grid-column:2;grid-row:2;min-width:0;min-height:0;padding:10px}
+  body.desk .ws-stage{flex:1;aspect-ratio:auto;max-height:none;width:100%;margin:0;border-radius:10px}
+  body.desk #v-chat.view.on,body.desk #v-chat{
+    display:flex;grid-column:3;grid-row:2;border-left:1px solid var(--line);min-width:0
+  }
+  body.desk .view:not(#v-home):not(#v-chat).on{grid-column:2/-1;grid-row:2}
+}
 </style>
 </head>
 <body>
@@ -92,7 +114,8 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
     <a class="app" href="/phoneai/cam"><div class="icon">💻</div><span>PC cam</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
-  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
+  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. Rotate the phone for a computer workspace. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
+  <div class="ws-desk" id="homeWs">__PHONEAI_WS_STAGE__</div>
 </section>
 
 <section class="view" id="v-chat">
@@ -158,7 +181,25 @@ function show(id){
   if(id==='camera') cam();
   if(id==='photos'||id==='notes'||id==='remind'||id==='list') life();
   if(id==='settings') settings();
+  if(document.body.classList.contains('desk')){
+    document.getElementById('v-home').classList.add('on');
+    document.getElementById('v-chat').classList.add('on');
+    if(typeof setBuildStage==='function') setBuildStage(true,'Workspace');
+  }
 }
+function layoutPhone(){
+  const land=window.matchMedia('(orientation: landscape)').matches && Math.min(window.innerWidth,window.innerHeight)>=360 && window.innerWidth>window.innerHeight;
+  document.body.classList.toggle('desk', land);
+  if(land){
+    document.getElementById('v-home').classList.add('on');
+    document.getElementById('v-chat').classList.add('on');
+    if(typeof setBuildStage==='function') setBuildStage(true,'Workspace');
+  }
+}
+layoutPhone();
+window.addEventListener('resize', layoutPhone);
+window.addEventListener('orientationchange', ()=>setTimeout(layoutPhone, 120));
+__PHONEAI_WS_JS__
 document.body.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]'); if(!b) return;
   const pre=b.getAttribute('data-pre'); if(pre){ document.getElementById('ct').value=pre; }
@@ -247,7 +288,13 @@ document.getElementById('srows').addEventListener('click', async e=>{
 
 
 def phoneai_os_html() -> str:
-    return PHONEAI_OS_HTML
+    from pocket.workspace_stage import CSS, HTML as WS, JS
+
+    return (
+        PHONEAI_OS_HTML.replace("</style>", CSS + "\n</style>")
+        .replace("__PHONEAI_WS_STAGE__", WS)
+        .replace("__PHONEAI_WS_JS__", JS)
+    )
 
 
 PHONEAI_TWIN_HTML = r"""<!DOCTYPE html>
@@ -262,6 +309,15 @@ PHONEAI_TWIN_HTML = r"""<!DOCTYPE html>
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif}
 body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.ws-desk{display:none}
+@media (orientation:landscape){
+  body{max-width:none;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,38vw);grid-template-rows:48px auto auto 1fr auto;padding:0}
+  .top{grid-column:1/-1}
+  .ws-desk{display:block;grid-column:1;grid-row:2/5;padding:8px;min-height:0}
+  .ws-stage{height:100%;aspect-ratio:auto;max-height:none;width:100%;margin:0}
+  .log{grid-column:2;grid-row:4;border-left:1px solid var(--line)}
+  .form{grid-column:1/-1}
+}
 .top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
 .top a{color:var(--muted);text-decoration:none;font-size:13px}
 .engines{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
@@ -280,6 +336,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
 </style></head>
 <body>
 <div class="top"><a href="/phoneai">Home</a><b style="flex:1">Code desk</b><a href="/phoneai/anti">Anti</a></div>
+<div class="ws-desk" id="workWs">__PHONEAI_WS_STAGE__</div>
 <div id="now" style="padding:8px 14px;font-size:12px;color:#a1a1aa;border-bottom:1px solid var(--line)">Loading your live Grok/Codex/Antigravity threads…</div>
 <div style="display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap">
 <select id="thr" style="flex:1;min-width:140px;padding:8px;border-radius:10px;background:#0c0c0e;color:#fafafa;border:1px solid var(--line)"></select>
@@ -299,7 +356,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
 <script>
 let engine='grok'; // Coder persona — Grok, long-term, family repos
 let threadId='';
-const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti',auro:'Auro',ghost:'Ghost',logic:'Logic',portal:'Portal'};
+const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti',auro:'Auro',ghost:'Ghost',logic:'Logic',portal:'Portal',rah:'Parallel'};
 fetch('/v1/engines').then(r=>r.json()).then(cat=>{
   const desk=cat.desk||[];
   const fast=cat.phone_fast||[];
@@ -367,6 +424,7 @@ document.getElementById('f').onsubmit=async ev=>{
   const text=(t.value||'').trim(); if(!text) return;
   t.value=''; add('me', text, 'you');
   add('bot','Working…', engine);
+  if(typeof setBuildStage==='function') setBuildStage(true, engine+' workspace');
   try{
     const r=await fetch('/v1/phoneai/work/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})});
     if(!r.ok || !r.body){
@@ -394,6 +452,7 @@ document.getElementById('f').onsubmit=async ev=>{
     }
     last.querySelector('.eng').textContent=eng;
     last.querySelector('.b').textContent=reply||'no reply';
+    if(typeof setBuildStage==='function') setBuildStage(false);
     if(imageUrl){ const img=document.createElement('img'); img.src=imageUrl; last.querySelector('.b').appendChild(img); }
   }catch(e){
     log.lastChild.remove();
@@ -406,7 +465,14 @@ document.getElementById('f').onsubmit=async ev=>{
 
 
 def phoneai_twin_html() -> str:
-    return PHONEAI_TWIN_HTML
+    from pocket.workspace_stage import CSS, HTML as WS, JS
+
+    html = (
+        PHONEAI_TWIN_HTML.replace("</style>", CSS + "\n</style>")
+        .replace("__PHONEAI_WS_STAGE__", WS)
+        .replace("</script>", JS + "\nsetBuildStage(false);\n</script>")
+    )
+    return html
 
 
 PHONEAI_ANTI_HTML = r"""<!DOCTYPE html>

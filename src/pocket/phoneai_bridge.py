@@ -755,7 +755,45 @@ def work(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, A
         ensure_coder()
     except Exception:
         pass
-    r = ask_engine(text, engine=engine, thread_id=thread_id, wrap_coder=True)
+    low = (text or "").lower()
+    parallel_ask = any(
+        w in low
+        for w in ("in parallel", "parallel agents", "fan out", "fan-out", "split the work", "several agents")
+    )
+    mentions: list = []
+    try:
+        from pocket.subagent_dispatch import parse_mentions
+
+        mentions = parse_mentions(text or "")
+    except Exception:
+        mentions = []
+    if (engine or "").lower() in ("rah", "swarm", "parallel") or parallel_ask or len(mentions) >= 2:
+        parts = []
+        if mentions:
+            try:
+                from pocket.subagent_dispatch import dispatch
+
+                d = dispatch(text, from_agent="phoneai", agents=mentions)
+                parts.append(str(d)[:4000])
+            except Exception as e:
+                parts.append(f"dispatch: {e}")
+        try:
+            from pocket.rah import maybe_auto_rah
+
+            auto = maybe_auto_rah(text, mode="work", execute=True)
+            if auto and auto.get("markdown"):
+                parts.append(str(auto.get("markdown")))
+        except Exception as e:
+            parts.append(f"rah: {e}")
+        r = {
+            "ok": True,
+            "engine": "parallel",
+            "reply": "\n\n".join(p for p in parts if p) or "Parallel agents ran.",
+            "parallel": True,
+            "agents": mentions,
+        }
+    else:
+        r = ask_engine(text, engine=engine, thread_id=thread_id, wrap_coder=True)
     r["companion"] = "PhoneAI Twin"
     r["persona"] = "coder"
     r["workspace"] = r.get("cwd") or str(WS)

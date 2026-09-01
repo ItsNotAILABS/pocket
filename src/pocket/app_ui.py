@@ -903,46 +903,7 @@ body.work-mode-on .composer-inner{box-shadow:inset 0 0 0 1px rgba(244,114,182,.1
 @keyframes thinkPulse{0%,100%{box-shadow:0 0 0 0 rgba(16,163,127,.35);transform:scale(1)}50%{box-shadow:0 0 0 12px rgba(16,163,127,0);transform:scale(1.06)}}
 @keyframes thinkSpin{to{transform:rotate(360deg)}}
 @keyframes thinkDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
-/* Right-rail building stage — living orb + eyes (grok.com Build pane energy) */
-.build-stage{
-  position:relative;margin:8px 10px 0;height:168px;border-radius:14px;overflow:hidden;
-  border:1px solid var(--line);background:
-    radial-gradient(120% 80% at 50% 120%,rgba(16,163,127,.16),transparent 55%),
-    radial-gradient(80% 60% at 50% 0%,rgba(34,211,238,.08),transparent 50%),
-    #07070c
-}
-.build-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.build-bot{position:absolute;left:50%;top:46%;width:72px;height:72px;margin:-36px 0 0 -36px;z-index:2}
-.bb-body{
-  width:72px;height:72px;border-radius:50%;
-  background:radial-gradient(circle at 32% 28%,#5eead4 0%,#10a37f 42%,#064e3b 78%,#022c22 100%);
-  box-shadow:0 10px 28px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08) inset;
-  animation:bbBreathe 3.2s ease-in-out infinite
-}
-.build-stage.on .bb-body{animation:bbWork 1.1s ease-in-out infinite}
-.bb-eye{
-  position:absolute;top:26px;width:16px;height:20px;border-radius:10px;background:#f8fafc;
-  overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.25)
-}
-.bb-eye.l{left:16px}
-.bb-eye.r{right:16px}
-.bb-eye i{
-  position:absolute;left:4px;top:6px;width:8px;height:8px;border-radius:50%;background:#042f24;
-  animation:bbLook 4.5s ease-in-out infinite
-}
-.build-stage.on .bb-eye i{animation:bbFocus 1.4s ease-in-out infinite}
-.build-stage.on .bb-eye{animation:bbBlink 2.8s ease-in-out infinite}
-.build-cap{
-  position:absolute;left:0;right:0;bottom:10px;text-align:center;z-index:2;
-  font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)
-}
-.build-stage.on .build-cap{color:#6ee7b7}
-@keyframes bbBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-@keyframes bbWork{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-2px,1px) rotate(-4deg)}40%{transform:translate(3px,-1px) rotate(3deg)}60%{transform:translate(-1px,2px) rotate(-2deg)}80%{transform:translate(2px,0) rotate(2deg)}}
-@keyframes bbLook{0%,20%{transform:translate(0,0)}30%{transform:translate(3px,-1px)}50%{transform:translate(-2px,1px)}70%{transform:translate(1px,2px)}100%{transform:translate(0,0)}}
-@keyframes bbFocus{0%,100%{transform:translate(0,2px) scaleY(.86)}40%{transform:translate(2px,-1px) scaleY(1)}70%{transform:translate(-2px,1px) scaleY(.9)}}
-@keyframes bbBlink{0%,86%,100%{transform:scaleY(1)}90%{transform:scaleY(.08)}94%{transform:scaleY(1)}}
-.build-stage.idle .bb-eye{animation:bbBlink 5.5s ease-in-out infinite}
+/* Square workspace construction (Build pane) — injected production CSS below via class names */
 .live-dot{
   width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px;vertical-align:middle;
   box-shadow:0 0 0 0 rgba(16,163,127,.5);animation:thinkPulse 1.4s ease-in-out infinite
@@ -1822,11 +1783,7 @@ body.device-computer .rail{display:flex!important}
       </span>
     </div>
     <div class="rail-scroll">
-      <div class="build-stage idle" id="buildStage" aria-live="polite">
-        <canvas id="buildDust" width="300" height="168"></canvas>
-        <div class="build-bot" id="buildBot" aria-hidden="true"><div class="bb-body"><div class="bb-eye l"><i></i></div><div class="bb-eye r"><i></i></div></div></div>
-        <div class="build-cap" id="buildCap">Ready</div>
-      </div>
+      __POCKET_WS_STAGE__
       <div class="ai-sum" id="aiSumCard">
         <h3>Summary</h3>
         <div class="body" id="aiSummary">Updates as you work so you don’t re-explain every turn</div>
@@ -2743,36 +2700,8 @@ const MESH_AGENT_ROLES={
 const MENTION_ALIASES=['DESIGN','DESIGNER','UI','UX','AESTHETE','LAYOUT','MOTION','CSS','ANIM','FORGE','FORGE_HEADLESS','SENTINEL','SENTINEL_HEADLESS','RESEARCH','RESEARCH_HEADLESS','SHIP','SHIP_HEADLESS'];
 let sessions=[], activeId=null, pollTimer=null, status=null, micRec=null, micOn=false, authTab='login';
 window.__pocketBootAt=Date.now();
-let liveSeq=0, liveTimer=null, subagentTimer=null, buildDustRaf=0;
-function setBuildStage(on, label){
-  const el=$('buildStage'); if(!el) return;
-  el.classList.toggle('on', !!on);
-  el.classList.toggle('idle', !on);
-  const cap=$('buildCap');
-  if(cap) cap.textContent=on?(label||'Building'):'Ready';
-  if(on) startBuildDust(); else stopBuildDust();
-}
-function startBuildDust(){
-  const c=$('buildDust'); if(!c||!c.getContext) return;
-  if(buildDustRaf) return;
-  const ctx=c.getContext('2d');
-  const dots=Array.from({length:28},()=>({x:Math.random(),y:Math.random(),v:.15+Math.random()*.45,r:0.6+Math.random()*1.4}));
-  const tick=()=>{
-    const w=c.width, h=c.height;
-    ctx.clearRect(0,0,w,h);
-    dots.forEach(d=>{
-      d.y-=d.v/120; if(d.y<0) d.y=1;
-      ctx.beginPath(); ctx.arc(d.x*w,d.y*h,d.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(110,231,183,.55)'; ctx.fill();
-    });
-    buildDustRaf=requestAnimationFrame(tick);
-  };
-  tick();
-}
-function stopBuildDust(){
-  if(buildDustRaf){ cancelAnimationFrame(buildDustRaf); buildDustRaf=0; }
-  const c=$('buildDust'); if(c&&c.getContext) c.getContext('2d').clearRect(0,0,c.width,c.height);
-}
+let liveSeq=0, liveTimer=null, subagentTimer=null;
+__POCKET_WS_JS__
 let subagentState=[], subagentCatalog=[], liveAgentHits={}, walkthroughSteps=[];
 let meshInfo={agent_count:0, mesh_root:'', drive:''};
 let DEVICE={kind:'computer',label:'Computer',remote:false};
@@ -8043,3 +7972,14 @@ boot().then(async()=>{
 </body>
 </html>
 """
+
+from pocket.workspace_stage import CSS as _WS_CSS, HTML as _WS_HTML, JS as _WS_JS
+
+HTML = (
+    HTML.replace(
+        "/* Square workspace construction (Build pane) — injected production CSS below via class names */",
+        _WS_CSS,
+    )
+    .replace("__POCKET_WS_STAGE__", _WS_HTML)
+    .replace("__POCKET_WS_JS__", _WS_JS)
+)

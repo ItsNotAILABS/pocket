@@ -27,6 +27,15 @@ PERSONAS: List[Dict[str, Any]] = [
         "seat": "phoneai",
         "blurb": "Grok coding agent — long-term, whole-repo, PhoneAI-native",
     },
+    {
+        "id": "pocket",
+        "mode": "rah",
+        "engine": "grok",
+        "long_term": True,
+        "keep": True,
+        "seat": "pocket",
+        "blurb": "POCKET host agent — parallel harnesses, workspace, PhoneAI",
+    },
     {"id": "researcher", "mode": "grok", "engine": "grok", "long_term": False, "blurb": "Research and explain"},
     {"id": "reviewer", "mode": "claude", "engine": "claude", "long_term": False, "blurb": "Review diffs, short notes"},
     {"id": "shipper", "mode": "build", "engine": "grok", "long_term": False, "blurb": "Package and ship"},
@@ -59,6 +68,11 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
         return {"engine": "twin", "tool": "twin_mint", "why": "mint asked"}
     if any(w in low for w in ("remind me", "note this", "directions to", "draft a text")):
         return {"engine": "life", "tool": None, "why": "phone life"}
+    if any(
+        w in low
+        for w in ("in parallel", "parallel agents", "fan out", "fan-out", "split the work", "several agents")
+    ):
+        return {"engine": "rah", "tool": "subagent_steer", "why": "parallel agents"}
     if any(w in low for w in ("portal", "touch the pc", "remote desktop", "stream my screen")):
         return {"engine": "portal", "tool": None, "why": "pc stream"}
     if any(w in low for w in ("prove ", "theorem", "logic prover", "q.e.d")):
