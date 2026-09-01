@@ -996,6 +996,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.home_mesh import snapshot as home_snap
 
             return self._json(200, home_snap())
+        if path in ("/v1/nodes/view", "/v1/node/view"):
+            from pocket.home_mesh import list_view_nodes
+
+            return self._json(200, list_view_nodes())
+        if path in ("/v1/contracts", "/v1/pocket/contracts"):
+            from pocket.contracts import catalog
+
+            return self._json(200, catalog())
         if path in ("/v1/phoneai/doorbell/frame", "/v1/doorbell/frame"):
             from pocket.home_mesh import grab_doorbell
 
@@ -4462,6 +4470,18 @@ class Handler(BaseHTTPRequestHandler):
                     name=str(body.get("name") or ""),
                     dest=str(body.get("dest") or "all"),
                     caption=str(body.get("caption") or body.get("text") or ""),
+                ),
+            )
+        if path in ("/v1/nodes/view", "/v1/node/view"):
+            from pocket.home_mesh import register_view_node
+
+            return self._json(
+                200,
+                register_view_node(
+                    kind=str(body.get("kind") or "tv"),
+                    label=str(body.get("label") or ""),
+                    ip=self._client_ip(),
+                    ua=str(self.headers.get("User-Agent") or "")[:160],
                 ),
             )
         if path in ("/v1/phoneai/doorbell", "/api/phoneai/doorbell"):

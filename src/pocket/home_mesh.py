@@ -236,6 +236,65 @@ def discover_tvs(timeout: float = 1.1) -> Dict[str, Any]:
     return {"ok": True, "tvs": rows, "count": len(rows), "note": "HDMI TVs also appear as extra Windows displays."}
 
 
+VIEW_NODES = ROOT / "view_nodes.json"
+
+
+def register_view_node(
+    *,
+    kind: str = "tv",
+    label: str = "",
+    ip: str = "",
+    ua: str = "",
+) -> Dict[str, Any]:
+    """Wi-Fi TV / phone / glasses join as mesh view nodes. No HDMI."""
+    kind = (kind or "tv").lower()
+    if kind not in ("tv", "phone", "glasses", "pc"):
+        kind = "tv"
+    nid = f"{kind}-{(ip or 'lan').replace('.', '')[-8:] or 'x'}-{int(time.time()) % 100000}"
+    rec = {
+        "schema": "pocket.node.view.v1",
+        "id": nid,
+        "kind": kind,
+        "label": (label or kind)[:80],
+        "ip": (ip or "")[:64],
+        "ua": (ua or "")[:160],
+        "join": "/phoneai/tv",
+        "stream": "/v1/phoneai/portal/ws",
+        "seen": time.time(),
+    }
+    with _lock:
+        rows = []
+        if VIEW_NODES.is_file():
+            try:
+                rows = json.loads(VIEW_NODES.read_text(encoding="utf-8"))
+            except Exception:
+                rows = []
+        if not isinstance(rows, list):
+            rows = []
+        key = f"{kind}|{ip}"
+        rows = [r for r in rows if f"{r.get('kind')}|{r.get('ip')}" != key]
+        rows.append(rec)
+        cut = time.time() - 600
+        rows = [r for r in rows if float(r.get("seen") or 0) > cut][-24:]
+        ROOT.mkdir(parents=True, exist_ok=True)
+        VIEW_NODES.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    return {"ok": True, "node": rec, "nodes": rows}
+
+
+def list_view_nodes() -> Dict[str, Any]:
+    rows = []
+    if VIEW_NODES.is_file():
+        try:
+            rows = json.loads(VIEW_NODES.read_text(encoding="utf-8"))
+        except Exception:
+            rows = []
+    if not isinstance(rows, list):
+        rows = []
+    cut = time.time() - 600
+    live = [r for r in rows if float(r.get("seen") or 0) > cut]
+    return {"ok": True, "schema": "pocket.node.view.v1", "nodes": live, "count": len(live)}
+
+
 def snapshot() -> Dict[str, Any]:
     mons = {}
     try:
@@ -254,9 +313,12 @@ def snapshot() -> Dict[str, Any]:
         "product": "PhoneAI home mesh",
         "tv": {
             "url": "/phoneai/tv",
-            "note": "Stream the HDMI/smart-TV display, or open this page on the TV browser.",
-            "monitors": mons.get("monitors") or [],
+            "note": "Wi-Fi node. Open this URL on the TV browser — no HDMI. Laptop stream at laptop aspect.",
+            "hdmi": False,
+            "join": "/phoneai/tv",
+            "nodes": list_view_nodes().get("nodes") or [],
             "lan": tvs.get("tvs") or [],
+            "monitors": mons.get("monitors") or [],
         },
         "doorbell": {"url": "/phoneai/doorbell", "cameras": _load_cams()},
         "laptop_cam": {

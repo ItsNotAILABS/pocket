@@ -191,6 +191,7 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/rah",
     "/v1/rah/status",
     "/v1/rah/contracts",
+    "/v1/contracts",
     "/v1/protocols/rah",
     "/v1/internal-models",
     "/v1/internal_models",
@@ -462,6 +463,8 @@ PORTAL_DEVICE_PATHS = frozenset({
     "/api/phoneai/work",
     "/v1/phoneai/photo",
     "/v1/phoneai/photos",
+    "/v1/nodes/view",
+    "/v1/phoneai/home",
 })
 
 HOST_CONTROL_PATHS = frozenset({

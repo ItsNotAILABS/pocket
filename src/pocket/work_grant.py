@@ -155,7 +155,12 @@ CONTRACTS = {
 
 
 def contracts() -> Dict[str, Any]:
-    return {"ok": True, **CONTRACTS}
+    try:
+        from pocket.contracts import catalog
+
+        return catalog()
+    except Exception:
+        return {"ok": True, **CONTRACTS}
 
 
 def recall_capsule(lease: Dict[str, Any], *, query: str = "", limit: int = 6) -> Dict[str, Any]:

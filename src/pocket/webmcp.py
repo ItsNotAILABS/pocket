@@ -320,6 +320,8 @@ def _from_work() -> List[Dict[str, Any]]:
         ("RAH grant", "rah_grant", "POST /v1/rah/grant", "Issue a WorkGrant before fan-out."),
         ("RAH run", "rah_run", "POST /v1/rah/run", "Execute RAH leaves only with a WorkGrant."),
         ("RAH contracts", "rah_contracts", "GET /v1/rah/contracts", "Pocket/NEXUS/AURO/RAH/verifier/pixel contracts."),
+        ("All contracts", "contracts", "GET /v1/contracts", "Internal contract catalog agents must speak."),
+        ("TV node join", "node_tv_join", "POST /v1/nodes/view", "Wi-Fi TV joins as a mesh view node. No HDMI."),
         ("RAH Auro leaf", "rah_auro", "RAH mode=auro", "Parallel Auro harness leaves on the host."),
         ("TV mesh", "phoneai_tv", "GET /phoneai/tv", "Same-Wi-Fi TV stream + touch."),
         ("Doorbell", "phoneai_doorbell", "GET /phoneai/doorbell", "Home camera MJPEG/HTTP."),

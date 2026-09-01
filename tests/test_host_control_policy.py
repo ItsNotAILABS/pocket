@@ -95,13 +95,19 @@ def test_work_grant_required_for_rah_execute():
 
 
 def test_rah_contracts_are_first_class():
+    from pocket.contracts import catalog
     from pocket.work_grant import contracts
 
     c = contracts()
     assert c["ok"] is True
     assert "rah" in c["roles"]
-    assert "pocket.work_grant.v1" in c["objects"]
+    assert "node" in c["roles"]
+    objs = c.get("objects") or {}
+    assert "pocket.work_grant.v1" in objs or "pocket.work_grant.v1" in (objs if isinstance(objs, list) else [])
     assert "rah_run" in c["agent_tools"]
+    cat = catalog()
+    assert "pocket.node.view.v1" in cat["objects"]
+    assert "tv" in cat["nodes"]
 
 
 def test_portal_html_glass_fill():
@@ -112,13 +118,18 @@ def test_portal_html_glass_fill():
     assert "fitMode='contain'" in html or 'fitMode="contain"' in html
 
 
-def test_tv_html_is_fullscreen():
+def test_tv_html_is_wifi_node():
+    from pocket.home_mesh import list_view_nodes, register_view_node
     from pocket.home_ui import tv_html
 
     html = tv_html()
     assert "object-fit:contain" in html
-    assert "/v1/phoneai/home" in html
-    assert "WebSocket" in html
+    assert "/v1/nodes/view" in html
+    assert "target=desktop" in html or "target:'desktop'" in html
+    r = register_view_node(kind="tv", label="test-tv", ip="192.168.1.50")
+    assert r["ok"] is True
+    assert r["node"]["kind"] == "tv"
+    assert list_view_nodes()["count"] >= 1
 
 
 def test_auro_adapter_does_not_crash():
