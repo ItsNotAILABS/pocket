@@ -60,6 +60,28 @@ def pick_cwd_for_goal(goal: str) -> Path:
     return WS
 
 
+_DENY = (
+    "invoke-expression", "iex ", "downloadstring", "start-process",
+    " -enc", "frombase64", "bypass", "remove-item", "rm -", "format ",
+    "shutdown", "restart-computer", "stop-computer", "new-service",
+    "schtasks", "set-executionpolicy",
+)
+
+
+def _scrub_env() -> Dict[str, str]:
+    keep_prefix = ("PATH", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP", "USERNAME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "PROGRAMFILES", "LOCALAPPDATA", "APPDATA")
+    out: Dict[str, str] = {}
+    for k, v in os.environ.items():
+        ku = k.upper()
+        if ku.startswith(("GROK_", "OPENAI", "ANTHROPIC", "AWS_", "AZURE_", "GITHUB_", "GH_TOKEN", "POCKET_BASIC", "POCKET_TWIN", "NPM_", "HUGGING", "XAI_")):
+            continue
+        if any(ku == p or ku.startswith(p) for p in keep_prefix):
+            out[k] = v
+    out["CI"] = "1"
+    out["POCKET_BOUNDED_SHELL"] = "1"
+    return out
+
+
 def run(
     command: str,
     *,
@@ -70,16 +92,19 @@ def run(
     cmd = (command or "").strip()
     if not cmd:
         return {"ok": False, "error": "empty command"}
-    g = guard_shell(cmd, allow_destructive=allow_destructive)
+    low = cmd.lower()
+    if any(tok in low for tok in _DENY):
+        return {"ok": False, "blocked": True, "error": "command not allowed in bounded shell"}
+    # HTTP and agents cannot opt out of the destructive blacklist.
+    g = guard_shell(cmd, allow_destructive=False)
     if not g.get("ok"):
         return g
     work = resolve_cwd(cwd)
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GROK_")}
-    env["CI"] = "1"
+    env = _scrub_env()
     t0 = time.time()
     try:
         r = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", cmd],
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
             cwd=str(work),
             capture_output=True,
             timeout=max(3, min(float(timeout), 60)),

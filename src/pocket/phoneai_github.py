@@ -1,4 +1,4 @@
-"""PhoneAI writes to GitHub the same way Pocket does — public vault + product repo."""
+"""PhoneAI writes to GitHub the same way Pocket does — private vault by default."""
 
 from __future__ import annotations
 
@@ -101,9 +101,9 @@ def ensure_repo() -> Dict[str, Any]:
             "repo",
             "create",
             f"{ORG}/{REPO}",
-            "--public",
+            "--private",
             "--description",
-            "PhoneAI seat vault — notes, work, sessions from the phone kernel",
+            "PhoneAI seat vault — private. Notes/work require classification before any public release.",
             "--source",
             str(LOCAL),
             "--remote",
@@ -115,7 +115,7 @@ def ensure_repo() -> Dict[str, Any]:
     )
     if not created.get("ok"):
         created = _run(
-            [_gh(), "repo", "create", f"{FALLBACK_OWNER}/{REPO}", "--public", "--source", str(LOCAL), "--remote", "origin", "--push"],
+            [_gh(), "repo", "create", f"{FALLBACK_OWNER}/{REPO}", "--private", "--source", str(LOCAL), "--remote", "origin", "--push"],
             cwd=LOCAL,
             timeout=90,
         )
@@ -136,8 +136,43 @@ def stage_file(rel: str, content: str) -> Path:
     return fp
 
 
+_SECRET_MARKERS = (
+    "BEGIN PRIVATE KEY",
+    "BEGIN RSA PRIVATE KEY",
+    "AKIA",
+    "ghp_",
+    "github_pat_",
+    "sk_pocket_",
+    "POCKET_BASIC_AUTH_PASSWORD",
+    "xai-",
+    "sk-ant-",
+)
+
+
+def scan_vault() -> Dict[str, Any]:
+    hits = []
+    if LOCAL.is_dir():
+        for fp in LOCAL.rglob("*"):
+            if not fp.is_file() or ".git" in fp.parts:
+                continue
+            if fp.stat().st_size > 400_000:
+                continue
+            try:
+                text = fp.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            for m in _SECRET_MARKERS:
+                if m in text:
+                    hits.append({"path": str(fp.relative_to(LOCAL)), "marker": m})
+                    break
+    return {"ok": not hits, "hits": hits[:20]}
+
+
 def push(*, message: str = "phoneai") -> Dict[str, Any]:
     with _lock:
+        scan = scan_vault()
+        if not scan.get("ok"):
+            return {"ok": False, "error": "secret_scan_blocked", "scan": scan}
         ready = ensure_repo()
         _run(["git", "add", "-A"], cwd=LOCAL)
         c = _run(

@@ -67,7 +67,8 @@ Those six are claimed below as a system and as independent methods.
 - 5.1 Frame capture uses a process-wide lock and a time-to-live cache (about 300 ms) so stacked HTTP clients cannot spawn unbounded `ImageGrab` work.  
 - 5.2 The phone UI requests the next frame only after the previous image `load` or `error`, and pauses when the document is hidden.  
 - 5.3 Touch kinds include tap, drag, right-click, scroll, and type-into-focus.  
-- 5.4 The phone Portal is an immersive glass: the stage is `position:fixed; inset:0` on the visual viewport; chrome is an overlay HUD; Focus fills the phone with the active window (`cover`); Focus off shows the entire PC (`contain`) on that same full-phone stage.  
+- 5.4 The phone Portal is an immersive glass: the stage is `position:fixed; inset:0` on the visual viewport; chrome is an overlay HUD; Focus fills the phone with the active window (`cover`); Focus off shows the entire PC (`contain`) on that same full-phone stage.
+- 5.5 Host-control prefixes (`/api/`, `/v1/phoneai/`) are not public. Anonymous internet callers reach only static shells, health, and login. Visual Portal on a named tunnel requires Face ID / LAN / signed-in seat; shell, eyes, runtime install, and vault push never accept a public prefix or a caller `allow_destructive` flag.  
 - 7.1 Titles are of the form `App — Task` derived from `~/.gemini/antigravity/worktrees/…`.  
 - 7.2 The Antigravity view lists live threads and can open, new-chat, continue, and send without attaching to the Portal stream.  
 - 2.1 Vault envelopes use `hmac-sha256-ctr-v1`.  

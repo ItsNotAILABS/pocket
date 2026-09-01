@@ -198,6 +198,28 @@ function layoutPhone(){
 layoutPhone();
 window.addEventListener('resize', layoutPhone);
 window.addEventListener('orientationchange', ()=>setTimeout(layoutPhone, 120));
+(function(){
+  if(!window.PublicKeyCredential) return;
+  const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
+  function buf(s){ return Uint8Array.from(String(s), c=>c.charCodeAt(0)).buffer; }
+  function b64(s){ s=String(s).replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; const b=atob(s); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }
+  function b64u(buf){ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+  async function face(kind){
+    const r=await fetch('/v1/auth/passkey/begin?kind='+kind,{credentials:'include'});
+    const j=await r.json(); if(!j.ok) throw new Error(j.error||'face');
+    const pk=j.publicKey; pk.challenge=buf(pk.challenge);
+    if(pk.user&&pk.user.id) pk.user.id=b64(pk.user.id);
+    if(pk.allowCredentials) pk.allowCredentials=pk.allowCredentials.map(c=>({type:'public-key',id:b64(c.id)}));
+    const cred=kind==='register'? await navigator.credentials.create({publicKey:pk}): await navigator.credentials.get({publicKey:pk});
+    const payload={id:cred.id,type:cred.type,response:{clientDataJSON:b64u(cred.response.clientDataJSON),attestationObject:cred.response.attestationObject?b64u(cred.response.attestationObject):undefined,authenticatorData:cred.response.authenticatorData?b64u(cred.response.authenticatorData):undefined,signature:cred.response.signature?b64u(cred.response.signature):undefined}};
+    return fetch(kind==='register'?'/v1/auth/passkey/register':'/v1/auth/passkey/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:payload})}).then(x=>x.json());
+  }
+  fetch('/v1/auth/me',{credentials:'include'}).then(r=>r.json()).then(async me=>{
+    if(me && me.ok) return;
+    if(lan){ try{ await face('register'); }catch(_){} return; }
+    try{ await face('login'); }catch(_){ try{ await face('register'); }catch(_){ } }
+  }).catch(()=>{});
+})();
 __PHONEAI_WS_JS__
 document.body.addEventListener('click',e=>{
   const b=e.target.closest('[data-go]'); if(!b) return;
@@ -652,6 +674,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
 </style></head>
 <body class="hud-off">
 <div class="pills">
+  <button type="button" id="faceBtn">Face ID</button>
   <button type="button" id="focusPill">Focus</button>
   <button type="button" id="hudbtn">HUD</button>
 </div>
@@ -877,7 +900,73 @@ function openLive(){
     img.src=url;
   };
 }
-openLive(); applyNet();
+function b64urlToBuf(s){
+  s=String(s||'').replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4) s+='=';
+  const bin=atob(s);
+  const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+  return u.buffer;
+}
+function strToBuf(s){ return Uint8Array.from(String(s), c=>c.charCodeAt(0)).buffer; }
+function bufToB64url(buf){
+  const u=new Uint8Array(buf); let s='';
+  for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function faceStart(kind){
+  const r=await fetch('/v1/auth/passkey/begin?kind='+kind,{credentials:'include'});
+  const j=await r.json();
+  if(!j.ok) throw new Error(j.error||j.hint||'Face ID not ready');
+  const pk=j.publicKey;
+  pk.challenge=strToBuf(pk.challenge);
+  if(pk.user&&pk.user.id) pk.user.id=b64urlToBuf(pk.user.id);
+  if(pk.allowCredentials) pk.allowCredentials=pk.allowCredentials.map(c=>({type:'public-key',id:b64urlToBuf(c.id)}));
+  const cred=kind==='register'
+    ? await navigator.credentials.create({publicKey:pk})
+    : await navigator.credentials.get({publicKey:pk});
+  const payload={
+    id:cred.id,
+    rawId:bufToB64url(cred.rawId),
+    type:cred.type,
+    response:{
+      clientDataJSON:bufToB64url(cred.response.clientDataJSON),
+      attestationObject:cred.response.attestationObject?bufToB64url(cred.response.attestationObject):undefined,
+      authenticatorData:cred.response.authenticatorData?bufToB64url(cred.response.authenticatorData):undefined,
+      signature:cred.response.signature?bufToB64url(cred.response.signature):undefined
+    }
+  };
+  const path=kind==='register'?'/v1/auth/passkey/register':'/v1/auth/passkey/login';
+  const done=await fetch(path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:payload})});
+  return done.json();
+}
+async function faceGate(){
+  if(!window.PublicKeyCredential) return true;
+  const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
+  try{
+    const me=await fetch('/v1/auth/me',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+    if(me && me.ok) return true;
+  }catch(_){}
+  if(lan){
+    try{ await faceStart('register'); }catch(_){}
+    return true;
+  }
+  if(hint) hint.textContent='Face ID to open this PC on the tunnel — no password';
+  try{
+    const j=await faceStart('login');
+    if(j && j.ok){ if(hint) hint.textContent='Face ID · live desk'; return true; }
+  }catch(_){}
+  try{
+    const j=await faceStart('register');
+    if(j && j.ok) return true;
+  }catch(e){
+    if(hint) hint.textContent='Pair this phone: open Portal on home Wi-Fi once (Face ID), then the tunnel works.';
+    return false;
+  }
+  return true;
+}
+document.getElementById('faceBtn').onclick=()=>{ faceGate().then(()=>{ applyNet(); openLive(); applyView(); }); };
+faceGate().then(()=>{ openLive(); applyNet(); }).catch(()=>{ openLive(); applyNet(); });
 if(navigator.connection){ navigator.connection.addEventListener('change', applyNet); }
 function loadWins(){
   fetch('/v1/phoneai/portal/windows').then(r=>r.json()).then(j=>{

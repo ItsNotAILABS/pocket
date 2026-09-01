@@ -941,14 +941,27 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._html(phoneai_anti_html())
         if path in ("/phoneai/portal", "/phoneai/pc", "/portal"):
+            from pocket.auth import current_user, is_home_lan_client
             from pocket.phoneai_os_ui import phoneai_portal_html
             from pocket.phoneai_portal import mint_portal_token, portal_cookie
 
-            tok = mint_portal_token()
-            host = (self.headers.get("Host") or "").lower()
-            xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
-            secure = xf == "https" or "medinatechlabs.net" in host
-            return self._html(phoneai_portal_html(), extra_headers=[("Set-Cookie", portal_cookie(tok, secure=secure))])
+            extra = []
+            lan = is_home_lan_client(self.headers, getattr(self, "client_address", None))
+            seated = bool(current_user(self.headers))
+            if lan:
+                try:
+                    from pocket.passkey import pairing_open
+
+                    pairing_open(minutes=10)
+                except Exception:
+                    pass
+            if lan or seated:
+                tok = mint_portal_token()
+                host = (self.headers.get("Host") or "").lower()
+                xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
+                secure = xf == "https" or "medinatechlabs.net" in host or "trycloudflare.com" in host
+                extra.append(("Set-Cookie", portal_cookie(tok, secure=secure)))
+            return self._html(phoneai_portal_html(), extra_headers=extra or None)
         if path in ("/phoneai/glasses", "/glasses", "/phoneai/hud", "/phoneai/airpods", "/airpods", "/phoneai/wear"):
             from pocket.phoneai_os_ui import phoneai_glasses_html
 
@@ -1468,7 +1481,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, engines_catalog())
         if path in ("/v1/eyes", "/api/eyes"):
             from pocket.agent_eyes import catalog as eyes_cat, see as eyes_see
+            from pocket.host_control import allow as host_ok
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="eyes")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             q = parse_qs(urlparse(self.path).query)
             which = (q.get("which") or [""])[0]
             if which:
@@ -1776,6 +1793,29 @@ class Handler(BaseHTTPRequestHandler):
                         "engine": {"worker_alive": _worker_started},
                     },
                 )
+        if path in ("/v1/auth/passkey", "/v1/auth/passkey/begin"):
+            from pocket.auth import is_home_lan_client
+            from pocket.passkey import begin_login, begin_register, can_register, snapshot as pk_snap
+
+            q = parse_qs(urlparse(self.path).query)
+            kind = (q.get("kind") or ["login"])[0]
+            host = (self.headers.get("Host") or "127.0.0.1:8787")
+            if kind in ("register", "create"):
+                lan = is_home_lan_client(self.headers, getattr(self, "client_address", None))
+                seated = bool(rbac_principal(self.headers).get("user"))
+                if not can_register(lan=lan, authed=seated):
+                    return self._json(
+                        403,
+                        {
+                            "ok": False,
+                            "error": "pair_required",
+                            "hint": "Open Portal on home Wi-Fi once, or on the PC tap Allow this phone, then Face ID.",
+                        },
+                    )
+                return self._json(200, begin_register(host=host))
+            data = begin_login(host=host)
+            data.update(pk_snap())
+            return self._json(200, data)
         if path == "/v1/auth/me":
             u = rbac_principal(self.headers)
             if (u.get("role") or "none") == "none":
@@ -4072,6 +4112,50 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
 
+        if path in ("/v1/auth/passkey/allow",):
+            from pocket.auth import is_home_lan_client
+            from pocket.passkey import pairing_open
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                who = rbac_principal(self.headers)
+                if not (who.get("user") and who.get("role") in ("admin", "owner", "founder")):
+                    return self._json(403, {"ok": False, "error": "Allow this phone from the PC (home Wi-Fi)."})
+            return self._json(200, pairing_open(minutes=float(body.get("minutes") or 10)))
+        if path in ("/v1/auth/passkey/register", "/v1/auth/passkey/finish"):
+            from pocket.auth import is_home_lan_client
+            from pocket.passkey import can_register, finish_register
+            from pocket.phoneai_portal import mint_portal_token, portal_cookie
+
+            lan = is_home_lan_client(self.headers, getattr(self, "client_address", None))
+            seated = bool(rbac_principal(self.headers).get("user"))
+            if not can_register(lan=lan, authed=seated):
+                return self._json(403, {"ok": False, "error": "pair_required", "hint": "Open Portal on the PC first."})
+            host = self.headers.get("Host") or "127.0.0.1:8787"
+            res = finish_register(body if isinstance(body, dict) else {}, host=host)
+            if not res.get("ok"):
+                return self._json(401, res)
+            xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
+            secure = xf == "https" or "medinatechlabs.net" in host.lower() or "trycloudflare.com" in host.lower()
+            extra = [
+                ("Set-Cookie", self._session_cookie(res["token"])),
+                ("Set-Cookie", portal_cookie(mint_portal_token(), secure=secure)),
+            ]
+            return self._json(200, res, extra_headers=extra)
+        if path in ("/v1/auth/passkey/login",):
+            from pocket.passkey import finish_login
+            from pocket.phoneai_portal import mint_portal_token, portal_cookie
+
+            host = self.headers.get("Host") or "127.0.0.1:8787"
+            res = finish_login(body if isinstance(body, dict) else {}, host=host)
+            if not res.get("ok"):
+                return self._json(401, res)
+            xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
+            secure = xf == "https" or "medinatechlabs.net" in host.lower() or "trycloudflare.com" in host.lower()
+            extra = [
+                ("Set-Cookie", self._session_cookie(res["token"])),
+                ("Set-Cookie", portal_cookie(mint_portal_token(), secure=secure)),
+            ]
+            return self._json(200, res, extra_headers=extra)
         if path == "/v1/auth/login":
             from pocket.ratelimit import hit
             from pocket.users import issue_token, verify
@@ -4171,8 +4255,12 @@ class Handler(BaseHTTPRequestHandler):
                 webmcp_scan(url=str(body.get("url") or ""), fusion=bool(body.get("fusion") or body.get("screen"))),
             )
         if path in ("/v1/webmcp/use", "/api/webmcp/use"):
+            from pocket.host_control import allow as host_ok
             from pocket.webmcp import use_action
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="webmcp")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(
                 200,
                 use_action(str(body.get("name") or body.get("id") or body.get("action") or ""), prompt=str(body.get("prompt") or body.get("text") or "")),
@@ -4205,9 +4293,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, gh_snap())
             return self._json(200, gh_push(message=str(body.get("message") or "phoneai")))
         if path in ("/v1/phoneai/shell", "/api/phoneai/shell", "/v1/shell"):
+            from pocket.host_control import allow as host_ok
             from pocket.ratelimit import hit as rl_hit
             from pocket.shell_exec import run as sh_run
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="shell")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             ip = self._client_ip()
             ok_rl, reason = rl_hit("phoneai_work", ip, kind="api")
             if not ok_rl:
@@ -4218,13 +4310,17 @@ class Handler(BaseHTTPRequestHandler):
                     str(body.get("command") or body.get("cmd") or body.get("shell") or ""),
                     cwd=str(body.get("cwd") or ""),
                     timeout=float(body.get("timeout") or 25),
-                    allow_destructive=bool(body.get("allow_destructive")),
+                    allow_destructive=False,
                 ),
             )
         if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
+            from pocket.host_control import allow as host_ok
             from pocket.ratelimit import hit as rl_hit
             from pocket.work_harness import run as harness_run
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="harness")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             ip = self._client_ip()
             ok_rl, reason = rl_hit("phoneai_work", ip, kind="api")
             if not ok_rl:
@@ -4297,10 +4393,11 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path in ("/v1/eyes/touch", "/api/eyes/touch"):
             from pocket.agent_eyes import act as eyes_act
-            from pocket.phoneai_portal import touch_allowed
+            from pocket.host_control import allow as host_ok
 
-            if not touch_allowed(self.headers, getattr(self, "client_address", None)):
-                return self._json(403, {"ok": False, "error": "sign in, use LAN, or open the PhoneAI tunnel URL"})
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="eyes")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(
                 200,
                 eyes_act(

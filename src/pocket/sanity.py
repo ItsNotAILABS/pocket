@@ -65,7 +65,7 @@ def guard_shell(command: str, *, allow_destructive: bool = False) -> Dict[str, A
             "ok": False,
             "blocked": True,
             "reason": "sanity_guard_destructive",
-            "message": "Destructive shell blocked. Pass allow_destructive=true only with human confirm.",
+            "message": "Destructive shell blocked. Caller-controlled allow_destructive is not accepted.",
             "command_head": (command or "")[:120],
         }
     return {"ok": True, "allowed": True}

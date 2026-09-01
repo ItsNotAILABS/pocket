@@ -47,9 +47,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/health",
     "/v1/claims",
     "/v1/invention",
-    "/v1/engines",
-    "/v1/eyes",
-    "/v1/eyes/touch",
     "/v1/production",
     "/v1/prod/status",
     "/v1/hardware",
@@ -59,16 +56,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/phone/status",
     "/v1/runtime/heartbeat",
     "/v1/heartbeat",
-    "/v1/runtime",
-    "/api/runtime",
-    "/v1/host",
-    "/v1/runtime/status",
-    "/v1/runtime/ensure",
-    "/api/runtime/ensure",
-    "/v1/host/ensure",
-    "/v1/runtime/install",
-    "/api/runtime/install",
-    "/v1/host/install",
     "/v1/setup",
     "/api/setup",
     "/setup",
@@ -80,9 +67,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/phoneai/runtime",
     "/phoneai/site",
     "/runtime",
-    "/v1/phoneai/voice-screen",
-    "/api/phoneai/voice-screen",
-    "/v1/voice-screen",
     "/v1/status",
     "/v1/ready",
     "/v1/auth/login",
@@ -95,9 +79,13 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/auth/code",
     "/v1/auth/code/mint",
     "/v1/auth/oauth",
-    "/v1/clis",
+    "/v1/auth/passkey/begin",
+    "/v1/auth/passkey/finish",
+    "/v1/auth/passkey/login",
+    "/v1/auth/passkey/register",
+    "/v1/auth/passkey/allow",
+    "/v1/auth/passkey",
     "/v1/auth/clis",
-    "/v1/model-clis",
     "/ecosystem",
     "/v1/ecosystem",
     "/network",
@@ -106,21 +94,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/studio/develop",
     "/studio/ship",
     "/studio/ship-agents",
-    "/v1/network/agents",
-    "/v1/network/agents/run",
-    "/v1/network/agents/ship",
-    "/v1/twin",
-    "/v1/twin/mint",
-    "/v1/twin/open",
-    "/v1/twin/vault",
-    "/v1/twin/agent",
-    "/v1/twin/agent/run",
-    "/api/twin",
-    "/api/twin/mint",
-    "/api/twin/open",
-    "/api/twin/vault",
-    "/api/twin/agent",
-    "/api/twin/agent/run",
     "/phoneai",
     "/agents",
     "/agents/",
@@ -138,62 +111,37 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/phoneai/portal",
     "/phoneai/pc",
     "/portal",
+    "/phoneai/tv",
+    "/tv",
+    "/phoneai/doorbell",
+    "/doorbell",
+    "/phoneai/cam",
+    "/phoneai/camera-pc",
     "/phoneai/glasses",
     "/glasses",
     "/phoneai/airpods",
     "/airpods",
     "/phoneai/wear",
-    "/v1/phoneai/wear",
-    "/v1/wear",
     "/phoneai/web",
     "/live-web",
     "/phoneai/twin",
     "/twin",
-    "/v1/phoneai/work",
-    "/v1/phoneai/work/stream",
-    "/v1/phoneai/space",
-    "/v1/phoneai/life",
-    "/v1/phoneai/settings",
-    "/v1/phoneai/anti",
-    "/v1/phoneai/photo",
     "/phoneai/manifest.json",
     "/phoneai/manifest",
-    "/v1/phoneai/desk",
-    "/v1/phoneai/sessions",
-    "/v1/phoneai/personas",
-    "/v1/phoneai/coder",
-    "/v1/coder",
-    "/v1/phoneai/talk",
-    "/api/phoneai/sessions",
-    "/api/phoneai/talk",
-    "/v1/live-desk",
-    "/api/phoneai/work",
-    "/api/phoneai/life",
-    "/api/phoneai/settings",
-    "/api/phoneai/anti",
     "/webmcp",
     "/web-mcp",
-    "/v1/webmcp",
-    "/v1/webmcp/scan",
-    "/v1/webmcp/use",
-    "/v1/webmcp/find",
-    "/api/webmcp/scan",
-    "/api/webmcp/use",
     "/kernel",
     "/tech",
     "/v1/tech",
     "/v1/atlas",
     "/v1/companion/status",
-    "/v1/companion/chat",
-    "/v1/live/chat",
     "/v1/imagine",
     "/v1/imagine/status",
     "/v1/imagine/gallery",
     "/v1/imagine/composites",
     "/v1/imagine/modes",
     "/v1/imagine/file",
-    "/v1/imagine/compose",
-    "/v1/imagine/render",
+
     "/v1/phoneai/kernel",
     "/v1/kernel",
     "/join",
@@ -229,8 +177,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/identity",
     "/v1/foundations",
     "/v1/neuro",
-    "/v1/neuro/think",
-    "/v1/neuro-think",
     "/v1/ai/foundations",
     "/v1/models/foundations",
     "/v1/whoami",
@@ -244,7 +190,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/doctrine/organisms",
     "/v1/rah",
     "/v1/rah/status",
-    "/v1/rah/plan",
     "/v1/protocols/rah",
     "/v1/internal-models",
     "/v1/internal_models",
@@ -455,12 +400,21 @@ LOCAL_PUBLIC_PATHS = frozenset({
     "/v1/home/devices",
     "/v1/phone/bridge",
     "/v1/node/hello",
+    "/v1/runtime",
+    "/api/runtime",
+    "/v1/host",
+    "/v1/runtime/status",
+    "/v1/engines",
+    "/api/engines",
+    "/v1/clis",
 })
 
 # Back-compat name used by auth_summary / older callers
 PUBLIC_PATHS = ALWAYS_PUBLIC_PATHS | LOCAL_PUBLIC_PATHS
 
 # Prefixes that remain public (file downloads under /download/files/…)
+# Never put /api/, /phoneai/, /v1/phoneai/ here — those prefixes hid host-control
+# routes (shell, frames, eyes, runtime install) from authentication.
 PUBLIC_PREFIXES = (
     "/download/files/",
     "/download/desktop/",
@@ -472,14 +426,69 @@ PUBLIC_PREFIXES = (
     "/docs/md/",
     "/v1/doctrine/",
     "/v1/auth/oauth/",
-    "/api/",
-    "/phoneai/",
-    "/v1/phoneai/",
+    "/v1/auth/passkey/",
+    "/ui/",
+    "/assets/",
     "/v1/agents/face/",
-    "/v1/twin/",
-    "/v1/network/",
-    "/v1/imagine/",
 )
+
+# Visual PhoneAI (stream + phone kernel JSON) after LAN / Face ID / seat / portal cookie.
+# Not shell, harness, eyes, runtime install, WebMCP use, or vault push.
+PORTAL_DEVICE_PATHS = frozenset({
+    "/v1/phoneai/portal",
+    "/v1/phoneai/portal/frame",
+    "/v1/phoneai/portal/touch",
+    "/v1/phoneai/portal/ws",
+    "/v1/phoneai/portal/windows",
+    "/v1/phoneai/portal/apps",
+    "/api/phoneai/portal",
+    "/api/phoneai/portal/frame",
+    "/api/phoneai/portal/touch",
+    "/api/phoneai/portal/ws",
+    "/v1/phoneai/anti/frame",
+    "/v1/phoneai/anti/touch",
+    "/api/phoneai/anti/frame",
+    "/api/phoneai/anti/touch",
+    "/v1/phoneai/sessions",
+    "/api/phoneai/sessions",
+    "/v1/phoneai/talk",
+    "/api/phoneai/talk",
+    "/v1/phoneai/life",
+    "/api/phoneai/life",
+    "/v1/phoneai/desk",
+    "/v1/phoneai/personas",
+    "/v1/phoneai/work",
+    "/api/phoneai/work",
+    "/v1/phoneai/photo",
+    "/v1/phoneai/photos",
+})
+
+HOST_CONTROL_PATHS = frozenset({
+    "/v1/phoneai/shell",
+    "/api/phoneai/shell",
+    "/v1/shell",
+    "/v1/phoneai/harness",
+    "/api/phoneai/harness",
+    "/v1/harness",
+    "/v1/eyes",
+    "/api/eyes",
+    "/v1/eyes/touch",
+    "/api/eyes/touch",
+    "/v1/runtime/ensure",
+    "/api/runtime/ensure",
+    "/v1/host/ensure",
+    "/v1/runtime/install",
+    "/api/runtime/install",
+    "/v1/host/install",
+    "/v1/webmcp/use",
+    "/api/webmcp/use",
+    "/v1/twin/agent/run",
+    "/api/twin/agent/run",
+    "/v1/phoneai/github",
+    "/api/phoneai/github",
+    "/v1/phoneai/voice-screen",
+    "/api/phoneai/voice-screen",
+})
 
 # Loopback-only prefixes (in-chat app preview iframes need cookie-less same-origin GET)
 LOCAL_PUBLIC_PREFIXES = (
@@ -748,6 +757,37 @@ def expected_password() -> str:
     return _AUTH.password
 
 
+def _portal_device_ok(
+    headers: Optional[Mapping[str, str]] = None,
+    client_address: Optional[Tuple] = None,
+) -> bool:
+    """Home LAN, signed-in seat, Face ID session, or Portal cookie — not anonymous internet."""
+    headers = headers or {}
+    if is_home_lan_client(headers, client_address):
+        return True
+    try:
+        if current_user(headers):
+            return True
+    except Exception:
+        pass
+    try:
+        from pocket.phoneai_portal import check_portal_token, token_from_headers
+
+        tok = token_from_headers(headers, None)
+        if tok and check_portal_token(tok):
+            return True
+    except Exception:
+        pass
+    try:
+        from pocket.passkey import session_user
+
+        if session_user(headers):
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def path_is_public(
     path: str,
     headers: Optional[Mapping[str, str]] = None,
@@ -769,6 +809,13 @@ def path_is_public(
 
     if p in ALWAYS_PUBLIC_PATHS or check in ALWAYS_PUBLIC_PATHS:
         return True
+
+    if p in HOST_CONTROL_PATHS or check in HOST_CONTROL_PATHS:
+        # This PC / home Wi-Fi only. Named tunnel never gets shell/eyes/install from the prefix.
+        return is_home_lan_client(headers, client_address)
+
+    if p in PORTAL_DEVICE_PATHS or check in PORTAL_DEVICE_PATHS:
+        return _portal_device_ok(headers, client_address)
 
     # Local preview iframes (and similar) — loopback / home LAN only, never public internet
     for pref in LOCAL_PUBLIC_PREFIXES:
