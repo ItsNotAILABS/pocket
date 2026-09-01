@@ -23,7 +23,7 @@ Sign in without the Edge password box:
 
 The substantive Pocket **3.8** expansion reached `main` on **31 August 2026**. It introduced the PhoneAI kernel seat, first-class Portal (live PC stream + touch-to-mouse), Antigravity as a separate HWND desktop-app surface, twin mint on the operator machine, and WebMCP work functions (studios as agent tools — not extra screens). Live host is **3.12+** (immersive phone glass, Focus as a mobile window, vault encrypt-then-MAC, RAH).
 
-**Host-control policy (3.12.2):** public HTTP is static shells, health, and login only. `/api/` and `/v1/phoneai/` are not blanket-public. The visual tunnel app uses **Face ID** (WebAuthn) or home Wi-Fi — not a password dialog. Shell, agent eyes, runtime install, and vault push require LAN or a Face ID / signed-in seat. PhoneAI GitHub vaults are **private** and secret-scanned.
+**Host-control policy (3.12.3):** public HTTP is static shells, health, and login only. Portal cookies are identity-bound (no anonymous mint). Twin vault identity is the signed-in principal. RAH fan-out is plan-only until a WorkGrant. Grok/Codex on PhoneAI run the real CLIs with the live desk session stripped. Pixel Memory no longer writes reconstructable `.rgb` sidecars.
 
 **Portal** (first-class PC stream): [http://127.0.0.1:8787/phoneai/portal](http://127.0.0.1:8787/phoneai/portal)  
 **Antigravity** (HWND stream + touch): [http://127.0.0.1:8787/phoneai/anti](http://127.0.0.1:8787/phoneai/anti)  
