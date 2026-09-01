@@ -635,20 +635,45 @@ def _run_leaf_harness(
             )
 
     if mode in ("auro", "auro14b", "meaning"):
+        rec["engine"] = "auro"
+        try:
+            from pocket.auro14b_bridge import auro_root
+
+            root = auro_root()
+            if root:
+                import sys
+
+                pth = str(root)
+                if pth not in sys.path:
+                    sys.path.insert(0, pth)
+                from auro_native_llm.rah import run_rah as auro_run_rah
+
+                ar = auro_run_rah(goal, max_parallel=1, depth=0)
+                rec["status"] = "done" if ar.get("ok") else "fail"
+                rec["ok"] = bool(ar.get("ok"))
+                rec["result"] = (ar.get("synthesis") or json.dumps(ar, default=str))[:12000]
+                rec["auro_run_id"] = ar.get("run_id")
+                rec["finished_at"] = time.time()
+                rec["duration_sec"] = round(rec["finished_at"] - started, 2)
+                return rec
+        except Exception as e:
+            rec["error"] = str(e)[:400]
         try:
             from pocket.internal_models.modules.auro import AuroModel
 
-            res = AuroModel().express(goal, genome=None)
+            class _Deep:
+                def strategy(self) -> str:
+                    return "deep"
+
+            res = AuroModel().express(goal, genome=_Deep())
             rec["status"] = "done" if getattr(res, "ok", True) else "fail"
             rec["ok"] = bool(getattr(res, "ok", True))
             rec["result"] = str(getattr(res, "text", res) or "")[:12000]
-            rec["engine"] = "auro"
             rec["finished_at"] = time.time()
             rec["duration_sec"] = round(rec["finished_at"] - started, 2)
             return rec
         except Exception as e:
-            rec["engine"] = "auro"
-            rec["error"] = str(e)[:400]
+            rec["error"] = ((rec.get("error") or "") + " | " + str(e))[:400]
             # fall through to host job
     job = create_job(
         goal_full[:20000],
