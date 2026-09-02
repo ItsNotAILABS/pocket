@@ -58,6 +58,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 .engines i.on{color:#042;background:var(--g);border-color:var(--g)}
 .more a{color:var(--c)}
 .ws-desk{display:none}
+body.desk .dock{display:none!important;pointer-events:none}
 @media (orientation:landscape){
   html,body{max-width:none!important;width:100%!important;height:100dvh!important;height:100svh!important;margin:0;overflow:hidden;padding:0}
   body.desk{
@@ -69,7 +70,7 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
   body.desk #v-home.view.on,body.desk #v-home{display:contents!important}
   body.desk .ws-desk{
     display:flex!important;flex-direction:column;
-    position:fixed;inset:0;z-index:3;padding:0;margin:0;width:100%;height:100%;background:#000
+    position:fixed;inset:0;z-index:30;padding:0;margin:0;width:100%;height:100%;background:#000
   }
   body.desk .ws-stage{
     position:absolute;inset:0;aspect-ratio:auto;max-height:none;width:100%;height:100%;
@@ -652,7 +653,7 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#000000"/>
-<title>Portal · PhoneAI · 3.13</title>
+<title>Portal · PhoneAI · 3.13.2</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -660,9 +661,16 @@ html,body{width:100%;height:100%;height:100dvh;height:100svh;margin:0;background
 html{position:fixed;inset:0}
 body{position:fixed;inset:0;padding:0;touch-action:manipulation}
 .stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;min-height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
+.stage img{background:#000}
 .view{position:absolute;inset:0;transform-origin:0 0}
 .view img{position:absolute;left:0;top:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
+.dot.hold{width:28px;height:28px;background:rgba(0,255,134,.28);box-shadow:0 0 0 8px rgba(0,255,134,.18)}
+.mode-badge{position:absolute;top:calc(12px + env(safe-area-inset-top));left:14px;z-index:13;display:none;align-items:center;gap:8px;background:rgba(5,6,10,.82);border:1px solid var(--g);color:var(--g);border-radius:999px;padding:8px 12px;font-weight:800;font-size:12px;letter-spacing:.04em;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+body.drag-mode .mode-badge,body.hold-mode .mode-badge{display:flex}
+.mode-badge i{width:18px;height:18px;display:block;background:currentColor;mask-size:contain;mask-repeat:no-repeat;mask-position:center;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center}
+body.drag-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M13 6.4L16.6 10H14v4h2.6L13 17.6 14.4 19 20 13.4 14.4 7.8 13 6.4zM11 6.4L9.6 7.8 4 13.4 9.6 19 11 17.6 7.4 14H10V10H7.4L11 6.4z'/></svg>");-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M13 6.4L16.6 10H14v4h2.6L13 17.6 14.4 19 20 13.4 14.4 7.8 13 6.4zM11 6.4L9.6 7.8 4 13.4 9.6 19 11 17.6 7.4 14H10V10H7.4L11 6.4z'/></svg>")}
+body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='black'/></svg>");-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='black'/></svg>")}
 .joy{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;background:rgba(20,20,28,.45);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .top,.tabs,.apps,.ctrl,.bar{position:fixed;left:0;right:0;z-index:8;background:rgba(5,6,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .22s ease,opacity .22s ease}
@@ -683,6 +691,15 @@ body{position:fixed;inset:0;padding:0;touch-action:manipulation}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.55);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
 .tabs button,.apps button{flex:0 0 auto;border:1px solid var(--line);background:#14141c;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tabs button.on{background:var(--g);color:#042;border-color:var(--g);font-weight:800}
+.wtab{display:flex;align-items:center;gap:4px;flex:0 0 auto;border:1px solid var(--line);background:#14141c;border-radius:14px;padding:4px 8px 4px 6px;max-width:64vw}
+.wtab.on{border-color:var(--g);background:rgba(0,255,134,.14)}
+.wtab .chrome{display:flex;gap:4px;flex:0 0 auto}
+.wtab .chrome button{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;border:0;border-radius:50%;font-size:10px;font-weight:900;line-height:18px;color:#1a1200}
+.wtab .wmin{background:#f5c542}
+.wtab .wmax{background:#3dd68c}
+.wtab .wclose{background:#ff5f57;color:#3a0000}
+.wtab .wtitle{border:0;background:transparent;color:#fff;font-size:11px;padding:4px 6px;max-width:34vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:8px}
+.wtab.on .wtitle{color:var(--g);font-weight:800}
 .net{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.04em}
 .pills{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;z-index:12;display:flex;gap:6px}
 .pills button{min-width:44px;min-height:36px;border-radius:999px;border:1px solid var(--line);background:rgba(5,6,10,.72);color:#fff;font-weight:800;font-size:11px;letter-spacing:.04em}
@@ -724,6 +741,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
     <img id="frame" alt="PC" src="/v1/phoneai/portal/frame?target=desktop&max_w=1280&q=72&t=1" draggable="false"/>
   </div>
   <div class="dot" id="dot"></div>
+  <div class="mode-badge" id="modeBadge"><i></i><span id="modeBadgeText">MOVE</span></div>
   <div class="joy" id="joy"><i id="knob"></i></div>
   <div class="hint" id="hint">Entire PC is shown. Focus = mobile view of the active app. Off = full desktop.</div>
 </div>
@@ -873,19 +891,32 @@ function ptFrom(ev){
   lastNx=nx; lastNy=ny;
   return {nx, ny, cx:src.clientX, cy:src.clientY, id: ev.pointerId||src.identifier||0};
 }
-function showDot(cx,cy){ const s=stage.getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
+function showDot(cx,cy,hold){
+  const s=stage.getBoundingClientRect();
+  dot.style.display='block';
+  dot.style.left=(cx-s.left)+'px';
+  dot.style.top=(cy-s.top)+'px';
+  dot.classList.toggle('hold', !!hold);
+}
+function setScreenMode(kind){
+  document.body.classList.toggle('drag-mode', kind==='move');
+  document.body.classList.toggle('hold-mode', kind==='hold');
+  const t=document.getElementById('modeBadgeText');
+  if(t) t.textContent=kind==='move'?'MOVE':(kind==='hold'?'HOLD':'');
+}
 function aim(p, why){
-  armed=true; lastNx=p.nx; lastNy=p.ny; showDot(p.cx||p.x, p.cy||p.y);
+  armed=true; lastNx=p.nx; lastNy=p.ny; showDot(p.cx||p.x, p.cy||p.y, false);
   hint.textContent=(why||'Armed')+' — L / R / Scroll act here';
 }
 function send(kind, nx, ny, extra){
   extra=Object.assign({}, extra||{});
-  if(activeHwnd && extra.hwnd==null) extra.hwnd=activeHwnd;
+  const winOps=/^(focus|maximize|minimize|restore|close|move_window|scroll)$/.test(kind);
+  if(activeHwnd && extra.hwnd==null && (phoneFocus || winOps)) extra.hwnd=activeHwnd;
   const payload=Object.assign({kind,nx:nx,ny:ny,target}, extra);
   if(liveOk && live && live.readyState===1){
     try{ live.send(JSON.stringify(payload)); return Promise.resolve({ok:true, via:'ws'}); }catch(_){}
   }
-  const hot=/^(drag|scroll|joy|nudge|stick|move|hover|down|up|move_window)$/.test(kind);
+  const hot=/^(drag|scroll|joy|nudge|stick|move|hover|down|up|hold|press|release|move_window)$/.test(kind);
   const p=fetch('/v1/phoneai/portal/touch',{
     method:'POST',
     credentials:'include',
@@ -901,7 +932,7 @@ function send(kind, nx, ny, extra){
     const hid=parseInt((j.focus&&j.focus.hwnd)||j.hwnd||0,10);
     if(hid) activeHwnd=hid;
     if(j && j.focus && j.focus.title) hint.textContent=(j.maximized?'Fullscreen: ':'Main: ')+j.focus.title;
-    if(kind==='focus' || kind==='maximize' || (j && j.focus && j.focus.main)) loadWins();
+    if(kind==='focus' || kind==='maximize' || kind==='minimize' || kind==='close' || kind==='restore' || (j && j.focus && j.focus.main)) loadWins();
     if(j && j.ok===false && j.error) hint.textContent=j.error;
     return j;
   }).catch(()=>{ hint.textContent='Touch failed — check host / tunnel'; });
@@ -918,10 +949,16 @@ function openLive(){
   live.onmessage=ev=>{
     if(typeof ev.data==='string') return;
     const url=URL.createObjectURL(ev.data);
-    img.src=url;
-    if(blobUrl) URL.revokeObjectURL(blobUrl);
-    blobUrl=url;
-    if(img.naturalWidth) layout();
+    const prev=blobUrl;
+    const im=new Image();
+    im.onload=()=>{
+      img.src=url;
+      layout();
+      if(prev && prev!==url) URL.revokeObjectURL(prev);
+      blobUrl=url;
+    };
+    im.onerror=()=>{ URL.revokeObjectURL(url); };
+    im.src=url;
   };
 }
 function b64urlToBuf(s){
@@ -999,18 +1036,32 @@ function loadWins(){
     el.innerHTML=list.map(w=>{
       const t=(w.title||('hwnd '+w.hwnd)).replace(/[<>]/g,'');
       const mark=w.minimized?'· ':'';
-      return '<button type="button" class="'+(w.focused?'on':'')+'" data-hwnd="'+w.hwnd+'">'+mark+t.slice(0,36)+'</button>';
+      const on=w.focused?' on':'';
+      return '<div class="wtab'+on+'" data-hwnd="'+w.hwnd+'"><span class="chrome">'
+        +'<button type="button" class="wmin" data-act="minimize" aria-label="Minimize">–</button>'
+        +'<button type="button" class="wmax" data-act="maximize" aria-label="Maximize">□</button>'
+        +'<button type="button" class="wclose" data-act="close" aria-label="Close">×</button>'
+        +'</span><button type="button" class="wtitle">'+mark+t.slice(0,28)+'</button></div>';
     }).join('') || '<button type="button" disabled>No windows</button>';
   }).catch(()=>{});
 }
 loadWins(); setInterval(loadWins, 3000);
 document.getElementById('tabs').onclick=e=>{
-  const b=e.target.closest('[data-hwnd]'); if(!b) return;
+  const tab=e.target.closest('[data-hwnd]'); if(!tab) return;
   e.preventDefault(); e.stopPropagation();
-  const hwnd=parseInt(b.getAttribute('data-hwnd'),10);
+  const hwnd=parseInt(tab.getAttribute('data-hwnd'),10);
+  const actEl=e.target.closest('[data-act]');
+  activeHwnd=hwnd;
+  if(actEl){
+    const act=actEl.getAttribute('data-act');
+    send(act, 0.5, 0.5, {hwnd:hwnd});
+    hint.textContent=(act==='close'?'Closing':act==='minimize'?'Minimizing':'Max / restore')+' that window';
+    setTimeout(loadWins, 350);
+    return;
+  }
   const now=Date.now();
   if(tabTaps.hwnd===hwnd && now-tabTaps.t<900) tabTaps.n+=1; else tabTaps={hwnd:hwnd,n:1,t:now};
-  tabTaps.t=now; activeHwnd=hwnd;
+  tabTaps.t=now;
   if(tabTaps.n>=3){
     tabTaps.n=0;
     send('maximize', 0.5, 0.5, {hwnd:hwnd});
@@ -1091,6 +1142,7 @@ function emitScroll(nx, ny, dx, dy){
 }
 function emitMoveWin(p){
   if(!startAt) return;
+  if(!startAt.seeded){ startAt.lastX=p.cx; startAt.lastY=p.cy; startAt.seeded=true; return; }
   const now=Date.now();
   if(now-lastDrag<16) return;
   lastDrag=now;
@@ -1100,13 +1152,14 @@ function emitMoveWin(p){
   startAt.lastX=p.cx; startAt.lastY=p.cy;
   send('move_window', startAt.nx, startAt.ny, {dx:dx, dy:dy, hwnd:activeHwnd||undefined});
   hint.textContent='Moving the desktop window';
+  setScreenMode('move');
 }
 function onDown(ev){
   if(mode!=='touch') return;
   const n=syncFingers(ev);
-  const p=ptFrom(ev); showDot(p.cx,p.cy);
+  const p=ptFrom(ev); showDot(p.cx,p.cy,false);
   if(n>=2){
-    clearLong(); gest='twoscroll';
+    clearLong(); gest='twoscroll'; setScreenMode('');
     const pts=[...fingers.values()];
     pinch={d:Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y)||1, z:zoom, px:panX, py:panY, mx:(pts[0].x+pts[1].x)/2, my:(pts[0].y+pts[1].y)/2};
     return;
@@ -1114,11 +1167,19 @@ function onDown(ev){
   const now=Date.now();
   startAt={x:p.cx, y:p.cy, nx:p.nx, ny:p.ny, cx:p.cx, cy:p.cy, lastX:p.cx, lastY:p.cy, moved:false};
   if(now-lastTap<360){
-    lastTap=0; gest='move'; aim(p, 'Double-tap — drag to move this window'); clearLong(); return;
+    lastTap=0; gest='move'; setScreenMode('move'); aim(p, 'Double-tap — drag to move this window'); clearLong(); return;
   }
   gest='pending';
-  const holdMs=(ev.pressure&&ev.pressure>0.45)?160:280;
-  longTimer=setTimeout(()=>{ if(gest==='pending'){ gest='armed'; aim(startAt, 'Hold — swipe to scroll'); } }, holdMs);
+  const holdMs=(ev.pressure&&ev.pressure>0.45)?140:220;
+  longTimer=setTimeout(()=>{
+    if(gest==='pending'){
+      gest='hold';
+      send('down', startAt.nx, startAt.ny);
+      showDot(startAt.cx, startAt.cy, true);
+      setScreenMode('hold');
+      hint.textContent='Holding click — lift to release, slide to drag';
+    }
+  }, holdMs);
 }
 function onMove(ev){
   const n=syncFingers(ev);
@@ -1143,22 +1204,22 @@ function onMove(ev){
     return;
   }
   if(mode!=='touch' || !startAt) return;
-  showDot(p.cx,p.cy);
+  showDot(p.cx,p.cy, gest==='hold');
   const dist=Math.hypot(p.cx-startAt.x, p.cy-startAt.y);
   if(gest==='move' && dist>8){
     startAt.moved=true; emitMoveWin(p); return;
   }
-  if(gest==='armed' && dist>12){
-    clearLong(); gest='scroll';
-  } else if(gest==='pending' && dist>14){
+  if(gest==='pending' && dist>10){
     clearLong(); gest='drag'; send('down', startAt.nx, startAt.ny);
+  } else if(gest==='hold' && dist>10){
+    gest='drag';
   }
   if(gest==='scroll'){
     const dy=(p.cy-startAt.lastY)/48;
     const dx=(p.cx-startAt.lastX)/64;
     startAt.lastY=p.cy; startAt.lastX=p.cx;
     emitScroll(startAt.nx, startAt.ny, dx, dy);
-  } else if(gest==='drag'){
+  } else if(gest==='drag' || gest==='hold'){
     const now=Date.now();
     if(now-lastDrag<16) return;
     lastDrag=now;
@@ -1185,12 +1246,12 @@ function onUp(ev){
     } else {
       lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny);
     }
-  } else if(gest==='drag'){
+  } else if(gest==='drag' || gest==='hold'){
     send('up', p.nx, p.ny);
   } else if(gest==='move' && !startAt.moved){
     send('dbl', p.nx, p.ny);
-  } else if(gest==='armed'){ aim(p, 'Armed — swipe to scroll this window'); }
-  if(left){ if(gest!=='armed'){ gest=null; startAt=null; } fingers.clear(); }
+  }
+  if(left){ gest=null; startAt=null; fingers.clear(); setScreenMode(''); dot.classList.remove('hold'); }
 }
 stage.addEventListener('touchstart', ev=>{ usingTouch=true; ev.preventDefault(); onDown(ev); }, {passive:false});
 stage.addEventListener('touchmove', ev=>{ ev.preventDefault(); onMove(ev); }, {passive:false});
@@ -1221,11 +1282,12 @@ function bindPress(el, down, up){
   el.addEventListener('mouseup', e);
   el.addEventListener('mouseleave', e);
 }
-bindPress(document.getElementById('lmb'), ()=>send('tap', lastNx, lastNy));
+bindPress(document.getElementById('lmb'), ()=>{ send('down', lastNx, lastNy); setScreenMode('hold'); hint.textContent='Holding left click'; }, ()=>{ send('up', lastNx, lastNy); setScreenMode(''); });
 bindPress(document.getElementById('rmb'), ()=>send('right', lastNx, lastNy));
 bindPress(document.getElementById('moveBtn'), ()=>{
   gest='move';
   startAt={x:lastNx, y:lastNy, nx:lastNx, ny:lastNy, cx:0, cy:0, lastX:0, lastY:0, moved:false};
+  setScreenMode('move');
   hint.textContent='Move armed — drag the window';
 });
 let scrollHold=null;

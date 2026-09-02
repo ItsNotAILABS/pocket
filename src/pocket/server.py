@@ -4467,13 +4467,13 @@ class Handler(BaseHTTPRequestHandler):
                 dy=float(body.get("dy") or 0),
                 dx=float(body.get("dx") or 0),
                 text=str(body.get("text") or body.get("app") or ""),
-                target="desktop",
+                target=str(body.get("target") or "desktop"),
                 button=str(body.get("button") or "left"),
                 vk=int(body.get("vk") or 0),
                 n=int(body.get("n") or 1),
                 hwnd=int(body.get("hwnd") or 0),
             )
-            if kind in ("drag", "scroll", "joy", "nudge", "stick", "move", "hover", "down", "up", "move_window"):
+            if kind in ("drag", "scroll", "joy", "nudge", "stick", "move", "hover", "down", "up", "hold", "press", "release", "move_window"):
                 return self._json(200, {"ok": True, "kind": kind, "fast": True})
             return self._json(200, result)
         if path in ("/v1/phoneai/photos", "/api/phoneai/photos", "/v1/phoneai/photos/send"):

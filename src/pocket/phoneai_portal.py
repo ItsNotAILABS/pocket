@@ -217,11 +217,14 @@ def window_rect(title_substr: str = "Antigravity") -> Optional[Dict[str, int]]:
 GA_ROOT = 2
 SW_RESTORE = 9
 SW_MAXIMIZE = 3
+SW_MINIMIZE = 6
 WM_MOUSEWHEEL = 0x020A
 WM_MOUSEHWHEEL = 0x020E
+WM_CLOSE = 0x0010
 HWND_TOP = 0
 SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
+SWP_NOZORDER = 0x0004
 SWP_SHOWWINDOW = 0x0040
 _SKIP_FOCUS = ("portal · phoneai", "phoneai portal", "/phoneai/portal")
 
@@ -242,6 +245,8 @@ def _bind_user32():
     u.IsWindow.restype = ctypes.c_bool
     u.IsIconic.argtypes = [wintypes.HWND]
     u.IsIconic.restype = ctypes.c_bool
+    u.IsZoomed.argtypes = [wintypes.HWND]
+    u.IsZoomed.restype = ctypes.c_bool
     u.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
     u.SetForegroundWindow.argtypes = [wintypes.HWND]
     u.BringWindowToTop.argtypes = [wintypes.HWND]
@@ -327,8 +332,13 @@ def windows(*, limit: int = 40) -> Dict[str, Any]:
             if any(s in title.lower() for s in _SKIP_FOCUS):
                 continue
             iconic = False
+            zoomed = False
             try:
                 iconic = bool(u.IsIconic(hwnd))
+            except Exception:
+                pass
+            try:
+                zoomed = bool(u.IsZoomed(hwnd))
             except Exception:
                 pass
             r = _rect_of(hwnd)
@@ -339,6 +349,7 @@ def windows(*, limit: int = 40) -> Dict[str, Any]:
                     "focused": hwnd == fg,
                     "main": hwnd == fg,
                     "minimized": iconic,
+                    "maximized": zoomed,
                     **r,
                 }
             )
@@ -417,28 +428,86 @@ def move_hwnd(hwnd: int, dx: int, dy: int) -> Dict[str, Any]:
     hwnd = int(hwnd or 0)
     if hwnd <= 0 or not u.IsWindow(hwnd):
         return {"ok": False, "error": "no window"}
+    title = _title_of(hwnd)
+    if any(s in title.lower() for s in _SKIP_FOCUS):
+        return {"ok": False, "error": "skip portal viewer", "title": title}
     if u.IsIconic(hwnd):
         u.ShowWindow(hwnd, SW_RESTORE)
+    try:
+        if u.IsZoomed(hwnd):
+            u.ShowWindow(hwnd, SW_RESTORE)
+    except Exception:
+        pass
     r = _rect_of(hwnd)
     nx = int(r.get("x") or 0) + int(dx)
     ny = int(r.get("y") or 0) + int(dy)
-    u.SetWindowPos(hwnd, 0, nx, ny, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW)
-    return {"ok": True, "hwnd": hwnd, "x": nx, "y": ny, "title": _title_of(hwnd)[:80]}
+    u.SetWindowPos(hwnd, 0, nx, ny, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW)
+    now = _rect_of(hwnd)
+    return {"ok": True, "hwnd": hwnd, "x": now.get("x", nx), "y": now.get("y", ny), "title": title[:80]}
 
 
 def maximize_hwnd(hwnd: int) -> Dict[str, Any]:
-    """Focus a window and expand it to fill the monitor."""
+    """Focus a window and expand it to fill the monitor (toggle if already max)."""
     hwnd = int(hwnd or 0)
     r = focus_hwnd(hwnd, make_main=True)
     try:
         u = _bind_user32()
-        u.ShowWindow(hwnd, SW_MAXIMIZE)
-        r["maximized"] = True
+        if u.IsZoomed(hwnd):
+            u.ShowWindow(hwnd, SW_RESTORE)
+            r["maximized"] = False
+            r["restored"] = True
+        else:
+            u.ShowWindow(hwnd, SW_MAXIMIZE)
+            r["maximized"] = True
     except Exception as e:
         r["maximized"] = False
         r["error"] = str(e)[:160]
     _WIN_CACHE["t"] = 0.0
     return r
+
+
+def minimize_hwnd(hwnd: int) -> Dict[str, Any]:
+    u = _bind_user32()
+    hwnd = int(hwnd or 0)
+    if hwnd <= 0 or not u.IsWindow(hwnd):
+        return {"ok": False, "error": "no window"}
+    title = _title_of(hwnd)
+    if any(s in title.lower() for s in _SKIP_FOCUS):
+        return {"ok": False, "error": "skip portal viewer", "title": title}
+    u.ShowWindow(hwnd, SW_MINIMIZE)
+    _WIN_CACHE["t"] = 0.0
+    return {"ok": True, "hwnd": hwnd, "minimized": True, "title": title[:80]}
+
+
+def restore_hwnd(hwnd: int) -> Dict[str, Any]:
+    hwnd = int(hwnd or 0)
+    r = focus_hwnd(hwnd, make_main=True)
+    try:
+        u = _bind_user32()
+        u.ShowWindow(hwnd, SW_RESTORE)
+        r["restored"] = True
+        r["maximized"] = False
+        r["minimized"] = False
+    except Exception as e:
+        r["error"] = str(e)[:160]
+    _WIN_CACHE["t"] = 0.0
+    return r
+
+
+def close_hwnd(hwnd: int) -> Dict[str, Any]:
+    u = _bind_user32()
+    hwnd = int(hwnd or 0)
+    if hwnd <= 0 or not u.IsWindow(hwnd):
+        return {"ok": False, "error": "no window"}
+    title = _title_of(hwnd)
+    if any(s in title.lower() for s in _SKIP_FOCUS):
+        return {"ok": False, "error": "skip portal viewer", "title": title}
+    try:
+        u.PostMessageW(hwnd, WM_CLOSE, 0, 0)
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:160], "hwnd": hwnd, "title": title[:80]}
+    _WIN_CACHE["t"] = 0.0
+    return {"ok": True, "hwnd": hwnd, "closed": True, "title": title[:80]}
 
 
 def _wheel_hwnd(hwnd: int, x: int, y: int, dy: float, dx: float = 0.0) -> None:
@@ -580,6 +649,10 @@ def _blackout_self(img) -> None:
             y0 = int((rect.top - ps["y"]) * sy)
             x1 = int((rect.right - ps["x"]) * sx)
             y1 = int((rect.bottom - ps["y"]) * sy)
+            area = max(0, x1 - x0) * max(0, y1 - y0)
+            # A maximized Portal tab would grey the whole laptop. Skip huge rects.
+            if area > 0.18 * pw * ph:
+                continue
             draw.rectangle([x0, y0, x1, y1], fill=(8, 10, 18))
     except Exception:
         pass
@@ -637,7 +710,11 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
         meta = {**g, "via": "placeholder", "bytes": len(data), "attached": False}
         return data, meta
     if img is None:
-        data = _last_jpeg.get("data") or _placeholder("Waiting for desktop frame…")
+        prev = _last_jpeg.get("data") or b""
+        if prev:
+            meta = {**(_last_jpeg.get("meta") or {}), **g, "via": "hold", "bytes": len(prev)}
+            return prev, meta
+        data = _placeholder("Waiting for desktop frame…")
         meta = {**g, "via": "placeholder", "bytes": len(data)}
         return data, meta
     img = img.convert("RGB")
@@ -667,12 +744,20 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
 
 
 def map_touch(nx: float, ny: float, *, target: str = "desktop", hwnd: int = 0) -> Dict[str, int]:
+    """nx,ny are 0..1 of the pixels on the phone. Desktop stream = full laptop, not the last tab."""
     nx = max(0.0, min(1.0, float(nx)))
     ny = max(0.0, min(1.0, float(ny)))
-    g = geom(target, hwnd=int(hwnd or 0))
+    t = (target or "desktop").lower()
+    hid = int(hwnd or 0)
+    if t in ("desktop", "", "primary"):
+        g = geom("desktop", hwnd=0)
+        x = int(g["x"] + nx * g["w"])
+        y = int(g["y"] + ny * g["h"])
+        return {"x": x, "y": y, "target": "desktop", "hwnd": hid}
+    g = geom(t, hwnd=hid)
     x = int(g["x"] + nx * g["w"])
     y = int(g["y"] + ny * g["h"])
-    return {"x": x, "y": y, "target": g.get("target") or target, "hwnd": int(g.get("hwnd") or 0)}
+    return {"x": x, "y": y, "target": g.get("target") or t, "hwnd": int(g.get("hwnd") or hid)}
 
 
 _held = {"left": False, "right": False}
@@ -684,6 +769,8 @@ MOUSEEVENTF_RIGHTDOWN = 0x0008
 MOUSEEVENTF_RIGHTUP = 0x0010
 MOUSEEVENTF_WHEEL = 0x0800
 MOUSEEVENTF_HWHEEL = 0x1000
+MOUSEEVENTF_ABSOLUTE = 0x8000
+MOUSEEVENTF_VIRTUALDESK = 0x4000
 VK_BACK = 0x08
 VK_TAB = 0x09
 VK_RETURN = 0x0D
@@ -700,8 +787,51 @@ def _mouse(flags: int, dx: int = 0, dy: int = 0, data: int = 0) -> None:
     _user32().mouse_event(int(flags), int(dx), int(dy), int(data), 0)
 
 
+def _abs_xy(x: int, y: int) -> Tuple[int, int]:
+    vs = virtual_screen()
+    w = max(1, int(vs["w"]) - 1)
+    h = max(1, int(vs["h"]) - 1)
+    ax = int(round((int(x) - int(vs["x"])) * 65535 / w))
+    ay = int(round((int(y) - int(vs["y"])) * 65535 / h))
+    return max(0, min(65535, ax)), max(0, min(65535, ay))
+
+
+def _send_mouse(flags: int, x: Optional[int] = None, y: Optional[int] = None, data: int = 0) -> bool:
+    """Absolute SendInput so the hovered window sees the same pixel the phone shows."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class MOUSEINPUT(ctypes.Structure):
+            _fields_ = (
+                ("dx", wintypes.LONG),
+                ("dy", wintypes.LONG),
+                ("mouseData", wintypes.DWORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.c_void_p),
+            )
+
+        class INPUT(ctypes.Structure):
+            _fields_ = (("type", wintypes.DWORD), ("mi", MOUSEINPUT))
+
+        fl = int(flags)
+        dx = dy = 0
+        if x is not None and y is not None:
+            dx, dy = _abs_xy(int(x), int(y))
+            fl |= MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK
+        inp = INPUT(0, MOUSEINPUT(dx, dy, int(data), fl, 0, None))
+        n = int(ctypes.windll.user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT)) or 0)
+        return n >= 1
+    except Exception:
+        return False
+
+
 def _move(x: int, y: int) -> None:
-    _user32().SetCursorPos(int(x), int(y))
+    xi, yi = int(x), int(y)
+    _user32().SetCursorPos(xi, yi)
+    if not _send_mouse(MOUSEEVENTF_MOVE, xi, yi):
+        _mouse(MOUSEEVENTF_MOVE)
 
 
 def _cursor() -> Tuple[int, int]:
@@ -716,26 +846,28 @@ def _cursor() -> Tuple[int, int]:
 def _btn(side: str, down: bool) -> None:
     right = (side or "left").lower() in ("right", "r", "2")
     key = "right" if right else "left"
+    flag_down = MOUSEEVENTF_RIGHTDOWN if right else MOUSEEVENTF_LEFTDOWN
+    flag_up = MOUSEEVENTF_RIGHTUP if right else MOUSEEVENTF_LEFTUP
     if down and not _held[key]:
-        _mouse(MOUSEEVENTF_RIGHTDOWN if right else MOUSEEVENTF_LEFTDOWN)
+        if not _send_mouse(flag_down):
+            _mouse(flag_down)
         _held[key] = True
     elif (not down) and _held[key]:
-        _mouse(MOUSEEVENTF_RIGHTUP if right else MOUSEEVENTF_LEFTUP)
+        if not _send_mouse(flag_up):
+            _mouse(flag_up)
         _held[key] = False
 
 
 def _click(side: str = "left") -> None:
     right = (side or "left").lower() in ("right", "r", "2")
-    if right:
-        _mouse(MOUSEEVENTF_RIGHTDOWN)
-        time.sleep(0.03)
-        _mouse(MOUSEEVENTF_RIGHTUP)
-        _held["right"] = False
-    else:
-        _mouse(MOUSEEVENTF_LEFTDOWN)
-        time.sleep(0.03)
-        _mouse(MOUSEEVENTF_LEFTUP)
-        _held["left"] = False
+    key = "right" if right else "left"
+    down = MOUSEEVENTF_RIGHTDOWN if right else MOUSEEVENTF_LEFTDOWN
+    up = MOUSEEVENTF_RIGHTUP if right else MOUSEEVENTF_LEFTUP
+    if not _send_mouse(down):
+        _mouse(down)
+    if not _send_mouse(up):
+        _mouse(up)
+    _held[key] = False
 
 
 def _vk(code: int, *, times: int = 1) -> None:
@@ -871,20 +1003,36 @@ def touch(
                 "maximized": bool(focused.get("maximized")),
                 "ms": int((time.time() - t0) * 1000),
             }
-        if kind in ("tap", "click", "left", "down", "pen_down", "dbl", "double"):
-            try:
-                focused = focus_at(x, y) if int(hwnd or 0) <= 0 else focus_hwnd(int(hwnd), make_main=True)
-            except Exception:
-                focused = {}
+        if kind in ("minimize", "min", "iconify"):
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            focused = minimize_hwnd(hid) if hid else {"ok": False, "error": "no window"}
+            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "hwnd": hid, "ms": int((time.time() - t0) * 1000)}
+        if kind in ("restore", "unmax"):
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            focused = restore_hwnd(hid) if hid else {"ok": False, "error": "no window"}
+            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "hwnd": hid, "ms": int((time.time() - t0) * 1000)}
+        if kind in ("close", "quit_window"):
+            hid = int(hwnd or 0)
+            if hid <= 0:
+                hit = window_at(x, y) or {}
+                hid = int(hit.get("hwnd") or 0)
+            focused = close_hwnd(hid) if hid else {"ok": False, "error": "no window"}
+            return {"ok": bool(focused.get("ok")), "kind": kind, **pt, "focus": focused, "hwnd": hid, "ms": int((time.time() - t0) * 1000)}
         if kind in ("joy", "nudge", "stick"):
             cx, cy = _cursor()
             _move(cx + int(dx), cy + int(dy))
         elif kind in ("move", "hover"):
             _move(x, y)
-        elif kind in ("down", "pen_down"):
+        elif kind in ("down", "pen_down", "hold", "press"):
             _move(x, y)
             _btn(side, True)
-        elif kind in ("up", "pen_up"):
+        elif kind in ("up", "pen_up", "release"):
             _move(x, y)
             _btn(side, False)
         elif kind in ("drag",):
@@ -1102,31 +1250,43 @@ def _ws_send(sock, payload: bytes, opcode: int = 1) -> None:
     sock.sendall(hdr + payload)
 
 
-def _ws_recv_frame(sock) -> Optional[Tuple[int, bytes]]:
-    hdr = sock.recv(2)
-    if not hdr or len(hdr) < 2:
+def _ws_recv_frame(sock, stash: Optional[list] = None) -> Optional[Tuple[int, bytes]]:
+    """Read one frame. Timeout mid-header leaves bytes in stash instead of desyncing."""
+    if stash is None:
+        stash = [b""]
+
+    def need(n: int) -> bytes:
+        while len(stash[0]) < n:
+            chunk = sock.recv(n - len(stash[0]))
+            if not chunk:
+                raise ConnectionError("closed")
+            stash[0] += chunk
+        out = stash[0][:n]
+        stash[0] = stash[0][n:]
+        return out
+
+    try:
+        hdr = need(2)
+        opcode = hdr[0] & 0x0F
+        masked = bool(hdr[1] & 0x80)
+        n = hdr[1] & 0x7F
+        if n == 126:
+            ext = need(2)
+            n = struct.unpack("!H", ext)[0]
+        elif n == 127:
+            ext = need(8)
+            n = struct.unpack("!Q", ext)[0]
+        if n > 2_000_000:
+            return None
+        mask = need(4) if masked else b""
+        data = need(n) if n else b""
+        if masked and mask:
+            data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
+        return opcode, data
+    except TimeoutError:
+        return (0xFE, b"")  # pending — try again, stash keeps partial bytes
+    except (ConnectionError, OSError):
         return None
-    opcode = hdr[0] & 0x0F
-    masked = bool(hdr[1] & 0x80)
-    n = hdr[1] & 0x7F
-    if n == 126:
-        ext = sock.recv(2)
-        n = struct.unpack("!H", ext)[0]
-    elif n == 127:
-        ext = sock.recv(8)
-        n = struct.unpack("!Q", ext)[0]
-    if n > 2_000_000:
-        return None
-    mask = sock.recv(4) if masked else b""
-    data = b""
-    while len(data) < n:
-        chunk = sock.recv(n - len(data))
-        if not chunk:
-            break
-        data += chunk
-    if masked and mask:
-        data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
-    return opcode, data
 
 
 def _kick_grab(target: str, max_w: int, quality: int, hwnd: int = 0) -> None:
@@ -1146,13 +1306,17 @@ def _kick_grab(target: str, max_w: int, quality: int, hwnd: int = 0) -> None:
 
 
 def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72, hwnd: int = 0) -> Optional[Tuple[bytes, Dict[str, Any]]]:
+    key = f"{target}:{int(hwnd or 0)}:{int(max_w)}:{int(quality)}"
     with _grab_lock:
         data = _last_jpeg.get("data") or b""
         meta = dict(_last_jpeg.get("meta") or {})
         age = time.time() - float(_last_jpeg.get("t") or 0)
-    if age > 0.06:
+        have = bool(data) and _last_jpeg.get("key") == key
+    if age > 0.06 or not have:
         _kick_grab(target, max_w, quality, hwnd)
-    if data:
+    if have:
+        return data, meta
+    if data and age < 0.45:
         return data, meta
     return None
 
@@ -1162,6 +1326,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
     sock.settimeout(0.02)
     cfg = {"max_w": 1600, "q": 74, "target": "desktop", "fps": 16.0, "hwnd": 0}
     last = 0.0
+    stash: list = [b""]
     hello = json.dumps({"ok": True, "kind": "hello", "ws": True, "spatial": True}).encode("utf-8")
     try:
         _ws_send(sock, hello, 1)
@@ -1185,7 +1350,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
                 except Exception:
                     break
         try:
-            frame = _ws_recv_frame(sock)
+            frame = _ws_recv_frame(sock, stash)
         except TimeoutError:
             continue
         except OSError:
@@ -1193,6 +1358,8 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
         if frame is None:
             break
         opcode, payload = frame
+        if opcode == 0xFE:
+            continue
         if opcode == 8:
             break
         if opcode == 9:
@@ -1243,7 +1410,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
                 dy=float(msg.get("dy") or 0),
                 dx=float(msg.get("dx") or 0),
                 text=str(msg.get("text") or msg.get("app") or ""),
-                target="desktop",
+                target=str(msg.get("target") or cfg.get("target") or "desktop"),
                 button=str(msg.get("button") or "left"),
                 vk=int(msg.get("vk") or 0),
                 n=int(msg.get("n") or 1),
@@ -1264,7 +1431,7 @@ def snapshot() -> Dict[str, Any]:
         "separate_from": "antigravity",
         "modes": ["watch", "touch"],
         "phone_zoom": "view-only — PC zoom never changes",
-        "controls": ["tap", "right", "drag", "joystick", "live-type", "window-focus", "scroll", "open-app"],
+        "controls": ["tap", "hold", "right", "drag", "joystick", "live-type", "window-focus", "scroll", "open-app", "minimize", "maximize", "close"],
         "windows": "/v1/phoneai/portal/windows",
         "apps": "/v1/phoneai/portal/apps",
         "targets": ["desktop"],

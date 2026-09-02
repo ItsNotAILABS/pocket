@@ -47,6 +47,13 @@ def test_portal_html_phone_zoom_and_controls():
     assert "visualViewport" in html
     assert "credentials:'include'" in html or 'credentials:"include"' in html
     assert "emitScroll" in html or "kind:'scroll'" in html or 'kind,"scroll"' in html or "send('scroll'" in html
+    assert 'id="modeBadge"' in html
+    assert 'data-act="minimize"' in html
+    assert 'data-act="maximize"' in html
+    assert 'data-act="close"' in html
+    assert "gest='hold'" in html or 'gest="hold"' in html
+    assert "setScreenMode" in html
+    assert "drag-mode" in html
 
 
 def test_anti_html_has_working_gestures():
@@ -62,6 +69,9 @@ def test_snapshot_documents_phone_zoom():
     assert "window-focus" in s["controls"]
     assert "scroll" in s["controls"]
     assert "open-app" in s["controls"]
+    assert "hold" in s["controls"]
+    assert "minimize" in s["controls"]
+    assert "close" in s["controls"]
 
 
 def test_touch_allowed_on_named_tunnel():
@@ -98,3 +108,4 @@ def test_windows_list_and_html_tabs():
     assert "portal/apps" in html
     assert "kind==='focus'" in html or "focus" in html
     assert "kind==='open'" in html or "send('open'" in html
+    assert "minimize" in html and "close" in html

@@ -21,3 +21,7 @@ def test_map_touch_corners():
     assert br["y"] == ps["y"] + ps["h"]
     g = geom("desktop")
     assert g["w"] == ps["w"] and g["h"] == ps["h"]
+    # A window tab hwnd must not remap desktop taps into that window.
+    shifted = map_touch(0, 0, target="desktop", hwnd=999999)
+    assert shifted["x"] == ps["x"] and shifted["y"] == ps["y"]
+    assert shifted["hwnd"] == 999999
