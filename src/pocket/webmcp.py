@@ -316,6 +316,8 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Setup flow", "setup_open", "GET /setup", "Account · host · always-on · open products."),
         ("Portal focus mobile", "portal_focus", "POST /v1/phoneai/portal/touch kind=focus", "Active window as a phone screen; off = full PC."),
         ("Real workspace", "workspace_view", "GET /v1/ai-workspace", "Files + preview interior, not a fake pane."),
+        ("Agent architecture", "agent_arch", "GET /v1/agents/arch", "Six-layer plane shared by Desk, PhoneAI, RAH, invoke."),
+        ("Agent turn", "agent_turn", "POST /v1/agents/turn", "One turn: identity → route → grant → execute → receipt."),
         ("RAH plan", "rah_plan", "POST /v1/rah/plan", "Plan a Recursive Agent Harness. Does not execute."),
         ("RAH grant", "rah_grant", "POST /v1/rah/grant", "Issue a WorkGrant before fan-out."),
         ("RAH run", "rah_run", "POST /v1/rah/run", "Execute RAH leaves only with a WorkGrant."),
@@ -502,6 +504,14 @@ def use_action(name: str, *, prompt: str = "") -> Dict[str, Any]:
             return {"ok": True, "used": a, "result": go(arm_daily=False)}
         if inv == "webmcp_scan":
             return {"ok": True, "used": a, "result": scan(fusion=True)}
+        if inv == "agent_arch":
+            from pocket.agent_arch import snapshot as arch_snap
+
+            return {"ok": True, "used": a, "result": arch_snap()}
+        if inv == "agent_turn":
+            from pocket.agent_arch import turn as arch_turn
+
+            return {"ok": True, "used": a, "result": arch_turn(prompt or name, seat="phoneai")}
         if inv == "session_new":
             from pocket.agent_runtime import create_phoneai_session
 

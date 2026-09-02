@@ -1,6 +1,14 @@
 # POCKET / MESIE Agent Protocols
 
-Live toolkit: `GET /v1/agents/tools` · [docs/AGENTS_MCP_TOOLS.md](docs/AGENTS_MCP_TOOLS.md) · PhoneAI sessions: `POST /v1/phoneai/sessions`. Think first via `pocket.agent_runtime.route_think` — one engine, at most one tool.
+Live toolkit: `GET /v1/agents/tools` · [docs/AGENTS_MCP_TOOLS.md](docs/AGENTS_MCP_TOOLS.md) · PhoneAI sessions: `POST /v1/phoneai/sessions`. Architecture plane: `GET /v1/agents/arch` · `POST /v1/agents/turn`. Think first via `pocket.agent_runtime.route_think` — one engine, at most one tool.
+
+### Agent architecture (do not fork)
+
+```text
+identity → seat → route → authority → execute → receipt
+```
+
+Desk, PhoneAI, RAH, and invoke share `pocket.agent_arch`. Execute leaves stay where they are (`work_harness`, `rah`, `agent_invoke`). Do not add a parallel agent OS. RAH execute still needs a WorkGrant.
 
 This repository is a multi-agent workstation and enterprise control plane. Treat this `AGENTS.md` as the local operating contract for every AI, coding agent, cloud agent, desktop agent, voice agent, and human operator working in POCKET.
 

@@ -476,6 +476,8 @@ HOST_CONTROL_PATHS = frozenset({
     "/v1/phoneai/harness",
     "/api/phoneai/harness",
     "/v1/harness",
+    "/v1/agents/turn",
+    "/v1/agent/turn",
     "/v1/eyes",
     "/api/eyes",
     "/v1/eyes/touch",

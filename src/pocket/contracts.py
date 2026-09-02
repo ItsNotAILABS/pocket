@@ -30,6 +30,9 @@ CATALOG: Dict[str, Any] = {
         "pocket.rah.leaf.v1": "One isolated job: tools, deadline, parent, idempotency.",
         "pocket.verifier.v1": "Required leaf for consequence classes.",
         "pocket.action_receipt.v1": "Signed consequence record.",
+        "pocket.agent.arch.v1": "Six-layer agent plane: identity → seat → route → authority → execute → receipt.",
+        "pocket.agent.turn.v1": "One agent turn on that plane. Desk, PhoneAI, RAH, invoke share it.",
+        "pocket.agent.identity.v1": "Resolved agent: persona and/or first-class roster id.",
         "pocket.auro_leaf_receipt.v1": "Adapter + checkpoint digest + grant.",
         "pocket.node.v1": "Mesh node (pc|phone|tv|glasses).",
         "pocket.node.view.v1": "Wi-Fi viewer that receives the laptop stream.",
@@ -39,6 +42,8 @@ CATALOG: Dict[str, Any] = {
         "pocket.pixel.kind.v1": "episodic | semantic | procedural | visual",
     },
     "agent_tools": [
+        "agent_arch",
+        "agent_turn",
         "rah_plan",
         "rah_grant",
         "rah_run",
@@ -51,6 +56,8 @@ CATALOG: Dict[str, Any] = {
         "eyes_touch",
     ],
     "http": [
+        "GET /v1/agents/arch",
+        "POST /v1/agents/turn",
         "GET /v1/contracts",
         "GET /v1/rah/contracts",
         "POST /v1/rah/grant",

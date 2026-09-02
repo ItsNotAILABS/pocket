@@ -47,6 +47,7 @@ def catalog() -> Dict[str, Any]:
         {"id": "antigravity", "label": "Antigravity app", "kind": "surface", "available": True, "path": "/phoneai/anti"},
         {"id": "imagine", "label": "Imagine", "kind": "surface", "available": True, "path": "/imagine"},
         {"id": "life", "label": "Phone life", "kind": "surface", "available": True, "path": "/phoneai"},
+        {"id": "agent_arch", "label": "Agent architecture plane", "kind": "surface", "available": True, "path": "/v1/agents/arch"},
         {"id": "rah", "label": "RAH harness", "kind": "surface", "available": True, "path": "/v1/rah"},
         {"id": "harness", "label": "Work harness", "kind": "surface", "available": True, "path": "/v1/phoneai/harness"},
         {"id": "shell", "label": "Bounded shell", "kind": "surface", "available": True, "path": "/v1/phoneai/shell"},

@@ -47,6 +47,7 @@ SURFACES = (
     "engines",
     "runtime",
     "agents",
+    "agent_arch",
 )
 
 LIVE = {"live", "running", "listening", "primary", "ready", "online", "ok"}

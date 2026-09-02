@@ -16,6 +16,7 @@ FEATURES: List[Dict[str, str]] = [
     {"id": "cron", "name": "Cron memory", "get": "/v1/cron/memory"},
     {"id": "steer", "name": "Steer sub-agents", "post": "/v1/subagents/steer"},
     {"id": "browser", "name": "Drive desktop browser", "post": "/v1/browser/drive"},
+    {"id": "agent_arch", "name": "Agent architecture plane", "get": "/v1/agents/arch", "note": "identity → seat → route → authority → execute → receipt"},
     {"id": "parallel", "name": "Parallel / RAH", "post": "/v1/rah/run"},
     {"id": "auro_rah", "name": "RAH Auro leaves", "note": "mode=auro + Auro14B auro_native_llm.rah"},
     {"id": "tv", "name": "TV mesh", "get": "/phoneai/tv"},
@@ -44,6 +45,16 @@ def snapshot() -> Dict[str, Any]:
             except Exception as e:
                 ok = False
                 detail = str(e)[:120]
+        elif f["id"] == "agent_arch":
+            try:
+                from pocket.agent_arch import LAYERS, SCHEMA, snapshot as arch_snap
+
+                s = arch_snap()
+                ok = s.get("schema") == SCHEMA and list(s.get("layers") or []) == list(LAYERS)
+                detail = " ".join(s.get("layers") or [])
+            except Exception as e:
+                ok = False
+                detail = str(e)[:80]
         elif f["id"] == "auro_rah":
             try:
                 from pocket.auro14b_bridge import auro_root

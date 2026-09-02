@@ -1526,7 +1526,7 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._json(200, {"ok": True, "roots": allowed_roots(), "post": "POST command,cwd"})
         if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
-            return self._json(200, {"ok": True, "product": "POCKET work harness", "post": "POST goal,shell,cwd,engine"})
+            return self._json(200, {"ok": True, "product": "POCKET work harness", "arch": "pocket.agent.arch.v1", "post": "POST goal,shell,cwd,engine,agent,seat,grant_id"})
         if path in ("/v1/phoneai/voice-screen", "/api/phoneai/voice-screen", "/v1/voice-screen"):
             return self._json(200, {"ok": True, "product": "voice to screen", "post": "POST text,which"})
         if path in ("/v1/phoneai/wear", "/api/phoneai/wear", "/v1/wear"):
@@ -2650,6 +2650,10 @@ class Handler(BaseHTTPRequestHandler):
             q = parse_qs(urlparse(self.path).query)
             goal = (q.get("goal") or q.get("q") or ["status"])[0]
             return self._json(200, run_loop(goal))
+        if path in ("/v1/agents/arch", "/v1/agent/arch", "/v1/architecture/agents"):
+            from pocket.agent_arch import snapshot as arch_snap
+
+            return self._json(200, arch_snap())
         if path in ("/v1/agents/roster", "/v1/agents/invocable"):
             from pocket.agent_invoke import roster
 
@@ -4351,7 +4355,6 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/v1/phoneai/harness", "/api/phoneai/harness", "/v1/harness"):
             from pocket.host_control import allow as host_ok
             from pocket.ratelimit import hit as rl_hit
-            from pocket.work_harness import run as harness_run
 
             gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="harness")
             if not gate.get("ok"):
@@ -4360,13 +4363,20 @@ class Handler(BaseHTTPRequestHandler):
             ok_rl, reason = rl_hit("phoneai_work", ip, kind="api")
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
+            from pocket.agent_arch import turn as arch_turn
+
             return self._json(
                 200,
-                harness_run(
+                arch_turn(
                     str(body.get("goal") or body.get("text") or body.get("prompt") or ""),
+                    agent=str(body.get("agent") or body.get("persona") or ""),
+                    seat=str(body.get("seat") or "phoneai"),
                     engine=str(body.get("engine") or "auto"),
+                    grant_id=str(body.get("grant_id") or body.get("grant") or ""),
                     shell=str(body.get("shell") or body.get("command") or ""),
                     cwd=str(body.get("cwd") or ""),
+                    use=str(body.get("use") or "auto"),
+                    dry=bool(body.get("dry")),
                 ),
             )
         if path in ("/v1/phoneai/voice-screen", "/api/phoneai/voice-screen", "/v1/voice-screen"):
@@ -7910,6 +7920,27 @@ class Handler(BaseHTTPRequestHandler):
                 run_loop(
                     str(body.get("goal") or body.get("prompt") or ""),
                     parallel=bool(body.get("parallel", True)),
+                ),
+            )
+        if path in ("/v1/agents/turn", "/v1/agent/turn"):
+            from pocket.agent_arch import turn as arch_turn
+            from pocket.host_control import allow as host_ok
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="harness")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            return self._json(
+                200,
+                arch_turn(
+                    str(body.get("text") or body.get("goal") or body.get("prompt") or body.get("message") or ""),
+                    agent=str(body.get("agent") or body.get("name") or body.get("persona") or ""),
+                    seat=str(body.get("seat") or "pocket"),
+                    engine=str(body.get("engine") or "auto"),
+                    grant_id=str(body.get("grant_id") or body.get("grant") or ""),
+                    shell=str(body.get("shell") or body.get("command") or ""),
+                    cwd=str(body.get("cwd") or ""),
+                    use=str(body.get("use") or "auto"),
+                    dry=bool(body.get("dry")),
                 ),
             )
         if path in ("/v1/agents/invoke", "/v1/agent/invoke", "/v1/beings/invoke"):

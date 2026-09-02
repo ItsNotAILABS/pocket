@@ -70,7 +70,7 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             "model_build", "model_list_built", "model_register", "model_suggest",
             # Comprehensive agent toolkit
             "agents_toolkit", "agents_tools", "tools_manifest",
-            "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
+            "agent_arch", "agent_turn", "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
             "keep_start", "keep_status", "keep_stop",
             "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",
             "workflow_start", "workflow_tick", "workflow_status", "workflow_stop",
@@ -713,6 +713,37 @@ def _invoke_mail_web(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
         from pocket.agent_calls import list_calls
 
         return list_calls(status=str(p.get("status") or ""), limit=int(p.get("limit") or 30))
+    if t in ("agent_arch", "agent_architecture"):
+        from pocket.agent_arch import snapshot as arch_snap
+
+        return arch_snap()
+    if t in ("agent_turn", "arch_turn"):
+        from pocket.agent_arch import turn as arch_turn
+
+        return arch_turn(
+            str(p.get("prompt") or p.get("text") or p.get("goal") or ""),
+            agent=str(p.get("agent") or p.get("name") or p.get("persona") or ""),
+            seat=str(p.get("seat") or "pocket"),
+            engine=str(p.get("engine") or "auto"),
+            grant_id=str(p.get("grant_id") or p.get("grant") or ""),
+            shell=str(p.get("shell") or p.get("command") or ""),
+            cwd=str(p.get("cwd") or ""),
+            use=str(p.get("use") or "auto"),
+        )
+    if t in ("agent_roster",):
+        from pocket.agent_invoke import roster
+
+        return roster()
+    if t in ("agent_invoke",):
+        from pocket.agent_invoke import invoke
+
+        return invoke(
+            str(p.get("name") or p.get("agent") or p.get("id") or ""),
+            prompt=str(p.get("prompt") or p.get("text") or p.get("message") or ""),
+            job=str(p.get("job") or p.get("action") or ""),
+            session_id=str(p.get("session_id") or ""),
+            params=p,
+        )
     return {"ok": False, "error": f"unknown mail/web tool {tool}"}
 
 
@@ -778,6 +809,7 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
         "model_build", "model_list_built", "model_register", "model_suggest",
         "build_model", "forge_model",
         "agents_toolkit", "agents_tools", "tools_manifest",
+        "agent_arch", "agent_turn",
         "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
         "keep_start", "keep_status", "keep_stop",
         "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",
@@ -793,6 +825,7 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
     # Coherent platform tools (same as skills)
     if t in (
         "platform_map", "platform_health", "find_feature", "list_agents",
+        "agent_arch", "agent_turn",
         "agent_invoke", "agent_roster", "autonomous_status", "autonomous_ensure",
         "keep_start", "keep_status", "keep_stop",
         "kernel_status", "kernel_calibrate", "kernel_slab", "cognitive_loop",

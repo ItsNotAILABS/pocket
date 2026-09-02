@@ -49,6 +49,8 @@ def run(
     return {
         "ok": ok,
         "product": "POCKET work harness",
+        "arch": "pocket.agent.arch.v1",
+        "execute": "harness",
         "goal": text[:400],
         "cwd": work,
         "thought": thought,
