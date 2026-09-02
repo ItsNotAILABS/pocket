@@ -46,9 +46,22 @@ def snapshot() -> Dict[str, Any]:
                 detail = str(e)[:120]
         elif f["id"] == "auro_rah":
             try:
-                from pocket.rah import _RAH_ESCALATE_MODES
+                from pocket.auro14b_bridge import auro_root
 
-                ok = "auro" in _RAH_ESCALATE_MODES
+                root = auro_root()
+                if not root:
+                    ok = False
+                    detail = "Auro14B tree missing"
+                else:
+                    import sys
+
+                    pth = str(root)
+                    if pth not in sys.path:
+                        sys.path.insert(0, pth)
+                    from auro_native_llm.rah import run_rah as _ar  # noqa: F401
+
+                    ok = True
+                    detail = "auro_native_llm.rah"
             except Exception as e:
                 ok = False
                 detail = str(e)[:80]

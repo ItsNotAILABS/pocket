@@ -647,53 +647,33 @@ def _run_leaf_harness(
             )
 
     if mode in ("auro", "auro14b", "meaning"):
-        rec["engine"] = "auro"
+        rec["engine"] = "auro-meaning"
         try:
-            from pocket.auro14b_bridge import auro_root
+            from pocket.auro_rah_adapter import run_auro_rah
 
-            root = auro_root()
-            if root:
-                import sys
-
-                pth = str(root)
-                if pth not in sys.path:
-                    sys.path.insert(0, pth)
-                from pocket.auro_rah_adapter import run_auro_rah
-
-                ar = run_auro_rah(
-                    goal,
-                    max_parallel=int(leaf.get("max_parallel") or 4),
-                    depth=1,
-                    grant_id=str(parent_job_id or ""),
-                    tenant=str(session_id or ""),
-                )
-                rec["status"] = "done" if ar.get("ok") else "fail"
-                rec["ok"] = bool(ar.get("ok"))
-                rec["result"] = (ar.get("synthesis") or json.dumps(ar, default=str))[:12000]
-                rec["auro_run_id"] = ar.get("auro_run_id")
-                rec["adapter"] = ar.get("adapter")
-                rec["finished_at"] = time.time()
-                rec["duration_sec"] = round(rec["finished_at"] - started, 2)
-                return rec
-        except Exception as e:
-            rec["error"] = str(e)[:400]
-        try:
-            from pocket.internal_models.modules.auro import AuroModel
-
-            class _Deep:
-                def strategy(self) -> str:
-                    return "deep"
-
-            res = AuroModel().express(goal, genome=_Deep())
-            rec["status"] = "done" if getattr(res, "ok", True) else "fail"
-            rec["ok"] = bool(getattr(res, "ok", True))
-            rec["result"] = str(getattr(res, "text", res) or "")[:12000]
+            ar = run_auro_rah(
+                goal,
+                max_parallel=1,
+                depth=0,
+                grant_id=str(parent_job_id or ""),
+                tenant=str(session_id or ""),
+            )
+            rec["ok"] = bool(ar.get("ok"))
+            rec["status"] = "done" if ar.get("ok") else "fail"
+            rec["result"] = (ar.get("synthesis") or json.dumps(ar, default=str))[:12000]
+            rec["auro_run_id"] = ar.get("auro_run_id")
+            rec["adapter"] = ar.get("adapter")
+            rec["via"] = ar.get("via")
+            rec["native"] = bool(ar.get("native"))
+            rec["receipt"] = ar.get("receipt")
+            rec["engine"] = "auro-rah" if ar.get("native") else "auro-meaning"
             rec["finished_at"] = time.time()
             rec["duration_sec"] = round(rec["finished_at"] - started, 2)
             return rec
         except Exception as e:
-            rec["error"] = ((rec.get("error") or "") + " | " + str(e))[:400]
-            # fall through to host job
+            rec["error"] = str(e)[:400]
+            rec["engine"] = "auro-meaning"
+            rec["native"] = False
     job = create_job(
         goal_full[:20000],
         name=f"rah:{run_id}:{lid}",

@@ -1,8 +1,9 @@
 """Auro14B / RO14B native LMR bridge for POCKET.
 
 Ships the user's native runtime (auro_native_llm), not a third-party API model.
-Silent continual training: background tick is opt-in via POCKET_AURO_TRAIN=1
-and never shown as a chat product surface.
+Silent train tick is opt-in via POCKET_AURO_TRAIN=1: heartbeat plus a
+bounded meaning/scriptural step. It is not a 14B weight job unless that
+step actually returns a train receipt. Never shown as a chat surface.
 """
 
 from __future__ import annotations
@@ -252,30 +253,53 @@ def run_auro_job(prompt: str, *, job: Optional[Dict[str, Any]] = None) -> Tuple[
 
 
 def _silent_train_tick() -> None:
-    """Background: record a silent train heartbeat — no UI surface.
+    """Heartbeat plus one bounded train step. Log JSON; never fake a 14B update."""
+    import json
 
-    Full weight training stays in Auro14B train scripts; POCKET only keeps
-    the loop warm and logs receipts under ~/.pocket/auro_train/.
-    """
     root = auro_root()
-    if not root:
-        return
     out_dir = Path.home() / ".pocket" / "auro_train"
     out_dir.mkdir(parents=True, exist_ok=True)
-    ckpt = checkpoint_path()
-    note = (
-        f"tick={_train_state['ticks']} at={time.time()} "
-        f"ckpt={ckpt} root={root}\n"
-    )
-    (out_dir / "silent_ticks.log").open("a", encoding="utf-8").write(note)
-    _train_state["last"] = time.time()
-    _train_state["ticks"] = int(_train_state.get("ticks") or 0) + 1
-    # Optional: call auro light continual if module present (best-effort)
-    try:
-        _ensure_path(root)
-        # do not import heavy trainers by default
-    except Exception as e:
-        _train_state.setdefault("errors", []).append(str(e)[:200])
+    rec: Dict[str, Any] = {
+        "kind": "heartbeat",
+        "tick": int(_train_state.get("ticks") or 0) + 1,
+        "at": time.time(),
+        "ckpt": str(checkpoint_path() or ""),
+        "root": str(root or ""),
+        "trained": False,
+    }
+    if root:
+        try:
+            from pocket.auro_meaning import train_text_if_available
+
+            step = train_text_if_available(
+                "Auro meaning stays honest. One silent tick is a few steps, not a 14B job.",
+                steps=3,
+            )
+            rec["meaning"] = {
+                "ok": bool(step.get("ok")),
+                "error": (step.get("error") or "")[:160],
+            }
+            rec["trained"] = bool(step.get("ok"))
+            rec["kind"] = "meaning-step" if step.get("ok") else "heartbeat"
+        except Exception as e:
+            rec["meaning"] = {"ok": False, "error": str(e)[:160]}
+        if not rec["trained"]:
+            try:
+                _ensure_path(root)
+                from auro_native_llm.scripture.train_hooks import run_scriptural_training
+
+                sr = run_scriptural_training(model_id="Auro-2B", steps=1)
+                rec["scriptural"] = {"ok": bool(sr.get("ok")), "steps": sr.get("steps") or 1}
+                rec["trained"] = bool(sr.get("ok"))
+                if rec["trained"]:
+                    rec["kind"] = "scriptural-step"
+            except Exception as e:
+                rec["scriptural"] = {"ok": False, "error": str(e)[:160]}
+    (out_dir / "silent_ticks.log").open("a", encoding="utf-8").write(json.dumps(rec) + "\n")
+    _train_state["last"] = rec
+    _train_state["ticks"] = rec["tick"]
+    if not rec.get("trained"):
+        _train_state.setdefault("note", "heartbeat — no weight update this tick")
 
 
 def start_silent_training(*, interval_sec: float = 600.0) -> Dict[str, Any]:

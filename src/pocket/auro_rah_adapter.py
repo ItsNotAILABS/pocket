@@ -1,13 +1,15 @@
 """Versioned AURO RAH adapter.
 
-Auro14B main may or may not ship auro_native_llm.rah. Pocket never pretends
-the import succeeded. When the module exists, we pass tenant/budget/grant.
-When it does not, we run a bounded local Auro think leaf and record a receipt.
+Auro14B may ship auro_native_llm.rah. Pocket never pretends the import
+succeeded. One Pocket leaf maps to one Auro leaf (no secret 3-way fanout).
+Native miss falls back to AuroModel.express and is labeled meaning, not RAH.
+A receipt is always attached.
 """
 
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import time
 from typing import Any, Dict
@@ -16,11 +18,24 @@ from typing import Any, Dict
 ADAPTER = "pocket.auro_rah_adapter.v1"
 
 
+def _receipt(rec: Dict[str, Any], *, grant_id: str, tenant: str) -> Dict[str, Any]:
+    return {
+        "schema": "pocket.auro_leaf_receipt.v1",
+        "grant_id": grant_id,
+        "tenant": tenant,
+        "checkpoint": rec.get("checkpoint"),
+        "adapter": ADAPTER,
+        "via": rec.get("via"),
+        "native": bool(rec.get("native")),
+        "at": time.time(),
+    }
+
+
 def run_auro_rah(
     goal: str,
     *,
     max_parallel: int = 4,
-    depth: int = 1,
+    depth: int = 0,
     grant_id: str = "",
     tenant: str = "",
     checkpoint: str = "",
@@ -33,7 +48,8 @@ def run_auro_rah(
         "grant_id": grant_id,
         "tenant": tenant,
         "max_parallel": max(1, min(int(max_parallel), 8)),
-        "depth": max(0, min(int(depth), 2)),
+        "depth": 0,
+        "fanout": "1:1",
     }
     native = None
     native_err = ""
@@ -62,25 +78,30 @@ def run_auro_rah(
 
     if native:
         try:
-            ar = native(
-                goal,
-                max_parallel=rec["max_parallel"],
-                depth=rec["depth"],
-            )
-            rec["ok"] = bool(ar.get("ok"))
-            rec["via"] = "auro_native_llm.rah"
-            rec["synthesis"] = (ar.get("synthesis") or ar.get("result") or json.dumps(ar, default=str))[:12000]
-            rec["auro_run_id"] = ar.get("run_id")
-            rec["native"] = True
-            rec["ms"] = int((time.time() - started) * 1000)
-            return rec
-        except TypeError:
-            ar = native(goal)
+            kwargs: Dict[str, Any] = {}
+            try:
+                params = inspect.signature(native).parameters
+            except Exception:
+                params = {}
+            if "leaves" in params:
+                kwargs["leaves"] = [goal]
+            if "max_parallel" in params:
+                kwargs["max_parallel"] = 1
+            if "depth" in params:
+                kwargs["depth"] = 0
+            ar = native(goal, **kwargs) if kwargs else native(goal)
             rec["ok"] = bool(ar.get("ok") if isinstance(ar, dict) else True)
             rec["via"] = "auro_native_llm.rah"
-            rec["synthesis"] = str(ar)[:12000]
+            rec["engine"] = "auro-rah"
+            rec["synthesis"] = (
+                (ar.get("synthesis") or ar.get("result") or json.dumps(ar, default=str))[:12000]
+                if isinstance(ar, dict)
+                else str(ar)[:12000]
+            )
+            rec["auro_run_id"] = ar.get("run_id") if isinstance(ar, dict) else None
             rec["native"] = True
             rec["ms"] = int((time.time() - started) * 1000)
+            rec["receipt"] = _receipt(rec, grant_id=grant_id, tenant=tenant)
             return rec
         except Exception as e:
             native_err = str(e)[:240]
@@ -95,21 +116,17 @@ def run_auro_rah(
         res = AuroModel().express(goal, genome=_Deep())
         rec["ok"] = bool(getattr(res, "ok", True))
         rec["via"] = "pocket.internal_models.auro"
+        rec["engine"] = "auro-meaning"
         rec["native"] = False
         rec["fallback"] = native_err or "auro_native_llm.rah missing on this Auro head"
         rec["synthesis"] = str(getattr(res, "text", None) or getattr(res, "reply", None) or res)[:8000]
     except Exception as e:
         rec["ok"] = False
         rec["via"] = "none"
+        rec["engine"] = "none"
+        rec["native"] = False
         rec["error"] = (native_err or str(e))[:400]
         rec["synthesis"] = ""
     rec["ms"] = int((time.time() - started) * 1000)
-    rec["receipt"] = {
-        "schema": "pocket.auro_leaf_receipt.v1",
-        "grant_id": grant_id,
-        "tenant": tenant,
-        "checkpoint": rec.get("checkpoint"),
-        "adapter": ADAPTER,
-        "at": time.time(),
-    }
+    rec["receipt"] = _receipt(rec, grant_id=grant_id, tenant=tenant)
     return rec

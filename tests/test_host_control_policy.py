@@ -134,11 +134,23 @@ def test_tv_html_is_wifi_node():
 
 
 def test_auro_adapter_does_not_crash():
+    from pocket.auro14b_bridge import auro_root
     from pocket.auro_rah_adapter import ADAPTER, run_auro_rah
 
-    r = run_auro_rah("say ok", max_parallel=2, depth=1, grant_id="wg-test", tenant="t")
+    r = run_auro_rah("say ok", max_parallel=1, depth=0, grant_id="wg-test", tenant="t")
     assert r.get("adapter") == ADAPTER
     assert "via" in r
+    assert r.get("fanout") == "1:1"
+    assert isinstance(r.get("receipt"), dict)
+    assert r["receipt"].get("grant_id") == "wg-test"
+    if auro_root():
+        assert r.get("via") == "auro_native_llm.rah"
+        assert r.get("native") is True
+        assert r.get("engine") == "auro-rah"
+    else:
+        assert r.get("via") == "pocket.internal_models.auro"
+        assert r.get("native") is False
+        assert r.get("engine") != "auro-rah"
 
 
 def test_vault_scan_clean_tmp(tmp_path, monkeypatch):
