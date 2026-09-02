@@ -53,6 +53,9 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px}
 .gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
 .more{padding:8px 16px 20px;color:var(--muted);font-size:12px}
+.engines{display:flex;gap:6px;padding:0 16px 10px;overflow:auto;-webkit-overflow-scrolling:touch}
+.engines i{flex:0 0 auto;font-style:normal;font-size:11px;font-weight:800;letter-spacing:.04em;padding:7px 11px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.engines i.on{color:#042;background:var(--g);border-color:var(--g)}
 .more a{color:var(--c)}
 .ws-desk{display:none}
 @media (orientation:landscape){
@@ -80,7 +83,8 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 <div class="status"><span id="clk">PHONEAI</span><span id="host">GLIMMER</span></div>
 
 <section class="view on" id="v-home">
-  <div class="hero"><h1>PhoneAI</h1><p class="lead">Chat, camera, maps, notes, reminders — the stuff you actually do on a phone. Spark is Muse Glimmer on this PC.</p></div>
+  <div class="hero"><h1>PhoneAI</h1><p class="lead">Your phone on this PC. Grok and Codex run here. Portal is the laptop screen. TV is a Wi-Fi node.</p></div>
+  <div class="engines" id="eng"></div>
   <div class="quick">
     <button type="button" data-go="chat" data-pre="Remind me to ">Remind me</button>
     <button type="button" data-go="maps">Directions</button>
@@ -117,7 +121,8 @@ video,canvas,.shot{width:100%;border-radius:16px;background:#000}
 </section>
 
 <section class="view" id="v-chat">
-  <div class="hero"><h1>Chat</h1><p class="lead">Grok on this PC. Reminders, texts, maps, or just ask.</p></div>
+  <div class="hero"><h1>Chat</h1><p class="lead">Talks to Grok or Codex on this computer — not a cloud toy.</p></div>
+  <div class="engines" id="chatEng"></div>
   <div class="log" id="clog"></div>
   <form class="form" id="cf"><textarea id="ct" placeholder="Remind me, draft a text, where is…" rows="1"></textarea><button>Send</button></form>
 </section>
@@ -222,6 +227,13 @@ window.addEventListener('orientationchange', ()=>setTimeout(layoutPhone, 120));
 })();
 __PHONEAI_WS_JS__
 document.body.addEventListener('click',e=>{
+  const eng=e.target.closest('[data-eng]');
+  if(eng){
+    chatEngine=eng.getAttribute('data-eng')||'grok';
+    try{ localStorage.setItem('phoneai_engine', chatEngine); }catch(_){}
+    paintEngines();
+    return;
+  }
   const b=e.target.closest('[data-go]'); if(!b) return;
   const pre=b.getAttribute('data-pre'); if(pre){ document.getElementById('ct').value=pre; }
   show(b.getAttribute('data-go'));
@@ -232,18 +244,31 @@ function add(log, who, text){
   const d=document.createElement('div'); d.className='m'+(who==='me'?' me':'');
   d.innerHTML='<div class="b"></div>'; d.querySelector('.b').textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight;
 }
+var chatEngine=(localStorage.getItem('phoneai_engine')||'grok');
+async function paintEngines(){
+  const j=await fetch('/v1/engines',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+  const desk=j.desk&&j.desk.length?j.desk:['grok','codex'];
+  const ready=j.ready||[];
+  const host=document.getElementById('host');
+  if(host) host.textContent=(ready.includes('grok')?'GROK':(ready[0]||'POCKET')).toString().toUpperCase();
+  const html=desk.slice(0,8).map(id=>'<i data-eng="'+id+'" class="'+(id===chatEngine?'on':'')+'">'+id+'</i>').join('');
+  ['eng','chatEng'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
+paintEngines();
 async function sendLife(kind,text,extra){
-  const r=await fetch('/v1/phoneai/life',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,text,extra})});
+  extra=Object.assign({engine:chatEngine}, extra||{});
+  const r=await fetch('/v1/phoneai/life',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,text,extra})});
   return r.json();
 }
 document.getElementById('cf').onsubmit=async ev=>{
   ev.preventDefault(); const t=document.getElementById('ct'); const text=(t.value||'').trim(); if(!text) return;
-  t.value=''; const log=document.getElementById('clog'); add(log,'me',text); add(log,'bot','…');
+  t.value=''; const log=document.getElementById('clog'); add(log,'me',text); add(log,'bot',chatEngine+' · working on this PC…');
   try{
-    const j=await sendLife('auto',text);
-    log.lastChild.querySelector('.b').textContent=j.reply||j.error||'ok';
-    if(j.open && j.open.indexOf('http')===0){ const a=document.createElement('a'); a.href=j.open; a.textContent=' Open'; a.style.color='#58a6ff'; log.lastChild.querySelector('.b').appendChild(a); }
-  }catch(e){ log.lastChild.querySelector('.b').textContent='Host unreachable. Keep the PC awake on this Wi-Fi.'; }
+    const j=await sendLife('chat',text);
+    const box=log.lastChild.querySelector('.b');
+    box.textContent=(j.reply||j.error||'empty')+(j.engine?'  · '+j.engine:'');
+    if(j.open && j.open.indexOf('http')===0){ const a=document.createElement('a'); a.href=j.open; a.textContent=' Open'; a.style.color='#58a6ff'; box.appendChild(a); }
+  }catch(e){ log.lastChild.querySelector('.b').textContent='Host unreachable. Keep this PC awake on the same Wi-Fi.'; }
 };
 document.getElementById('nf').onsubmit=async ev=>{ev.preventDefault(); const t=document.getElementById('nt'); await sendLife('note',t.value); t.value=''; life();};
 document.getElementById('rf').onsubmit=async ev=>{ev.preventDefault(); const t=document.getElementById('rt'); await sendLife('remind',t.value); t.value=''; life();};

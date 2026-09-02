@@ -72,8 +72,13 @@ python -m pocket install</pre>
 powershell -File scripts/Install-AlwaysOn.ps1</pre>
   </div>
 
+  <div class="step" id="sEng">
+    <h2>4 · Engines on this PC</h2>
+    <p id="engs">Checking Grok, Codex, Claude…</p>
+  </div>
+
   <div class="step" id="s4">
-    <h2>4 · Open the products</h2>
+    <h2>5 · Open the products</h2>
     <p class="urls">
       <a href="/desk">POCKET desk</a>
       <a href="/phoneai">PhoneAI website</a>
@@ -106,6 +111,16 @@ async function pulse(){{
   }}catch(_){{ el.innerHTML='<span class="bad">Cannot reach /v1/runtime.</span>'; }}
 }}
 pulse();
+(async()=>{{
+  try{{
+    const e=await fetch('/v1/engines').then(r=>r.json());
+    const desk=(e.desk||[]);
+    const el=document.getElementById('engs');
+    if(el) el.innerHTML = desk.length
+      ? ('Ready: <span class="ok">'+desk.join(', ')+'</span>')
+      : '<span class="bad">No Grok/Codex CLI detected. Install Grok Build CLI and Codex, then refresh.</span>';
+  }}catch(_){{ const el=document.getElementById('engs'); if(el) el.textContent='Could not load engines.'; }}
+}})();
 async function post(path, label){{
   const act=document.getElementById('act');
   act.textContent=label+'…';

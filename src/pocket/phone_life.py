@@ -196,7 +196,7 @@ def act(kind: str, text: str, *, extra: Optional[Dict[str, Any]] = None) -> Dict
             from pocket.phoneai_settings import chat_engine
             from pocket.phoneai_bridge import ask_engine
 
-            engine = chat_engine() if k != "translate" else "grok"
+            engine = str(extra.get("engine") or "") or (chat_engine() if k != "translate" else "grok")
             r = ask_engine(prompt, engine=engine or "grok")
         except Exception as e:
             r = {"ok": False, "error": str(e)[:200], "engine": "grok"}

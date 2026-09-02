@@ -129,8 +129,14 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
     const r=await fetch('/v1/runtime',{{cache:'no-store'}});
     const j=await r.json();
     el.classList.toggle('on', !!j.up);
+    let extra='';
+    try{{
+      const e=await fetch('/v1/engines',{{cache:'no-store'}}).then(r=>r.json());
+      const desk=(e.desk||[]).slice(0,6).join(' · ');
+      extra = desk ? (' · '+desk) : '';
+    }}catch(_){{}}
     el.lastChild.textContent = j.up
-      ? (' Host up'+(j.always_on?' · always-on':'')+' · tunnel this URL')
+      ? (' Host up'+(j.always_on?' · always-on':'')+extra)
       : ' Host down — open Setup to bring it up';
   }}catch(_){{
     el.lastChild.textContent=' Host unreachable — keep the PC awake';
