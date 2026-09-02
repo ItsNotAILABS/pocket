@@ -14,18 +14,18 @@ PHONEAI_OS_HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#05060a"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="PhoneAI"/>
 <link rel="manifest" href="/phoneai/manifest.json"/>
 <title>PhoneAI</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--g:#00ff86;--c:#58a6ff;--p:#14141c}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif}
-body{max-width:430px;margin:0 auto;display:flex;flex-direction:column;min-height:100%;
-  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+html,body{margin:0;width:100%;height:100%;height:100dvh;min-height:100svh;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif}
+body{max-width:430px;margin:0 auto;display:flex;flex-direction:column;min-height:100dvh;padding:0;
   background:radial-gradient(700px 380px at 90% -8%,rgba(0,255,134,.1),transparent 50%),#05060a}
-.status{display:flex;justify-content:space-between;padding:10px 18px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.view{display:none;flex:1;flex-direction:column;min-height:0}
+.status{display:flex;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 18px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.view{display:none;flex:1;flex-direction:column;min-height:0;padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .view.on{display:flex}
 .hero{padding:14px 18px 6px}
 h1{margin:4px 0;font-size:26px;letter-spacing:-.04em}
@@ -35,8 +35,8 @@ h1{margin:4px 0;font-size:26px;letter-spacing:-.04em}
 .icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:22px;
   border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02))}
 .app span{font-size:11px;color:var(--muted)}
-.dock{margin:8px 14px 12px;padding:8px;border-radius:22px;display:flex;justify-content:space-around;
-  background:rgba(18,18,24,.88);border:1px solid var(--line);backdrop-filter:blur(16px)}
+.dock{position:fixed;left:14px;right:14px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:20;margin:0;padding:8px;border-radius:22px;display:flex;justify-content:space-around;
+  background:rgba(18,18,24,.92);border:1px solid var(--line);backdrop-filter:blur(16px)}
 .quick{display:flex;gap:8px;padding:0 16px 10px;overflow:auto}
 .quick button{flex:0 0 auto;border:1px solid var(--line);background:var(--p);color:var(--fg);border-radius:999px;padding:8px 12px;font-size:12px}
 .log{flex:1;overflow:auto;padding:12px 14px}
@@ -634,7 +634,7 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 html,body{width:100%;height:100%;height:100dvh;height:100svh;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden}
 html{position:fixed;inset:0}
 body{position:fixed;inset:0;padding:0;touch-action:manipulation}
-.stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
+.stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;min-height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
 .view{position:absolute;inset:0;transform-origin:0 0}
 .view img{position:absolute;left:0;top:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
@@ -728,9 +728,9 @@ const hint=document.getElementById('hint');
 const keys=document.getElementById('keys');
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function glass(){
-  const vv=window.visualViewport;
-  if(vv) return {width:vv.width, height:vv.height, left:vv.offsetLeft||0, top:vv.offsetTop||0};
-  return {width:window.innerWidth, height:window.innerHeight, left:0, top:0};
+  const w=window.innerWidth;
+  const h=Math.max(window.innerHeight||0, document.documentElement.clientHeight||0, (window.visualViewport&&window.visualViewport.height)||0);
+  return {width:w, height:h, left:0, top:0};
 }
 let hudTimer=0;
 function setHud(on){

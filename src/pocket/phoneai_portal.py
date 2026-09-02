@@ -67,8 +67,34 @@ def virtual_screen() -> Dict[str, int]:
 
 
 def primary_screen() -> Dict[str, int]:
-    """The one screen we stream — not the virtual desktop, not a mirror of Portal."""
+    """Full primary display including the Windows taskbar (rcMonitor, not rcWork)."""
     u = _user32()
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class MONITORINFO(ctypes.Structure):
+            _fields_ = [
+                ("cbSize", ctypes.c_ulong),
+                ("rcMonitor", wintypes.RECT),
+                ("rcWork", wintypes.RECT),
+                ("dwFlags", ctypes.c_ulong),
+            ]
+
+        pt = wintypes.POINT(0, 0)
+        hmon = u.MonitorFromPoint(pt, 1)  # MONITOR_DEFAULTTOPRIMARY
+        mi = MONITORINFO()
+        mi.cbSize = ctypes.sizeof(MONITORINFO)
+        if hmon and u.GetMonitorInfoW(hmon, ctypes.byref(mi)):
+            r = mi.rcMonitor
+            return {
+                "x": int(r.left),
+                "y": int(r.top),
+                "w": int(r.right - r.left),
+                "h": int(r.bottom - r.top),
+            }
+    except Exception:
+        pass
     return {
         "x": 0,
         "y": 0,

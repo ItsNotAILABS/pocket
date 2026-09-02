@@ -1323,7 +1323,7 @@ body.device-phone .presets{gap:8px}
 body.device-phone .presets button{padding:8px 12px;font-size:12px}
 body.device-phone .computer-only{display:none!important}
 .phone-nav{
-  display:none;grid-column:1;grid-row:3;border-top:1px solid var(--line);
+  display:none;position:fixed;left:0;right:0;bottom:0;border-top:1px solid var(--line);
   background:rgba(17,17,19,.96);backdrop-filter:blur(12px);
   align-items:stretch;justify-content:space-around;padding:4px 6px env(safe-area-inset-bottom,4px);
   z-index:50;
