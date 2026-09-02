@@ -458,7 +458,7 @@ document.getElementById('sh').onsubmit=async ev=>{
   add('me', (cmd?('$ '+cmd+'\n'):'')+text, 'harness');
   add('bot','Harness…', 'harness');
   try{
-    const j=await fetch('/v1/phoneai/harness',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:text||cmd,shell:cmd,engine})}).then(r=>r.json());
+    const j=await fetch('/v1/phoneai/harness',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:text||cmd,shell:cmd,engine})}).then(r=>r.json());
     log.lastChild.remove();
     const out=(j.reply||(j.shell&&j.shell.stdout)||j.error||'done');
     add('bot', out, (j.engine&&j.engine.engine)||'harness');
@@ -472,9 +472,9 @@ document.getElementById('f').onsubmit=async ev=>{
   add('bot','Working…', engine);
   if(typeof setBuildStage==='function') setBuildStage(true, engine+' workspace');
   try{
-    const r=await fetch('/v1/phoneai/work/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})});
+    const r=await fetch('/v1/phoneai/work/stream',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})});
     if(!r.ok || !r.body){
-      const j=await fetch('/v1/phoneai/work',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})}).then(x=>x.json());
+      const j=await fetch('/v1/phoneai/work',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})}).then(x=>x.json());
       log.lastChild.remove();
       const n=add('bot', j.reply||j.error||'no reply', j.engine||engine);
       if(j.image_url){ const img=document.createElement('img'); img.src=j.image_url; n.querySelector('.b').appendChild(img); }
@@ -652,7 +652,7 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#000000"/>
-<title>Portal · PhoneAI</title>
+<title>Portal · PhoneAI · 3.13</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}

@@ -1493,6 +1493,8 @@ body.device-computer .rail{display:flex!important}
     <div class="side-scroll">
     <div class="stack-card" id="stackCard" title="Status">
       <div class="sk"><b>App</b><span class="on" id="stPocket">ready</span></div>
+      <div class="sk"><b>Grok</b><span class="off" id="stGrok">…</span></div>
+      <div class="sk"><b>Codex</b><span class="off" id="stCodex">…</span></div>
       <div class="sk"><b>NEXUS</b><span class="off" id="stNexus">…</span></div>
       <div class="sk"><b>MESIE</b><span class="off" id="stMesie">…</span></div>
       <div class="sk"><b>Mesh</b><span class="off" id="stMesh">…</span></div>
@@ -4770,6 +4772,12 @@ async function refreshStack(){
   }catch(_){
     ['stNexus','stMesie','stMesh'].forEach(id=>{ const el=$(id); if(el){ el.textContent='offline'; el.className='off'; }});
   }
+  try{
+    const e=await api('/v1/engines');
+    const ready=e.desk||e.ready||[];
+    const setE=(id,key)=>{ const el=$(id); if(!el) return; const on=ready.indexOf(key)>=0; el.textContent=on?'live':'install'; el.className=on?'on':'off'; };
+    setE('stGrok','grok'); setE('stCodex','codex');
+  }catch(_){}
   try{ refreshGithub(); }catch(_){}
 }
 async function refreshGithub(){

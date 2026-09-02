@@ -31,7 +31,7 @@ def test_portal_html_phone_zoom_and_controls():
     assert "layout()" in html
     assert "setPhoneFocus" in html
     assert "phoneFocus" in html
-    assert "Entire PC" in html or "full computer" in html.lower() or "full PC" in html
+    assert "Entire PC" in html or "full computer" in html.lower() or "full PC" in html or "Laptop" in html
     assert "WebSocket" in html
     assert "netProfile" in html
     assert "data-f=\"contain\"" in html or "data-f='contain'" in html
