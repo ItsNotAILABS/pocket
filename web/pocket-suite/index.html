@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>POCKET Suite Beta</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07090f; --panel:#111827; --text:#f8fafc; --muted:#94a3b8; --line:#263244; --accent:#7dd3fc; --good:#86efac; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at top left,#1e293b 0,#07090f 42%); color:var(--text); }
+    main { max-width:1120px; margin:0 auto; padding:48px 20px; }
+    .hero { display:grid; gap:20px; padding:32px; border:1px solid var(--line); border-radius:28px; background:rgba(17,24,39,.76); box-shadow:0 24px 80px rgba(0,0,0,.3); }
+    .pill { display:inline-flex; width:max-content; gap:8px; align-items:center; border:1px solid var(--line); border-radius:999px; padding:8px 12px; color:var(--good); background:#07130c; }
+    h1 { margin:0; font-size:clamp(36px,7vw,78px); line-height:.95; letter-spacing:-.06em; }
+    p { color:var(--muted); line-height:1.65; max-width:820px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:22px; }
+    .card { border:1px solid var(--line); background:rgba(15,23,42,.82); border-radius:22px; padding:20px; min-height:170px; }
+    .card h2 { margin:0 0 10px; font-size:20px; }
+    code, pre { color:#bae6fd; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+    a, button { color:var(--text); text-decoration:none; border:1px solid var(--line); border-radius:14px; padding:12px 14px; background:#0f172a; }
+    button { cursor:pointer; }
+    .receipt { margin-top:22px; padding:16px; border:1px dashed var(--line); border-radius:18px; color:#cbd5e1; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="pill">beta.pocketnova.app / deploy handoff ready</div>
+      <h1>POCKET Suite: platform, app, voice, and agents.</h1>
+      <p>POCKET is the operator-facing control plane. This beta showcase links the real suite surfaces: Pocket Platform, Pocket App, Voice-to-Text Pocket, and Agent Pocket. Every production claim, export, payment, wallet, or agent action must produce an explicit receipt instead of being inferred from a chat message.</p>
+      <div class="actions">
+        <a href="/desk">Open Desk</a>
+        <a href="/work">Open Work Studio</a>
+        <a href="/docs">Docs</a>
+        <a href="/v1/catalog">API Catalog</a>
+        <button id="receiptBtn">Generate client receipt</button>
+      </div>
+      <div class="grid">
+        <article class="card"><h2>Pocket Platform</h2><p>Control plane for routes, tasks, policies, action receipts, deployment handoff, and SDK access.</p><code>/v1/pocket/suite</code></article>
+        <article class="card"><h2>Pocket App</h2><p>Web entry for the operator desk, work studio, docs, install hub, and live beta route.</p><code>https://beta.pocketnova.app</code></article>
+        <article class="card"><h2>Voice-to-Text Pocket</h2><p>Voice capture surface that converts speech into task packets and exportable transcript receipts.</p><code>/v1/voice/transcribe</code></article>
+        <article class="card"><h2>Agent Pocket</h2><p>Task execution surface for agent jobs, handoff payloads, policy checks, and result receipts.</p><code>/v1/agents/tasks</code></article>
+      </div>
+      <pre class="receipt" id="receipt">No client receipt generated yet.</pre>
+    </section>
+  </main>
+  <script type="module">
+    import { PocketSuiteClient } from '../../sdk/pocket-suite-client.js';
+    const client = new PocketSuiteClient({ baseUrl: location.origin, betaHost: 'beta.pocketnova.app' });
+    document.getElementById('receiptBtn').addEventListener('click', async () => {
+      const receipt = await client.localReceipt({ action: 'showcase.view', surface: 'pocket-suite', mode: 'browser-local' });
+      document.getElementById('receipt').textContent = JSON.stringify(receipt, null, 2);
+    });
+  </script>
+</body>
+</html>

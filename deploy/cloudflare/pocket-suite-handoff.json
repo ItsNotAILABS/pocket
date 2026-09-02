@@ -1,0 +1,37 @@
+{
+  "schema": "pocket.cloud_handoff.v1",
+  "suite": "POCKET",
+  "canonical_beta_url": "https://beta.pocketnova.app",
+  "repos": {
+    "platform": "https://github.com/ItsNotAILABS/pocket",
+    "voice_to_text": "https://github.com/ItsNotAILABS/pocket-voice-to-text",
+    "agent": "https://github.com/ItsNotAILABS/pocket-agent"
+  },
+  "cloudflare": {
+    "zone": "pocketnova.app",
+    "routes": [
+      { "host": "beta.pocketnova.app", "path": "/*", "surface": "Pocket App / Platform" },
+      { "host": "beta.pocketnova.app", "path": "/voice/*", "surface": "Voice-to-Text Pocket" },
+      { "host": "beta.pocketnova.app", "path": "/agents/*", "surface": "Agent Pocket" },
+      { "host": "beta.pocketnova.app", "path": "/sdk/*", "surface": "SDK artifacts" }
+    ],
+    "required_secret_refs": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_ZONE_ID"],
+    "forbidden_in_git": ["api tokens", "account secrets", "customer data", "payment credentials", "wallet private keys"]
+  },
+  "sdk_entrypoints": {
+    "browser": "/sdk/pocket-suite-client.js",
+    "showcase": "/web/pocket-suite/index.html"
+  },
+  "action_contracts": [
+    "agent_task",
+    "production_claim",
+    "data_export",
+    "payment_execution",
+    "wallet_execution"
+  ],
+  "deployment_prompt_for_claude_or_cloud": "Deploy the POCKET suite beta using this repository as the platform source. Use beta.pocketnova.app as the canonical beta host. Mount /web/pocket-suite/index.html as the showcase, expose /sdk/pocket-suite-client.js, preserve /v1/agent, /v1/data, /v1/payments, and /v1/wallet receipt endpoints, and do not infer production state unless a receipt or verification artifact exists.",
+  "validation": {
+    "command": "python scripts/validate_pocket_suite_handoff.py",
+    "receipt": "dist/pocket-suite-handoff/validation-receipt.json"
+  }
+}
