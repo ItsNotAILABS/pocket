@@ -22,6 +22,8 @@ Electron shell for the local POCKET host UI. Dark window, single-instance, secur
 - Python with POCKET installable as `python -m pocket` (for local host)
 - Host URL default: **http://127.0.0.1:8787/**
 
+**Sibling channel — POCKET Edge:** if you want the desk without Electron, run `.\scripts\Open-POCKET-Edge.ps1` from pocket-os. Same host, Edge `--app` window. That launcher is the daily Windows seat.
+
 ## Production run
 
 ### Option A — launcher (host + Electron)

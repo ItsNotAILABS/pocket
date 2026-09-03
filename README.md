@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ItsNotAILABS/pocket"><img alt="version" src="https://img.shields.io/badge/version-3.16.4-10a37f?style=flat-square"></a>
+  <a href="https://github.com/ItsNotAILABS/pocket"><img alt="version" src="https://img.shields.io/badge/version-3.16.5-10a37f?style=flat-square"></a>
   <img alt="host" src="https://img.shields.io/badge/host-%3A8787-09090b?style=flat-square">
   <img alt="edition" src="https://img.shields.io/badge/edition-founder-3b82f6?style=flat-square">
 </p>
@@ -25,8 +25,9 @@
 
 <p align="center">
   <a href="http://127.0.0.1:8787/desk">Open Desk</a> ·
-  <a href="http://127.0.0.1:8787/phoneai">PhoneAI</a> ·
+  <a href="http://127.0.0.1:8787/phoneai">PhoneAI Kernel</a> ·
   <a href="http://127.0.0.1:8787/phoneai/portal">Portal</a> ·
+  <a href="http://127.0.0.1:8787/phoneai/pair">Pair phone</a> ·
   <a href="http://127.0.0.1:8787/v1/auth/desktop/enter">Sign in on this PC</a>
 </p>
 
@@ -41,7 +42,8 @@ Agents think first. They use at most one tool. Long work lives in a **tenant-jai
 | You open | You get |
 |---|---|
 | **Desk** | Codex, Grok, and ready engines — advertised only when they are actually on the host |
-| **PhoneAI Kernel** | A phone OS seat on this PC, not a receptionist |
+| **POCKET Edge** | Microsoft Edge `--app` window onto this host. Same desk, no extra browser chrome. The everyday launcher. |
+| **PhoneAI Kernel** | A phone OS seat on this PC, not a receptionist. Pair first, then Computer (Portal). |
 | **Portal** | One primary screen. Touch maps to the real mouse. No recursive nested desktops |
 | **Team workspace** | Founder-only. Canonical path under `~/.pocket/tenants/<you>/teams/<id>/` |
 | **MCP** | Agents call tools. You do not open extra studio tabs for them |
@@ -70,6 +72,41 @@ Agents think first. They use at most one tool. Long work lives in a **tenant-jai
 </p>
 
 Stills are generated product frames. Loops are 6-second cinematic moves from those frames (`docs/brand/`).
+
+---
+
+## POCKET Edge
+
+The Edge app is the daily driver on this PC: Microsoft Edge in `--app` mode onto `http://127.0.0.1:8787/desk`. Same host as Electron. No extra tab strip. Ensures the host is up, then opens the desk as a real window.
+
+<p align="center">
+  <img src="docs/brand/pocket-edge.jpg" width="100%" alt="POCKET Edge — desk in an app window, not a browser tab"/>
+</p>
+
+```powershell
+.\scripts\Open-POCKET-Edge.ps1
+# or
+.\scripts\Open-POCKET-Edge.cmd
+```
+
+Shortcut after `Install-POCKET-Ship.ps1`: **POCKET Edge (this machine)**. Packaged desktop: `POCKET.exe --edge`.
+
+| Channel | How you sit on the host |
+|---|---|
+| **POCKET Edge** | Edge `--app=/desk` — fastest on Windows |
+| **POCKET Desktop** | Electron tray + bundled host |
+| **PhoneAI Kernel** | Pair this phone, then Computer = Portal |
+
+---
+
+## PhoneAI Kernel (this phone)
+
+First run is **pair**, not chat: 6-digit code from the PC + Face ID on this phone. Device seat `device:<id>`, not the owner password. Then **Computer** — Portal, contained, `pocket.stream.v1`. Expo is a skin; the PWA is the same kernel.
+
+```text
+http://127.0.0.1:8787/phoneai/pair
+http://127.0.0.1:8787/phoneai/computer
+```
 
 ---
 
@@ -115,7 +152,7 @@ Windows desktop build:
 
 ---
 
-## Now shipping (3.16.4)
+## Now shipping (3.16.5)
 
 - Tenant jail helpers bind every team path and job cwd
 - Team worker ticks seats under the tenant root
@@ -124,6 +161,8 @@ Windows desktop build:
 - Catalog lists **ready** engines only
 - SCREEN-KERNEL/1.1 + `pocket.stream.v1` + device pair across hostnames
 - Product film in `docs/brand/` (generated stills + 6s loops)
+- PhoneAI pair-first + Computer app (`/phoneai/pair`, `/phoneai/computer`)
+- POCKET Edge showcased as the Windows daily launcher
 
 Host-control policy: public HTTP is shells, health, and login. Portal cookies bind a principal. RAH execute needs a WorkGrant.
 

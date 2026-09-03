@@ -867,6 +867,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_os_html
 
             return self._html(phoneai_os_html())
+        if path in ("/phoneai/pair", "/kernel/pair"):
+            from pocket.phoneai_os_ui import phoneai_pair_html
+
+            return self._html(phoneai_pair_html())
+        if path in ("/phoneai/computer",):
+            from pocket.phoneai_os_ui import phoneai_portal_html
+
+            return self._html(phoneai_portal_html())
         if path in ("/phoneai/runtime", "/runtime"):
             from pocket.phoneai_landing import runtime_html as phoneai_runtime_html
 

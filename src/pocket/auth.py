@@ -99,6 +99,8 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/phoneai/anti",
     "/phoneai/antigravity",
     "/phoneai/portal",
+    "/phoneai/pair",
+    "/phoneai/computer",
     "/phoneai/pc",
     "/portal",
     "/phoneai/tv",

@@ -62,6 +62,8 @@ def test_static_shells_and_login_stay_public():
     assert path_is_public("/login") is True
     assert path_is_public("/phoneai") is True
     assert path_is_public("/phoneai/portal") is True
+    assert path_is_public("/phoneai/pair") is True
+    assert path_is_public("/phoneai/computer") is True
     assert path_is_public("/phoneai/app") is True
     assert path_is_public("/v1/auth/passkey/begin") is True
     assert path_is_public("/v1/auth/device/begin") is True

@@ -1,4 +1,13 @@
-from pocket.phoneai_os_ui import phoneai_os_html, phoneai_system_html
+from pocket.phoneai_os_ui import phoneai_os_html, phoneai_pair_html, phoneai_system_html
+
+
+def test_pair_page_is_kernel_not_receptionist():
+    h = phoneai_pair_html()
+    assert "PhoneAI Kernel" in h
+    assert "Face ID" in h
+    assert "Nova" not in h
+    assert "receptionist" in h.lower() or "Not a receptionist" in h
+    assert "/v1/auth/device/redeem" in h
 
 
 def test_kernel_and_os_are_distinct():

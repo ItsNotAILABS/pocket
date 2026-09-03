@@ -345,6 +345,75 @@ def phoneai_os_html() -> str:
     )
 
 
+PHONEAI_PAIR_HTML = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#05060a"/>
+<meta name="apple-mobile-web-app-title" content="PhoneAI Kernel"/>
+<title>PhoneAI Kernel — Pair</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#05060a;color:#f4f4f5;font-family:ui-sans-serif,system-ui,sans-serif}
+body{max-width:430px;margin:0 auto;padding:calc(28px + env(safe-area-inset-top)) 22px 40px}
+.kicker{letter-spacing:.18em;text-transform:uppercase;color:#00ff86;font-size:11px}
+h1{font-size:32px;letter-spacing:-.04em;margin:10px 0 8px}
+.lead{color:#8b8b98;line-height:1.45;font-size:15px}
+input{width:100%;margin-top:22px;padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0c0c0e;color:#fff;font-size:28px;letter-spacing:.4em;text-align:center}
+button{width:100%;margin-top:12px;min-height:48px;border:0;border-radius:14px;background:#00ff86;color:#042;font-weight:800}
+.ghost{background:transparent;color:#00ff86;border:1px solid rgba(0,255,134,.4);margin-top:8px}
+.hint{margin-top:16px;color:#8b8b98;font-size:13px;min-height:2.4em}
+a{color:#58a6ff}
+</style>
+</head>
+<body>
+<p class="kicker">PhoneAI Kernel</p>
+<h1>Pair this phone</h1>
+<p class="lead">Not a receptionist. Not owner login. Six-digit code from the PC, then Face ID on <b>this</b> phone. You become a device seat.</p>
+<input id="code" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"/>
+<button type="button" id="go">Pair with Face ID</button>
+<button type="button" class="ghost" id="mint">Mint a code (this PC / home Wi-Fi)</button>
+<p class="hint" id="hint">LAN can skip Face ID. Tunnel needs code + passkey.</p>
+<p class="hint">Then open <a href="/phoneai/computer">Computer</a> — Portal, contained.</p>
+<script>
+function b64urlToBuf(s){s=s.replace(/-/g,'+').replace(/_/g,'/');const pad=s.length%4;if(pad)s+='='.repeat(4-pad);const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer}
+function bufToB64url(buf){const u=new Uint8Array(buf);let s='';for(const b of u)s+=String.fromCharCode(b);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function strToBuf(s){if(typeof s!=='string')return s;try{return b64urlToBuf(s)}catch(_){const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer}}
+const hint=document.getElementById('hint');
+document.getElementById('mint').onclick=async()=>{
+  const j=await fetch('/v1/auth/device/mint',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+  hint.textContent=j.code?('Code '+j.code+' — 10 min. Enter it on the tunnel, then Face ID.'):(j.error||'Mint on the PC');
+  if(j.code) document.getElementById('code').value=j.code;
+};
+document.getElementById('go').onclick=async()=>{
+  const code=(document.getElementById('code').value||'').replace(/\D/g,'');
+  const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
+  if(lan && !code){ location.href='/phoneai/computer'; return; }
+  if(code.length!==6){ hint.textContent='Enter the 6-digit code from the PC'; return; }
+  if(!window.PublicKeyCredential){ hint.textContent='This phone needs Face ID / a passkey'; return; }
+  try{
+    const started=await fetch('/v1/auth/device/begin',{credentials:'include'}).then(r=>r.json());
+    if(!started.ok){ hint.textContent=started.error||'Mint a code on the PC first'; return; }
+    const pk=started.publicKey;
+    pk.challenge=strToBuf(pk.challenge);
+    if(pk.user&&pk.user.id) pk.user.id=b64urlToBuf(pk.user.id);
+    const cred=await navigator.credentials.create({publicKey:pk});
+    const payload={id:cred.id,rawId:bufToB64url(cred.rawId),type:cred.type,response:{clientDataJSON:bufToB64url(cred.response.clientDataJSON),attestationObject:cred.response.attestationObject?bufToB64url(cred.response.attestationObject):undefined}};
+    const j=await fetch('/v1/auth/device/redeem',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,credential:payload})}).then(r=>r.json());
+    if(j&&j.ok){ hint.textContent='Device seat paired. Opening Computer.'; location.href='/phoneai/computer'; }
+    else hint.textContent=j.error||'Pair failed — code + Face ID';
+  }catch(e){ hint.textContent=(e&&e.message)||'Pair cancelled'; }
+};
+</script>
+</body></html>
+"""
+
+
+def phoneai_pair_html() -> str:
+    return PHONEAI_PAIR_HTML
+
+
 PHONEAI_SYSTEM_HTML = r"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"/>
