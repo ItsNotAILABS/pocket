@@ -851,7 +851,11 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_landing import landing_html as phoneai_landing_html
 
             return self._html(phoneai_landing_html())
-        if path in ("/phoneai/app", "/phoneai/os", "/phoneai/home", "/kernel", "/kernel/os"):
+        if path in ("/phoneai/os", "/kernel/os", "/phoneaios"):
+            from pocket.phoneai_os_ui import phoneai_system_html
+
+            return self._html(phoneai_system_html())
+        if path in ("/phoneai/app", "/phoneai/home", "/kernel"):
             from pocket.phoneai_os_ui import phoneai_os_html
 
             return self._html(phoneai_os_html())

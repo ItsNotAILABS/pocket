@@ -135,6 +135,8 @@ def _entries() -> List[Dict[str, Any]]:
         ("pocket-organism", "Mini heart + mini brain", "organism", True),
         ("mini-heart", "Host pulse", "organism", True),
         ("mini-brain", "Host thoughts", "organism", True),
+        ("auro-endure", "Auro experiment-and-endure", "endure", True),
+        ("codex", "First-class Codex CLI", "job", False),
     ):
         add(
             {
@@ -283,6 +285,12 @@ def invoke(
     out: Dict[str, Any] = {"agent": aid, "name": rec.get("name"), "kind": rec.get("kind"), "resolved": rec["id"]}
 
     # --- runtime specials ---
+    if kind == "endure" or aid in ("auro-endure", "endure", "auro_endure"):
+        from pocket.auro_endure import run as endure_run
+
+        r = endure_run(prompt or job)
+        r.update(out)
+        return r
     if kind == "keep" or aid == "keep":
         from pocket.keep_agents import start as keep_start
 

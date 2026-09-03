@@ -109,7 +109,9 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
     if "opencode" in low:
         return {"engine": "opencode", "tool": None, "why": "opencode"}
     if "codex" in low:
-        return {"engine": "codex", "tool": None, "why": "codex asked"}
+        return {"engine": "codex", "tool": None, "why": "codex first-class"}
+    if any(w in low for w in ("endure", "experiment and endure", "auro endure")):
+        return {"engine": "auro-endure", "tool": None, "why": "auro experiment-endure"}
     if any(
         w in low
         for w in (
@@ -118,13 +120,21 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
             "write code",
             "patch ",
             "test file",
+            "pytest",
             "coder",
             "maintain repo",
             "large repo",
             "refactor",
         )
     ):
-        return {"engine": "grok", "tool": None, "why": "coder grok — long-term family repos"}
+        try:
+            from pocket.executor import which_codex
+
+            if which_codex():
+                return {"engine": "codex", "tool": None, "why": "first-class Codex CLI on this host"}
+        except Exception:
+            pass
+        return {"engine": "grok", "tool": None, "why": "coder grok — Codex CLI not on PATH"}
     return {"engine": "grok", "tool": None, "why": "think then grok — no extra tools"}
 
 

@@ -727,6 +727,11 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         from pocket.repos import run_repos_job
 
         return run_repos_job(prompt)
+    if mode in ("auro-endure", "endure", "auro_endure"):
+        from pocket.auro_endure import run as endure_run
+
+        r = endure_run(prompt)
+        return str(r.get("summary") or r.get("error") or ""), "" if r.get("ok") else str(r.get("error") or "endure"), "auro-endure"
     if mode == "copilot":
         from pocket.copilot_agent import run_copilot_job
 

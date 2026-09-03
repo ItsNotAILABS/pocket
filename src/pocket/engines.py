@@ -43,6 +43,8 @@ def catalog() -> Dict[str, Any]:
         pass
 
     surfaces = [
+        {"id": "phoneai_os", "label": "PhoneAI OS", "kind": "surface", "available": True, "path": "/phoneai/os"},
+        {"id": "phoneai_kernel", "label": "PhoneAI Kernel", "kind": "surface", "available": True, "path": "/phoneai/app"},
         {"id": "portal", "label": "Portal stream", "kind": "surface", "available": True, "path": "/phoneai/portal"},
         {"id": "antigravity", "label": "Antigravity app", "kind": "surface", "available": True, "path": "/phoneai/anti"},
         {"id": "imagine", "label": "Imagine", "kind": "surface", "available": True, "path": "/imagine"},
@@ -67,6 +69,12 @@ def catalog() -> Dict[str, Any]:
         )
 
     ready = [c["id"] for c in clis if c.get("available")] + [i["id"] for i in internals if i.get("available")]
+    desk_order = ("codex", "grok", "claude", "gemini", "qwen", "opencode", "copilot", "spark")
+    desk = [x for x in desk_order if x in ready]
+    if "codex" not in desk:
+        desk = ["codex"] + desk
+    if "grok" not in desk:
+        desk = desk[:1] + ["grok"] + desk[1:]
     return {
         "ok": True,
         "product": "POCKET engines",
@@ -74,7 +82,8 @@ def catalog() -> Dict[str, Any]:
         "internal": internals,
         "surfaces": surfaces,
         "ready": ready,
-        "desk": [x for x in ready if x in ("grok", "codex", "claude", "gemini", "qwen", "opencode", "copilot", "spark")],
+        "desk": desk,
+        "first_class": ["codex", "grok", "claude"],
         "phone_fast": [x for x in ready if x in ("auro", "ghost", "logic", "pattern", "heuristic", "world", "guppy")],
     }
 

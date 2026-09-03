@@ -24,7 +24,7 @@ SEATS = ("pocket", "phoneai", "node", "screen")
 # Tools that may not run from wording alone.
 CONSEQUENCE = frozenset({"rah_run", "studio_ship", "twin_mint", "shell"})
 
-EXECUTE = ("harness", "rah", "invoke", "talk", "session", "plan", "screen")
+EXECUTE = ("harness", "rah", "invoke", "talk", "session", "plan", "screen", "endure")
 
 
 def _norm(s: str) -> str:
@@ -178,6 +178,8 @@ def turn(
             lane = "session"
         elif tool == "agent_talk":
             lane = "talk"
+        elif thought.get("engine") in ("auro-endure", "endure"):
+            lane = "endure"
         elif tool == "screen_embody" or thought.get("engine") == "screen":
             lane = "screen"
         elif who.get("first_class") and who.get("invoke") and agent and not who.get("persona"):
@@ -229,6 +231,10 @@ def turn(
         from pocket.agent_invoke import invoke
 
         result = invoke(str(who.get("id") or agent), prompt=goal)
+    elif lane == "endure":
+        from pocket.auro_endure import run as endure_run
+
+        result = endure_run(goal)
     elif lane == "screen":
         from pocket.screen_body import act as body_act, inhabit
 

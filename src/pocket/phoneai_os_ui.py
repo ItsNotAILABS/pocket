@@ -84,7 +84,7 @@ body.desk .dock{display:none!important;pointer-events:none}
 <div class="status"><span id="clk">PHONEAI</span><span id="host">GLIMMER</span></div>
 
 <section class="view on" id="v-home">
-  <div class="hero"><h1>PhoneAI</h1><p class="lead">Your phone on this PC. Grok and Codex run here. Portal is the laptop screen. TV is a Wi-Fi node.</p></div>
+  <div class="hero"><h1>PhoneAI Kernel</h1><p class="lead">Seat on this PC. Codex is first-class. Portal is the laptop. <a href="/phoneai/os" style="color:#58a6ff">Open PhoneAI OS</a>.</p></div>
   <div class="engines" id="eng"></div>
   <div class="quick">
     <button type="button" data-go="chat" data-pre="Remind me to ">Remind me</button>
@@ -343,6 +343,64 @@ def phoneai_os_html() -> str:
         .replace("__PHONEAI_WS_STAGE__", WS)
         .replace("__PHONEAI_WS_JS__", JS)
     )
+
+
+PHONEAI_SYSTEM_HTML = r"""<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#05060a"/>
+<meta name="apple-mobile-web-app-title" content="PhoneAI OS"/>
+<title>PhoneAI OS</title>
+<style>
+:root{--g:#00ff86;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--p:#14141c}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100dvh;background:#05060a;color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui}
+body{max-width:430px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px 88px}
+.bar{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:28px;letter-spacing:-.04em;margin:10px 0 4px}
+.lead{color:var(--muted);font-size:14px}
+.layers{display:flex;gap:8px;margin:14px 0}
+.layers a{flex:1;text-align:center;padding:10px;border-radius:14px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:800;font-size:13px}
+.layers a.on{background:var(--g);color:#042}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.card{display:block;padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--p);color:var(--fg);text-decoration:none}
+.card b{display:block;font-size:15px}
+.card span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.dock{position:fixed;left:14px;right:14px;bottom:calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;padding:10px;border-radius:22px;background:rgba(18,18,24,.92);border:1px solid var(--line)}
+.dock a{color:var(--muted);text-decoration:none;font-size:11px;font-weight:800}
+</style></head><body>
+<div class="bar"><span>PHONEAI OS</span><span id="clk"></span></div>
+<h1>PhoneAI OS</h1>
+<p class="lead">The phone is a kernel seat on your computer — Codex, Grok, and the live screen are OS services, not cloud apps.</p>
+<div class="layers">
+  <a href="/phoneai/app">Kernel</a>
+  <a class="on" href="/phoneai/os">OS</a>
+</div>
+<div class="grid">
+  <a class="card" href="/phoneai/app#chat"><b>Chat</b><span>Grok · Codex first-class</span></a>
+  <a class="card" href="/phoneai/work"><b>Code desk</b><span>Codex CLI on this PC</span></a>
+  <a class="card" href="/phoneai/portal"><b>Screen</b><span>pocket.stream.v1 · embody</span></a>
+  <a class="card" href="/agents"><b>Agents</b><span>Every first-class roster</span></a>
+  <a class="card" href="/phoneai/app#settings"><b>Pair</b><span>Code + Face ID, not owner</span></a>
+  <a class="card" href="/v1/engines"><b>Engines</b><span>JSON live catalog</span></a>
+  <a class="card" href="/claims"><b>Claims</b><span>Kernel™ · SCREEN-KERNEL</span></a>
+  <a class="card" href="/phoneai/runtime"><b>Runtime</b><span>One watchdog</span></a>
+</div>
+<p class="lead" style="margin-top:18px">Kernel = identity, screen, pair. OS = apps, agents, Codex, life. Future phones run this seat, not a receptionist.</p>
+<nav class="dock">
+  <a href="/phoneai/app">Kernel</a>
+  <a href="/phoneai/portal">Portal</a>
+  <a href="/phoneai/work">Codex</a>
+  <a href="/agents">Agents</a>
+</nav>
+<script>document.getElementById('clk').textContent=new Date().toTimeString().slice(0,5);</script>
+</body></html>
+"""
+
+
+def phoneai_system_html() -> str:
+    return PHONEAI_SYSTEM_HTML
 
 
 PHONEAI_TWIN_HTML = r"""<!DOCTYPE html>

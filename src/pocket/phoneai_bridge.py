@@ -477,6 +477,8 @@ _KNOWN_ENGINES = (
     "cursor",
     "aider",
     "copilot",
+    "auro-endure",
+    "endure",
     "spectral",
     "physics",
     "agi",
@@ -695,6 +697,14 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "", wrap_cod
             "reply": "Open Portal on the phone: /phoneai/portal — Watch the real PC or Touch it.",
             "open": "/phoneai/portal",
         }
+        r.update(where)
+        return r
+    if chosen in ("auro-endure", "endure"):
+        from pocket.auro_endure import run as endure_run
+
+        r = endure_run(text)
+        r.setdefault("engine", "auro-endure")
+        r.setdefault("reply", r.get("summary") or r.get("error") or "endure ran")
         r.update(where)
         return r
     if chosen in ("auro", "ghost", "logic", "pattern", "heuristic", "world", "guppy"):

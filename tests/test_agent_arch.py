@@ -40,7 +40,16 @@ def test_rah_wording_is_plan_without_grant():
     assert "grant" in (r["result"].get("hint") or "").lower()
 
 
-def test_route_still_one_engine():
+def test_route_still_one_engine(monkeypatch):
+    monkeypatch.setattr("pocket.executor.which_codex", lambda: "")
     t = route_think("write a pytest for the arch plane")
-    assert t["engine"] == "grok"
+    assert t["engine"] in ("grok", "codex")
     assert t.get("tool") in (None, "rah_run")
+
+
+def test_codex_is_first_class_when_cli_present(monkeypatch):
+    monkeypatch.setattr("pocket.executor.which_codex", lambda: "codex")
+    t = route_think("implement a pytest for the arch plane")
+    assert t["engine"] == "codex"
+    t2 = route_think("use codex to patch this")
+    assert t2["engine"] == "codex"

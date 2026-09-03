@@ -80,7 +80,20 @@ def _desk_agents() -> List[Dict[str, Any]]:
     """All desk session agents — first-class IDE / chat modes."""
     return [
         # Primary engines
-        _e("codex", "Codex", "Host coding agent", kind="desk", group="Primary", color=C["engine"], desk_mode="codex", engine="codex", harness=True, blurb="Write and fix code · harnessed subagents"),
+        _e(
+            "codex",
+            "Codex",
+            "First-class host coding agent",
+            kind="desk",
+            group="Primary",
+            color=C["engine"],
+            desk_mode="codex",
+            engine="codex",
+            harness=True,
+            blurb="OpenAI Codex CLI on this PC — desk, PhoneAI OS, harness, RAH leaf",
+            surfaces=["desk", "phone"],
+            aliases=["@codex", "openai-codex"],
+        ),
         _e("grok", "Grok", "Code + research agent", kind="desk", group="Primary", color=C["research"], desk_mode="grok", engine="grok", harness=True, blurb="Code, research, reorganize · harnessed"),
         _e(
             "gemini_coder",
@@ -176,6 +189,20 @@ def _desk_agents() -> List[Dict[str, Any]]:
         _e("nexus", "NEXUS", "Intelligence tools", kind="desk", group="Advanced", color=C["build"], desk_mode="nexus", engine="nexus", harness=False, blurb="NEXUS intelligence bridge"),
         _e("mesie", "MESIE", "Spectral compute", kind="desk", group="Advanced", color=C["host"], desk_mode="mesie", engine="mesie", harness=False, blurb="MESIE spectral / compute"),
         _e("auro", "Auro14B", "Local LMR + meaning", kind="desk", group="Internal", color=C["local"], desk_mode="auro", engine="auro", harness=False, blurb="Native Auro LMR + meaning model · prefix native for full ckpt"),
+        _e(
+            "auro-endure",
+            "Auro Endure",
+            "Experiment and endure",
+            kind="desk",
+            group="Internal",
+            color=C["local"],
+            desk_mode="auro-endure",
+            engine="auro-endure",
+            harness=True,
+            blurb="Auro14B: try variants, keep looping, write receipts — does not die after one shot",
+            surfaces=["desk", "phone"],
+            aliases=["endure", "auro_endure", "experiment-endure"],
+        ),
         _e(
             "assist",
             "Digital assistant",
@@ -469,6 +496,10 @@ def build_registry(*, live: bool = False) -> Dict[str, Any]:
 def _probe(a: Dict[str, Any]) -> str:
     kind = a.get("kind")
     try:
+        if a.get("id") == "codex":
+            from pocket.executor import which_codex
+
+            return "ready" if which_codex() else "cli-missing"
         if kind == "desk":
             return "ready"
         if kind == "swarm":
