@@ -210,15 +210,28 @@ def start_serve() -> None:
     except Exception:
         out_f = subprocess.DEVNULL
         err_f = subprocess.DEVNULL
-    _serve_proc = subprocess.Popen(
-        [_python(), "-u", "-m", "pocket", "serve", "--host", "0.0.0.0", "--port", str(PORT)],
-        cwd=str(ROOT),
-        env=env,
-        stdout=out_f,
-        stderr=err_f,
-        creationflags=creation,
-        close_fds=True,
-    )
+    argv = [_python(), "-u", "-m", "pocket", "serve", "--host", "0.0.0.0", "--port", str(PORT)]
+    try:
+        _serve_proc = subprocess.Popen(
+            argv,
+            cwd=str(ROOT),
+            env=env,
+            stdout=out_f,
+            stderr=err_f,
+            creationflags=creation,
+            close_fds=True,
+        )
+    except PermissionError:
+        # Job-object / DETACHED_PROCESS can Access-denied from agent shells.
+        _serve_proc = subprocess.Popen(
+            argv,
+            cwd=str(ROOT),
+            env=env,
+            stdout=out_f,
+            stderr=err_f,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0,
+            close_fds=True,
+        )
 
 
 def heartbeat_loop() -> None:
