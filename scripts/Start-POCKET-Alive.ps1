@@ -58,6 +58,16 @@ if (-not (Test-Path $py)) {
 
 while ($true) {
   $listening = @(Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue)
+  if ($listening.Count -gt 1) {
+    $keep = ($listening | Sort-Object OwningProcess | Select-Object -First 1)
+    foreach ($c in $listening) {
+      if ($c.OwningProcess -and $keep.OwningProcess -and ($c.OwningProcess -ne $keep.OwningProcess)) {
+        Write-Host ("[{0}] extra listener PID {1} — stopping" -f (Get-Date -Format "HH:mm:ss"), $c.OwningProcess)
+        Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+      }
+    }
+    $listening = @(Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue)
+  }
   if ($listening.Count -gt 0) {
     if (DeskOk) {
       Write-Host ("[{0}] healthy — watching (no kill)" -f (Get-Date -Format "HH:mm:ss"))

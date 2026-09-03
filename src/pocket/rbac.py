@@ -150,6 +150,22 @@ FOUNDER_ONLY_PATH_PREFIXES = (
     "/v1/capture",
     "/v1/screen",
     "/v1/offload",
+    "/v1/vcomp",
+    "/v1/computer",
+    "/v1/vlaptop",
+    "/v1/rah",
+    "/v1/webmcp/use",
+    "/v1/webmcp/scan",
+    "/v1/agents/invoke",
+    "/v1/agent/invoke",
+    "/v1/phoneai/shell",
+    "/v1/phoneai/harness",
+    "/v1/runtime/ensure",
+    "/v1/runtime/install",
+    "/v1/twin/vault",
+    "/v1/twin/mint",
+    "/v1/agent-mail/send",
+    "/v1/eyes/touch",
 )
 
 

@@ -68,16 +68,21 @@ def touch(
 ) -> Dict[str, Any]:
     from pocket.phoneai_portal import touch as portal_touch
 
+    nx = max(0.0, min(1.0, float(nx)))
+    ny = max(0.0, min(1.0, float(ny)))
+    tlow = (target or "desktop").lower()
+    if tlow not in ("desktop", "tv", "focus", "window", "anti", "antigravity", "primary", ""):
+        tlow = "desktop"
     return portal_touch(
         kind,
         nx=nx,
         ny=ny,
-        text=text,
+        text=(text or "")[:400],
         dx=dx,
         dy=dy,
-        target=target,
+        target=tlow,
         hwnd=int(hwnd or 0),
-        button=button,
+        button=button if button in ("left", "right") else "left",
     )
 
 
@@ -92,7 +97,9 @@ def type_into(
 ) -> Dict[str, Any]:
     """Click the selected field, then type. End-to-end caret → keys."""
     t0 = time.time()
-    raw = text or ""
+    raw = (text or "")[:400]
+    nx = max(0.0, min(1.0, float(nx)))
+    ny = max(0.0, min(1.0, float(ny)))
     typed = touch("type_field" if click_first else "key", nx=nx, ny=ny, text=raw, target=target)
     if submit:
         from pocket.phoneai_portal import touch as portal_touch

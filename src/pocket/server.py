@@ -4291,8 +4291,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(500, {"ok": False, "error": str(e)[:200]})
 
         if path in ("/v1/webmcp/scan", "/api/webmcp/scan"):
+            from pocket.host_control import allow as host_ok
+            from pocket.ratelimit import hit as rl_hit
             from pocket.webmcp import scan as webmcp_scan
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="webmcp")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            ok_rl, reason = rl_hit("webmcp_scan", self._client_ip(), kind="webmcp_scan")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             return self._json(
                 200,
                 webmcp_scan(url=str(body.get("url") or ""), fusion=bool(body.get("fusion") or body.get("screen"))),
@@ -4394,8 +4402,12 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/phoneai/wear", "/api/phoneai/wear", "/v1/wear"):
+            from pocket.host_control import allow as host_ok
             from pocket.wear import ingest as wear_ingest
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="wear")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, wear_ingest(body, which=str(body.get("which") or "portal")))
         if path in ("/v1/runtime/ensure", "/api/runtime/ensure", "/v1/host/ensure"):
             from pocket.auth import is_home_lan_client
@@ -5027,16 +5039,31 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/agent-mail/send",):
+            from pocket.auth import is_home_lan_client
+            from pocket.host_control import allow as host_ok
+            from pocket.ratelimit import hit as rl_hit
             from pocket.agent_mail import send as agent_mail_send
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="mail")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            ok_rl, reason = rl_hit("mail_send", self._client_ip(), kind="mail_send")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             b = body or {}
+            who = rbac_principal(self.headers)
+            from_agent = str(b.get("from") or b.get("from_agent") or b.get("agent") or "")
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                from_agent = str(who.get("user") or from_agent or "scribe")
+            if not from_agent:
+                from_agent = "scribe"
             return self._json(
                 200,
                 agent_mail_send(
-                    from_agent=str(b.get("from") or b.get("from_agent") or b.get("agent") or "scribe"),
+                    from_agent=from_agent,
                     to=str(b.get("to") or ""),
                     subject=str(b.get("subject") or "POCKET agent mail"),
-                    body=str(b.get("body") or b.get("text") or ""),
+                    body=str(b.get("body") or b.get("text") or "")[:20000],
                     cc=str(b.get("cc") or ""),
                     external=bool(b.get("external")),
                     dry_run=bool(b.get("dry_run")),
@@ -6623,7 +6650,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, res.as_dict() if hasattr(res, "as_dict") else res)
 
         if path in ("/v1/rah/run", "/v1/rah/execute", "/v1/recursive-harness/run"):
+            from pocket.host_control import allow as host_ok
             from pocket.rah import run_rah, format_result_markdown
+            from pocket.ratelimit import hit as rl_hit
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="rah")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            ok_rl, reason = rl_hit("rah", self._client_ip(), kind="rah")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
 
             task = body.get("task") or body.get("prompt") or body.get("text") or ""
             plan = body.get("plan") if isinstance(body.get("plan"), dict) else None
@@ -7713,8 +7749,12 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/vcomp/open", "/v1/computer/open"):
+            from pocket.host_control import allow as host_ok
             from pocket.virtual_computer import open_computer
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="vcomp")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, open_computer(label=body.get("label") or "main"))
         if path in ("/v1/vcomp/close", "/v1/computer/close"):
             from pocket.virtual_computer import close_computer
@@ -7725,16 +7765,27 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._json(200, sense_computer(max_ui=int(body.get("max_ui") or 500)))
         if path in ("/v1/screen/see", "/v1/vlaptop/see"):
+            from pocket.host_control import allow as host_ok
             from pocket.screen_kernel import see as sk_see
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="observe")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, sk_see(which=str(body.get("which") or body.get("target") or "desktop")))
         if path in ("/v1/screen/touch", "/v1/vlaptop/touch"):
             from pocket.host_control import allow as host_ok
+            from pocket.phoneai_portal import origin_ok
+            from pocket.ratelimit import hit as rl_hit
             from pocket.screen_kernel import touch as sk_touch
 
             gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
             if not gate.get("ok"):
                 return self._json(403, {"ok": False, "error": gate.get("error")})
+            if not origin_ok(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "origin blocked"})
+            ok_rl, reason = rl_hit("portal_touch", self._client_ip(), kind="portal_touch")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             return self._json(
                 200,
                 sk_touch(
@@ -7751,11 +7802,18 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path in ("/v1/screen/type", "/v1/vlaptop/type"):
             from pocket.host_control import allow as host_ok
+            from pocket.phoneai_portal import origin_ok
+            from pocket.ratelimit import hit as rl_hit
             from pocket.screen_kernel import type_into
 
             gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
             if not gate.get("ok"):
                 return self._json(403, {"ok": False, "error": gate.get("error")})
+            if not origin_ok(self.headers, getattr(self, "client_address", None)):
+                return self._json(403, {"ok": False, "error": "origin blocked"})
+            ok_rl, reason = rl_hit("portal_touch", self._client_ip(), kind="portal_touch")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             return self._json(
                 200,
                 type_into(
@@ -7776,14 +7834,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, click_name(str(body.get("name") or body.get("text") or "")))
         if path in ("/v1/vcomp/act", "/v1/computer/act"):
+            from pocket.host_control import allow as host_ok
+            from pocket.ratelimit import hit as rl_hit
             from pocket.virtual_computer import act
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="vcomp")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            ok_rl, reason = rl_hit("vcomp", self._client_ip(), kind="vcomp")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             action = body.get("action") or body.get("op") or "sense"
             params = {k: v for k, v in body.items() if k not in ("action", "op")}
             return self._json(200, act(action, **params))
         if path in ("/v1/vcomp/shell", "/v1/computer/shell"):
+            from pocket.host_control import allow as host_ok
             from pocket.virtual_computer import shell
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="shell")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(
                 200,
                 shell(body.get("command") or body.get("cmd") or "", timeout=int(body.get("timeout") or 60)),
@@ -8000,7 +8070,15 @@ class Handler(BaseHTTPRequestHandler):
             )
         if path in ("/v1/agents/invoke", "/v1/agent/invoke", "/v1/beings/invoke"):
             from pocket.agent_invoke import invoke
+            from pocket.host_control import allow as host_ok
+            from pocket.ratelimit import hit as rl_hit
 
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="invoke")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            ok_rl, reason = rl_hit("invoke", self._client_ip(), kind="invoke")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
             return self._json(
                 200,
                 invoke(

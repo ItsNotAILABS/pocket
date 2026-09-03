@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
 
-VISUAL = frozenset({"observe", "input", "portal"})
-EXEC = frozenset({"shell", "harness", "install", "eyes", "webmcp", "vault", "settings"})
+VISUAL = frozenset({"observe", "input", "portal", "wear", "tv"})
+EXEC = frozenset({"shell", "harness", "install", "eyes", "webmcp", "vault", "settings", "vcomp", "invoke", "rah", "mail"})
 
 
 def allow(

@@ -18,6 +18,11 @@ LIMITS = {
     "api_heavy": (60, 20),    # 20 heavy agent runs / min
     "portal_touch": (1, 200),  # live mouse / joystick / keys
     "portal_frame": (1, 16),   # 5G/LAN live JPEG
+    "mail_send": (60, 40),
+    "vcomp": (60, 40),
+    "invoke": (60, 20),
+    "webmcp_scan": (60, 8),
+    "rah": (60, 12),
 }
 
 

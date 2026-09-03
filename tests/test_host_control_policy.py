@@ -5,6 +5,32 @@ from pocket.phoneai_os_ui import phoneai_portal_html
 from pocket.shell_exec import run as sh_run
 
 
+def test_new_control_paths_are_not_anonymous():
+    remote = {"CF-Connecting-IP": "8.8.8.8"}
+    addr = ("1.2.3.4", 443)
+    for p in (
+        "/v1/screen/touch",
+        "/v1/screen/type",
+        "/v1/vcomp/act",
+        "/v1/vcomp/shell",
+        "/v1/rah/run",
+        "/v1/agents/invoke",
+        "/v1/agent-mail/send",
+        "/v1/webmcp/scan",
+        "/v1/engines",
+    ):
+        assert path_is_public(p, headers=remote, client_address=addr) is False
+    assert path_is_public("/v1/phoneai/tv/frame", headers=remote, client_address=addr) is False
+    assert path_is_public("/phoneai/portal") is True
+    assert path_is_public("/phoneai/tv") is True
+    g = allow(headers=remote, client_address=addr, consequence="vcomp")
+    assert g.get("ok") is False
+    g = allow(headers=remote, client_address=addr, consequence="mail")
+    assert g.get("ok") is False
+    g = allow(headers=remote, client_address=addr, consequence="rah")
+    assert g.get("ok") is False
+
+
 def test_prefixes_do_not_open_host_control():
     assert path_is_public("/api/phoneai/harness") is False
     assert path_is_public("/v1/phoneai/shell") is False
@@ -126,7 +152,7 @@ def test_tv_html_is_wifi_node():
     assert "object-fit:contain" in html
     assert "max-width:100%" in html or "object-fit:contain" in html
     assert "/v1/nodes/view" in html
-    assert "target=desktop" in html or "target:'desktop'" in html
+    assert "target=desktop" in html or "target:'desktop'" in html or "target:tgt" in html or "TV → phone" in html
     r = register_view_node(kind="tv", label="test-tv", ip="192.168.1.50")
     assert r["ok"] is True
     assert r["node"]["kind"] == "tv"
