@@ -8,6 +8,8 @@ def test_pair_page_is_kernel_not_receptionist():
     assert "Nova" not in h
     assert "receptionist" in h.lower() or "Not a receptionist" in h
     assert "/v1/auth/device/redeem" in h
+    assert "ReactNativeWebView" in h
+    assert "paired" in h
 
 
 def test_kernel_and_os_are_distinct():

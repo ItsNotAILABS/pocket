@@ -386,10 +386,20 @@ document.getElementById('mint').onclick=async()=>{
   hint.textContent=j.code?('Code '+j.code+' — 10 min. Enter it on the tunnel, then Face ID.'):(j.error||'Mint on the PC');
   if(j.code) document.getElementById('code').value=j.code;
 };
+function tellNative(payload){
+  try{ window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload)); }catch(_){}
+}
+function goComputer(principal){
+  tellNative({ok:true,event:'paired',principal:principal||'device'});
+  location.href='/phoneai/computer';
+}
+document.getElementById('code').addEventListener('input',e=>{
+  e.target.value=(e.target.value||'').replace(/\D/g,'').slice(0,6);
+});
 document.getElementById('go').onclick=async()=>{
   const code=(document.getElementById('code').value||'').replace(/\D/g,'');
   const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
-  if(lan && !code){ location.href='/phoneai/computer'; return; }
+  if(lan && !code){ goComputer('device:lan'); return; }
   if(code.length!==6){ hint.textContent='Enter the 6-digit code from the PC'; return; }
   if(!window.PublicKeyCredential){ hint.textContent='This phone needs Face ID / a passkey'; return; }
   try{
@@ -401,7 +411,7 @@ document.getElementById('go').onclick=async()=>{
     const cred=await navigator.credentials.create({publicKey:pk});
     const payload={id:cred.id,rawId:bufToB64url(cred.rawId),type:cred.type,response:{clientDataJSON:bufToB64url(cred.response.clientDataJSON),attestationObject:cred.response.attestationObject?bufToB64url(cred.response.attestationObject):undefined}};
     const j=await fetch('/v1/auth/device/redeem',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,credential:payload})}).then(r=>r.json());
-    if(j&&j.ok){ hint.textContent='Device seat paired. Opening Computer.'; location.href='/phoneai/computer'; }
+    if(j&&j.ok){ hint.textContent='Device seat paired. Opening Computer.'; goComputer((j.user||j.device&&j.device.principal)||'device'); }
     else hint.textContent=j.error||'Pair failed — code + Face ID';
   }catch(e){ hint.textContent=(e&&e.message)||'Pair cancelled'; }
 };

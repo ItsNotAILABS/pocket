@@ -77,6 +77,7 @@ if (-not $edge) {
 }
 
 Write-Host "[POCKET] Launching Edge app: $edge"
+Write-Host "[POCKET] Desk $Desk  ·  PhoneAI pair http://127.0.0.1:8787/phoneai/pair"
 try {
   Start-Process -FilePath $edge -ArgumentList @("--app=$Desk", "--new-window", "--disable-features=msEdgeSidebar")
 } catch {

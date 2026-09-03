@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ItsNotAILABS/pocket"><img alt="version" src="https://img.shields.io/badge/version-3.16.5-10a37f?style=flat-square"></a>
+  <a href="https://github.com/ItsNotAILABS/pocket"><img alt="version" src="https://img.shields.io/badge/version-3.16.6-10a37f?style=flat-square"></a>
   <img alt="host" src="https://img.shields.io/badge/host-%3A8787-09090b?style=flat-square">
   <img alt="edition" src="https://img.shields.io/badge/edition-founder-3b82f6?style=flat-square">
 </p>
@@ -152,7 +152,7 @@ Windows desktop build:
 
 ---
 
-## Now shipping (3.16.5)
+## Now shipping (3.16.6)
 
 - Tenant jail helpers bind every team path and job cwd
 - Team worker ticks seats under the tenant root
@@ -161,7 +161,7 @@ Windows desktop build:
 - Catalog lists **ready** engines only
 - SCREEN-KERNEL/1.1 + `pocket.stream.v1` + device pair across hostnames
 - Product film in `docs/brand/` (generated stills + 6s loops)
-- PhoneAI pair-first + Computer app (`/phoneai/pair`, `/phoneai/computer`)
+- PhoneAI pair-first + Computer app (`/phoneai/pair`, `/phoneai/computer`); pair posts into the Expo skin so the device seat sticks
 - POCKET Edge showcased as the Windows daily launcher
 
 Host-control policy: public HTTP is shells, health, and login. Portal cookies bind a principal. RAH execute needs a WorkGrant.
