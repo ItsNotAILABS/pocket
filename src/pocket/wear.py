@@ -354,6 +354,17 @@ def command(text: str, *, which: str = "portal", always: bool = False) -> Dict[s
         touch("scroll", nx=0.5, ny=0.5, dy=-0.5, target="desktop")
         return {"ok": True, "kind": "scroll", "reply": "Scrolling up."}
 
+    if low.startswith("type ") or low.startswith("enter "):
+        from pocket.screen_kernel import type_into
+
+        msg = rest.split(" ", 1)[-1] if " " in rest else rest
+        r = type_into(msg, nx=0.5, ny=0.5, click_first=True)
+        return {"ok": bool(r.get("ok")), "kind": "type", "reply": "Typed into the field on screen.", "typed": r}
+    if "see the screen" in low or low in ("see", "stream", "show screen"):
+        from pocket.screen_kernel import see as sk_see
+
+        s = sk_see(which="desktop")
+        return {"ok": True, "kind": "see", "reply": "Laptop screen on your glasses.", "see": {"bytes": s.get("bytes"), "title": s.get("title")}}
     if low.startswith("coder ") or low.startswith("code ") or low.startswith("fix ") or low.startswith("implement "):
         from pocket.phoneai_bridge import work
 

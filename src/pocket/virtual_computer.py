@@ -164,20 +164,38 @@ def act(action: str, **params) -> Dict[str, Any]:
     emit("vcomp", f"act {action}", agent="PORTARIUS", role="host")
     result: Dict[str, Any] = {"ok": False, "action": action}
 
-    if action in ("click", "click_name", "click_symbol"):
-        from pocket.sanity import guard_click
+    if action in ("see", "look", "eyes"):
+        from pocket.screen_kernel import see as sk_see
+
+        result = sk_see(which=str(params.get("which") or "desktop"))
+    elif action in ("click", "click_name", "click_symbol"):
+        from pocket.screen_kernel import click_name as sk_click
 
         name = params.get("name") or params.get("query") or params.get("text") or ""
-        min_score = float(params.get("min_score") or 0.65)
-        result = guard_click(name, min_score=min_score)
-    elif action in ("click_xy", "xy"):
-        from pocket.vision_core import click_xy
+        result = sk_click(name)
+        if not result.get("ok"):
+            from pocket.sanity import guard_click
 
-        result = click_xy(int(params.get("x") or 0), int(params.get("y") or 0))
-    elif action in ("type", "type_text"):
-        from pocket.ui_maneuver import type_text
+            result = guard_click(name, min_score=float(params.get("min_score") or 0.65))
+    elif action in ("click_xy", "xy", "tap"):
+        from pocket.screen_kernel import touch as sk_touch
 
-        result = type_text(params.get("text") or params.get("prompt") or "")
+        if params.get("nx") is not None:
+            result = sk_touch("tap", nx=float(params.get("nx") or 0.5), ny=float(params.get("ny") or 0.5))
+        else:
+            from pocket.vision_core import click_xy
+
+            result = click_xy(int(params.get("x") or 0), int(params.get("y") or 0))
+    elif action in ("type", "type_text", "type_into"):
+        from pocket.screen_kernel import type_into
+
+        result = type_into(
+            params.get("text") or params.get("prompt") or "",
+            nx=float(params.get("nx") if params.get("nx") is not None else 0.5),
+            ny=float(params.get("ny") if params.get("ny") is not None else 0.5),
+            click_first=params.get("click_first", True) is not False,
+            submit=bool(params.get("submit")),
+        )
     elif action in ("open_app", "app"):
         from pocket.desktop import open_app
 

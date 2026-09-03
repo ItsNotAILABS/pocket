@@ -1042,6 +1042,11 @@ def touch(
         elif kind in ("tap", "click", "left"):
             _move(x, y)
             _click("left")
+        elif kind in ("type_field", "into", "typeinto"):
+            _move(x, y)
+            _click("left")
+            if text:
+                _type_live(text[:400])
         elif kind in ("dbl", "double"):
             _move(x, y)
             _click("left")

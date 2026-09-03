@@ -308,10 +308,17 @@ def grab_tv_to_phone(node_id: str = "") -> Tuple[bytes, Dict[str, Any]]:
                 continue
     if snap:
         return snap, {"ok": True, "via": "tv-snapshot", "node": node, "ip": ip}
-    from pocket.phoneai_portal import grab_jpeg
+    from pocket.phoneai_portal import grab_jpeg, list_monitors
 
-    data, meta = grab_jpeg(target="desktop", max_w=1024, quality=58)
-    meta = {**meta, "via": "tv-node-laptop", "node": node, "note": "TV node shows this laptop screen over Wi-Fi"}
+    mons = (list_monitors().get("monitors") or [])
+    target = "tv" if len(mons) > 1 else "desktop"
+    data, meta = grab_jpeg(target=target, max_w=1280, quality=68)
+    meta = {
+        **meta,
+        "via": "tv-monitor" if target == "tv" else "tv-primary",
+        "node": node,
+        "note": "TV → phone. Second display if present; otherwise this PC. Phone taps control that screen.",
+    }
     return data, meta
 
 

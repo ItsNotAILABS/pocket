@@ -54,6 +54,9 @@ def test_portal_html_phone_zoom_and_controls():
     assert "gest='hold'" in html or 'gest="hold"' in html
     assert "setScreenMode" in html
     assert "drag-mode" in html
+    assert 'id="typeform"' in html
+    assert "send('hover'" in html
+    assert "4500" not in html
 
 
 def test_anti_html_has_working_gestures():

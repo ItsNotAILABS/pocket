@@ -2975,6 +2975,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.screen_share import status as screen_status
 
             return self._json(200, screen_status())
+        if path in ("/v1/screen/kernel", "/v1/kernel/screen", "/v1/vlaptop"):
+            from pocket.screen_kernel import snapshot as sk_snap
+
+            return self._json(200, sk_snap())
         if path in ("/v1/mcp", "/v1/mcp/catalog", "/v1/tools/mcp"):
             from pocket.mcp_bundle import catalog
 
@@ -7720,6 +7724,57 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.virtual_computer import sense_computer
 
             return self._json(200, sense_computer(max_ui=int(body.get("max_ui") or 500)))
+        if path in ("/v1/screen/see", "/v1/vlaptop/see"):
+            from pocket.screen_kernel import see as sk_see
+
+            return self._json(200, sk_see(which=str(body.get("which") or body.get("target") or "desktop")))
+        if path in ("/v1/screen/touch", "/v1/vlaptop/touch"):
+            from pocket.host_control import allow as host_ok
+            from pocket.screen_kernel import touch as sk_touch
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            return self._json(
+                200,
+                sk_touch(
+                    str(body.get("kind") or "tap"),
+                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                    text=str(body.get("text") or ""),
+                    dx=float(body.get("dx") or 0),
+                    dy=float(body.get("dy") or 0),
+                    target=str(body.get("target") or "desktop"),
+                    hwnd=int(body.get("hwnd") or 0),
+                    button=str(body.get("button") or "left"),
+                ),
+            )
+        if path in ("/v1/screen/type", "/v1/vlaptop/type"):
+            from pocket.host_control import allow as host_ok
+            from pocket.screen_kernel import type_into
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            return self._json(
+                200,
+                type_into(
+                    str(body.get("text") or body.get("prompt") or ""),
+                    nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                    ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                    target=str(body.get("target") or "desktop"),
+                    click_first=body.get("click_first", True) is not False,
+                    submit=bool(body.get("submit")),
+                ),
+            )
+        if path in ("/v1/screen/click", "/v1/vlaptop/click"):
+            from pocket.host_control import allow as host_ok
+            from pocket.screen_kernel import click_name
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            return self._json(200, click_name(str(body.get("name") or body.get("text") or "")))
         if path in ("/v1/vcomp/act", "/v1/computer/act"):
             from pocket.virtual_computer import act
 

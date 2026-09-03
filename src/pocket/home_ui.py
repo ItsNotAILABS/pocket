@@ -15,7 +15,10 @@ html,body{margin:0;width:100%;height:100%;height:100dvh;background:#000;color:#f
 body{position:fixed;inset:0}
 .stage{position:fixed;inset:0;background:#000}
 img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;touch-action:none}
-.hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8));z-index:4;overflow:auto}
+.hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8));z-index:4;overflow:auto;opacity:.96}
+.dot{position:absolute;width:22px;height:22px;border:2px solid #00ff86;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;display:none;z-index:5}
+.typebox{position:fixed;left:10px;right:10px;bottom:calc(64px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:8px}
+.typebox input{flex:1;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(12,12,14,.9);color:#fff;padding:10px}
 .hud button{min-height:44px;border:0;border-radius:12px;background:#14141c;color:#fff;font-weight:800;padding:0 12px}
 .hud button.go{background:#00ff86;color:#042}
 .top{position:fixed;top:8px;left:12px;right:12px;z-index:4;font-size:13px;color:#a1a1aa;display:flex;gap:12px;flex-wrap:wrap}
@@ -23,8 +26,9 @@ img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;backgrou
 .nodes{margin-left:auto}
 </style></head>
 <body>
-<div class="top"><b id="h">TV ↔ phone · Wi-Fi</b><span id="join"></span><a href="/phoneai/portal">Laptop</a><span class="nodes" id="nodes"></span></div>
-<div class="stage" id="stage"><img id="f" alt="Laptop" src="/v1/phoneai/portal/frame?target=desktop&max_w=1600&q=72&t=1" draggable="false"/></div>
+<div class="top"><b id="h">TV → phone</b><span id="join"></span><a href="/phoneai/portal">Laptop</a><span class="nodes" id="nodes"></span></div>
+<div class="stage" id="stage"><img id="f" alt="TV" src="/v1/phoneai/tv/frame?t=1" draggable="false"/><div class="dot" id="dot"></div></div>
+<form class="typebox" id="tf"><input id="keys" placeholder="Tap the TV, then type"/><button>Send</button></form>
 <div class="hud">
   <button class="go" type="button" id="l">Click</button>
   <button type="button" id="r">Right</button>
@@ -32,27 +36,32 @@ img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;backgrou
   <button type="button" id="d">▼</button>
 </div>
 <script>
-let nx=0.5, ny=0.5, live=null, liveOk=false;
+let nx=0.5, ny=0.5, live=null, liveOk=false, lastTyped='';
 const img=document.getElementById('f');
+const dot=document.getElementById('dot');
+const keys=document.getElementById('keys');
 const kind = (Math.min(screen.width,screen.height)>=700 && Math.max(screen.width,screen.height)>=1100) ? 'tv' : 'phone';
+const tgt = kind==='phone' ? 'tv' : 'desktop';
 function hello(){
-  fetch('/v1/nodes/view',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,label:kind==='tv'?'Living room TV':'Phone'})})
+  fetch('/v1/nodes/view',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,label:kind==='tv'?'Living room TV':'Phone watching TV'})})
     .then(r=>r.json()).then(j=>{
-      document.getElementById('h').textContent=(kind==='tv'?'TV node':'Phone node')+' · Wi-Fi · laptop screen';
+      document.getElementById('h').textContent=kind==='phone'?'TV → phone · control from here':'TV node · showing this room';
       const n=(j.nodes||[]).map(x=>x.kind+' '+(x.ip||'')).join(' · ');
       document.getElementById('nodes').textContent=n;
     }).catch(()=>{});
 }
 hello(); setInterval(hello, 12000);
 document.getElementById('join').textContent=location.origin+'/phoneai/tv';
+function showDot(cx,cy){ const s=document.getElementById('stage').getBoundingClientRect(); dot.style.display='block'; dot.style.left=(cx-s.left)+'px'; dot.style.top=(cy-s.top)+'px'; }
 function pt(ev){
   const t=(ev.touches&&ev.touches[0])||ev;
   const r=img.getBoundingClientRect();
   nx=Math.max(0,Math.min(1,(t.clientX-r.left)/Math.max(1,r.width)));
   ny=Math.max(0,Math.min(1,(t.clientY-r.top)/Math.max(1,r.height)));
+  showDot(t.clientX,t.clientY);
 }
 function send(kindx, extra){
-  const payload=Object.assign({kind:kindx,nx,ny,target:'desktop'}, extra||{});
+  const payload=Object.assign({kind:kindx,nx,ny,target:tgt}, extra||{});
   if(liveOk && live && live.readyState===1){ live.send(JSON.stringify(payload)); return; }
   fetch('/v1/phoneai/portal/touch',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
 }
@@ -60,18 +69,27 @@ function openLive(){
   try{ live=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/v1/phoneai/portal/ws'); }
   catch(_){ return; }
   live.binaryType='blob';
-  live.onopen=()=>{ liveOk=true; live.send(JSON.stringify({kind:'cfg',target:'desktop',max_w:1600,q:74,fps:16})); };
+  live.onopen=()=>{ liveOk=true; live.send(JSON.stringify({kind:'cfg',target:tgt,max_w:1280,q:70,fps:12})); };
   live.onclose=()=>{ liveOk=false; setTimeout(openLive,800); };
   live.onmessage=ev=>{ if(typeof ev.data==='string') return; const u=URL.createObjectURL(ev.data); img.onload=()=>URL.revokeObjectURL(u); img.src=u; };
 }
 openLive();
 const stage=document.getElementById('stage');
-stage.addEventListener('touchstart', ev=>{ ev.preventDefault(); pt(ev); send('tap'); }, {passive:false});
-stage.addEventListener('click', ev=>{ pt(ev); send('tap'); });
+stage.addEventListener('touchstart', ev=>{ ev.preventDefault(); pt(ev); send('hover'); send('tap'); try{keys.focus();}catch(_){} }, {passive:false});
+stage.addEventListener('touchmove', ev=>{ ev.preventDefault(); pt(ev); send('hover'); }, {passive:false});
+stage.addEventListener('click', ev=>{ pt(ev); send('hover'); send('tap'); });
 document.getElementById('l').onclick=()=>send('tap');
 document.getElementById('r').onclick=()=>send('right');
 document.getElementById('u').onclick=()=>send('scroll',{dy:-0.5});
 document.getElementById('d').onclick=()=>send('scroll',{dy:0.5});
+keys.addEventListener('input', ()=>{
+  const v=keys.value; let i=0;
+  while(i<v.length && i<lastTyped.length && v[i]===lastTyped[i]) i++;
+  const back=lastTyped.length-i, add=v.slice(i); lastTyped=v;
+  if(back) send('key',{vk:8,n:back});
+  if(add) send('key',{text:add});
+});
+document.getElementById('tf').onsubmit=ev=>{ ev.preventDefault(); send('key',{vk:13}); lastTyped=''; keys.value=''; };
 </script>
 </body></html>
 """

@@ -316,6 +316,10 @@ def _from_work() -> List[Dict[str, Any]]:
         ("Setup flow", "setup_open", "GET /setup", "Account · host · always-on · open products."),
         ("Portal focus mobile", "portal_focus", "POST /v1/phoneai/portal/touch kind=focus", "Active window as a phone screen; off = full PC."),
         ("Real workspace", "workspace_view", "GET /v1/ai-workspace", "Files + preview interior, not a fake pane."),
+        ("Screen kernel see", "screen_see", "POST /v1/screen/see", "See the laptop or TV. People and agents."),
+        ("Screen kernel type", "screen_type", "POST /v1/screen/type", "Click a field and type into it."),
+        ("Screen kernel click", "screen_click", "POST /v1/screen/click", "Click a named on-screen button."),
+        ("vLaptop", "vlaptop", "GET /v1/vlaptop", "Agent personal computer on the screen kernel."),
         ("Agent architecture", "agent_arch", "GET /v1/agents/arch", "Six-layer plane shared by Desk, PhoneAI, RAH, invoke."),
         ("Agent turn", "agent_turn", "POST /v1/agents/turn", "One turn: identity → route → grant → execute → receipt."),
         ("RAH plan", "rah_plan", "POST /v1/rah/plan", "Plan a Recursive Agent Harness. Does not execute."),
@@ -504,6 +508,22 @@ def use_action(name: str, *, prompt: str = "") -> Dict[str, Any]:
             return {"ok": True, "used": a, "result": go(arm_daily=False)}
         if inv == "webmcp_scan":
             return {"ok": True, "used": a, "result": scan(fusion=True)}
+        if inv == "screen_see":
+            from pocket.screen_kernel import see as sk_see
+
+            return {"ok": True, "used": a, "result": sk_see(which=(prompt or "desktop").split()[0])}
+        if inv == "screen_type":
+            from pocket.screen_kernel import type_into
+
+            return {"ok": True, "used": a, "result": type_into(prompt or name)}
+        if inv == "screen_click":
+            from pocket.screen_kernel import click_name
+
+            return {"ok": True, "used": a, "result": click_name(prompt or name)}
+        if inv == "vlaptop":
+            from pocket.virtual_computer import status as vcomp_status
+
+            return {"ok": True, "used": a, "result": vcomp_status()}
         if inv == "agent_arch":
             from pocket.agent_arch import snapshot as arch_snap
 

@@ -673,7 +673,7 @@ body.drag-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns=
 body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='black'/></svg>");-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='black'/></svg>")}
 .joy{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));width:84px;height:84px;border-radius:50%;background:rgba(20,20,28,.45);border:1px solid var(--line);z-index:6;touch-action:none}
 .joy i{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:var(--g);box-shadow:0 4px 12px rgba(0,0,0,.4)}
-.top,.tabs,.apps,.ctrl,.bar{position:fixed;left:0;right:0;z-index:8;background:rgba(5,6,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .22s ease,opacity .22s ease}
+.top,.tabs,.apps,.ctrl,.bar{position:fixed;left:0;right:0;z-index:8;background:rgba(5,6,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:opacity .15s linear}
 .top{top:0;display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .top a{color:var(--muted);text-decoration:none;font-size:13px}
 .top b{flex:1}
@@ -704,10 +704,15 @@ body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns=
 .pills{position:fixed;top:calc(8px + env(safe-area-inset-top));right:10px;z-index:12;display:flex;gap:6px}
 .pills button{min-width:44px;min-height:36px;border-radius:999px;border:1px solid var(--line);background:rgba(5,6,10,.72);color:#fff;font-weight:800;font-size:11px;letter-spacing:.04em}
 .pills button.on{background:var(--g);color:#042}
-body.hud-off .top,body.hud-off .tabs,body.hud-off .apps{transform:translateY(-120%);opacity:0;pointer-events:none}
-body.hud-off .ctrl,body.hud-off .bar{transform:translateY(120%);opacity:0;pointer-events:none}
+body.hud-off .top,body.hud-off .tabs,body.hud-off .apps{opacity:0;pointer-events:none;visibility:hidden}
+body.hud-off .ctrl,body.hud-off .bar{opacity:0;pointer-events:none;visibility:hidden}
 body.hud-off .hint{opacity:0}
 body.hud-off .joy{opacity:0;pointer-events:none}
+.typebox{position:fixed;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:15;display:flex;gap:8px;align-items:center}
+.typebox input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(12,12,14,.88);color:#fff;padding:10px 12px;font:inherit;backdrop-filter:blur(10px)}
+.typebox button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px;min-height:44px}
+body:not(.hud-off) .typebox{bottom:calc(118px + env(safe-area-inset-bottom))}
+.dot{display:block}
 body.mobile .hint{left:10px;right:10px;transform:none}
 @media (orientation:landscape){
   html,body,.stage{width:100%;height:100dvh;height:100svh;overflow:hidden}
@@ -754,8 +759,12 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button type="button" id="focusBtn">Focus</button>
 </div>
 <form class="bar" id="kb">
-  <input id="keys" placeholder="Tap a field on the PC, then type here" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text"/>
+  <input id="keysHud" placeholder="HUD type" autocomplete="off" autocapitalize="off" spellcheck="false"/>
   <button>Enter</button>
+</form>
+<form class="typebox" id="typeform">
+  <input id="keys" placeholder="Tap a field, then type here" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text"/>
+  <button>Send</button>
 </form>
 <script>
 let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false, fitLocked=false;
@@ -780,11 +789,7 @@ function setHud(on){
   document.body.classList.toggle('hud-off', !on);
   const b=document.getElementById('hudbtn');
   if(b) b.classList.toggle('on', !!on);
-  if(on){
-    clearTimeout(hudTimer);
-    hudTimer=setTimeout(()=>{ if(document.activeElement!==keys) setHud(false); }, 4500);
-  }
-  applyView();
+  clearTimeout(hudTimer);
 }
 function goGlass(){
   const el=document.documentElement;
@@ -916,7 +921,7 @@ function send(kind, nx, ny, extra){
   if(liveOk && live && live.readyState===1){
     try{ live.send(JSON.stringify(payload)); return Promise.resolve({ok:true, via:'ws'}); }catch(_){}
   }
-  const hot=/^(drag|scroll|joy|nudge|stick|move|hover|down|up|hold|press|release|move_window)$/.test(kind);
+  const hot=/^(drag|scroll|joy|nudge|stick|move|hover|down|up|hold|press|release|move_window|type_field)$/.test(kind);
   const p=fetch('/v1/phoneai/portal/touch',{
     method:'POST',
     credentials:'include',
@@ -1205,6 +1210,10 @@ function onMove(ev){
   }
   if(mode!=='touch' || !startAt) return;
   showDot(p.cx,p.cy, gest==='hold');
+  if(gest==='pending' || gest==='hold' || gest==='armed'){
+    const nowH=Date.now();
+    if(nowH-lastDrag>=16){ lastDrag=nowH; send('hover', p.nx, p.ny); }
+  }
   const dist=Math.hypot(p.cx-startAt.x, p.cy-startAt.y);
   if(gest==='move' && dist>8){
     startAt.moved=true; emitMoveWin(p); return;
@@ -1244,7 +1253,8 @@ function onUp(ev){
       send('maximize', p.nx, p.ny);
       hint.textContent='Expanding that window to the whole screen';
     } else {
-      lastTap=now; aim(p, 'Tap'); send('tap', p.nx, p.ny);
+      lastTap=now; aim(p, 'Tap'); send('hover', p.nx, p.ny); send('tap', p.nx, p.ny);
+      try{ keys.focus(); }catch(_){}
     }
   } else if(gest==='drag' || gest==='hold'){
     send('up', p.nx, p.ny);
@@ -1307,7 +1317,6 @@ document.getElementById('hudbtn').onclick=()=>{
   setHud(off);
 };
 document.getElementById('focusPill').onclick=()=>setPhoneFocus(!phoneFocus);
-keys.addEventListener('focus', ()=>setHud(true));
 setHud(false); autoFit(); applyView();
 
 keys.addEventListener('input', ()=>{
@@ -1329,7 +1338,9 @@ keys.addEventListener('keydown', ev=>{
     send('key', lastNx, lastNy, {vk:map[ev.key]});
   }
 });
-document.getElementById('kb').onsubmit=ev=>{ ev.preventDefault(); send('key', lastNx, lastNy, {vk:13}); lastTyped=''; keys.value=''; };
+function submitType(ev){ ev.preventDefault(); send('key', lastNx, lastNy, {vk:13}); lastTyped=''; keys.value=''; }
+document.getElementById('kb').onsubmit=submitType;
+document.getElementById('typeform').onsubmit=submitType;
 (function(){
   const pad=document.getElementById('joy'), knob=document.getElementById('knob');
   let on=false, ox=0, oy=0, raf=0;
@@ -1380,8 +1391,12 @@ body{display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(s
 .cards b{display:block;font-size:22px;letter-spacing:-.03em;margin:0 0 6px}
 .cards span{display:block;color:var(--muted);font-size:15px;line-height:1.35}
 .stream{display:none;position:fixed;inset:0;z-index:1;background:#000;margin:0;border-radius:0}
-.stream.on{display:block}
-.stream img{width:100%;height:100%;object-fit:contain}
+.stream.on{display:block;z-index:10}
+.stream img{width:100%;height:100%;object-fit:contain;touch-action:none}
+.stream .peek{position:absolute;top:8px;left:8px;z-index:11;min-height:36px;border:0;border-radius:999px;background:rgba(5,6,10,.8);color:#00ff86;font-weight:800;padding:0 12px}
+.typebox{position:fixed;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:12;display:flex;gap:8px}
+.typebox input{flex:1;min-height:44px;border-radius:12px;background:rgba(12,12,14,.9);color:#fff;border:1px solid rgba(255,255,255,.12);padding:10px}
+.dot{position:absolute;width:22px;height:22px;border:2px solid #00ff86;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;display:none;z-index:11}
 .top,.hud,.cards,.row,.bar,.reply,.note{position:relative;z-index:2}
 .reply{margin:8px 12px;font-size:16px;line-height:1.4;min-height:2.4em}
 .row{display:flex;gap:8px;padding:8px 12px;overflow:auto;touch-action:pan-x}
@@ -1409,7 +1424,8 @@ video,canvas{display:none}
   <span class="pill" id="batt">Bat —</span>
 </div>
 <div class="cards" id="cards"><b>PhoneAI</b><span>Connecting…</span><span></span></div>
-<div class="stream" id="stream"><img id="f" alt="PC" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="/></div>
+<div class="stream" id="stream"><button type="button" class="peek" id="peek">HUD</button><img id="f" alt="PC"/><div class="dot" id="gdot"></div></div>
+<form class="typebox" id="gtf"><input id="gkeys" placeholder="Tap a field, type from glasses"/><button>Send</button></form>
 <p class="reply" id="r">Always listen waits for “PhoneAI …”. Glance is 3 lines — no JPEG until you tap Stream. Dictation types until you say send.</p>
 <div class="row" id="chips">
   <button type="button" class="go" id="listen">Listen</button>
@@ -1456,12 +1472,33 @@ async function beat(extra){
   }catch(_){ document.getElementById('dHost').classList.remove('on'); return {}; }
 }
 beat(); setInterval(()=>beat(), 5000);
+let glive=null, gnx=0.5, gny=0.5, gTyped='';
+const gdot=document.getElementById('gdot');
+const gkeys=document.getElementById('gkeys');
+function gsend(kind, extra){
+  const p=Object.assign({kind,nx:gnx,ny:gny,target:'desktop'}, extra||{});
+  if(glive && glive.readyState===1){ glive.send(JSON.stringify(p)); return; }
+  fetch('/v1/phoneai/portal/touch',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)}).catch(()=>{});
+}
+function openGLive(){
+  try{ glive=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/v1/phoneai/portal/ws'); }
+  catch(_){ return; }
+  glive.binaryType='blob';
+  glive.onopen=()=>{ glive.send(JSON.stringify({kind:'cfg',target:'desktop',max_w:960,q:64,fps:10})); };
+  glive.onclose=()=>{ if(streamOn) setTimeout(openGLive,800); };
+  glive.onmessage=ev=>{ if(typeof ev.data==='string') return; const u=URL.createObjectURL(ev.data); img.onload=()=>URL.revokeObjectURL(u); img.src=u; };
+}
 function tick(){
-  if(!streamOn || document.hidden || busy){ setTimeout(tick, 800); return; }
-  busy=true; img.onload=()=>{busy=false;setTimeout(tick,1100)}; img.onerror=()=>{busy=false;setTimeout(tick,1600)};
-  img.src='/v1/phoneai/portal/frame?t='+Date.now();
+  if(!streamOn || document.hidden){ setTimeout(tick, 800); return; }
+  if(!glive || glive.readyState>1) openGLive();
+  setTimeout(tick, 1200);
 }
 tick();
+document.getElementById('peek').onclick=()=>{ streamOn=false; document.getElementById('stream').classList.remove('on'); };
+const st=document.getElementById('stream');
+st.addEventListener('touchstart', ev=>{ ev.preventDefault(); const t=ev.touches[0]; const r=img.getBoundingClientRect(); gnx=(t.clientX-r.left)/Math.max(1,r.width); gny=(t.clientY-r.top)/Math.max(1,r.height); gdot.style.display='block'; gdot.style.left=(t.clientX-st.getBoundingClientRect().left)+'px'; gdot.style.top=(t.clientY-st.getBoundingClientRect().top)+'px'; gsend('hover'); gsend('tap'); try{gkeys.focus();}catch(_){}; }, {passive:false});
+gkeys.addEventListener('input', ()=>{ const v=gkeys.value; let i=0; while(i<v.length&&i<gTyped.length&&v[i]===gTyped[i]) i++; const back=gTyped.length-i, add=v.slice(i); gTyped=v; if(back) gsend('key',{vk:8,n:back}); if(add) gsend('key',{text:add}); });
+document.getElementById('gtf').onsubmit=ev=>{ ev.preventDefault(); gsend('key',{vk:13}); gTyped=''; gkeys.value=''; };
 async function run(text, extra){
   const t=(text||'').trim();
   if(!t && !extra) return;

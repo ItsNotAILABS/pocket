@@ -58,6 +58,9 @@ DEFAULT_AGENTS = [
     ("navigator", "Navigator", "Web · life · travel"),
     ("scribe", "Scribe", "Compose · email · drafts"),
     ("system", "POCKET System", "Official system notices"),
+    ("coder", "Coder", "PhoneAI Grok coding agent"),
+    ("pocket", "POCKET", "Host orchestrator"),
+    ("phoneai", "PhoneAI", "Phone seat"),
 ]
 
 
@@ -341,6 +344,19 @@ def send(
     (sent_dir / f"{mid}.json").write_text(json.dumps(rec, indent=2, default=str), encoding="utf-8")
 
     ok = delivered_local or bool((external_result or {}).get("ok"))
+    if ok:
+        try:
+            from pocket.live_events import emit
+
+            emit("mail", f"{from_id} → {rec.get('to_agent') or to_raw}: {rec['subject']}", agent=from_id[:24].upper(), role="mail")
+        except Exception:
+            pass
+        try:
+            from pocket.mesh_disk import send_message
+
+            send_message(from_id, rec.get("to_agent") or to_raw, rec["body"][:2000], kind="mail", encrypt=True)
+        except Exception:
+            pass
     return {
         "ok": ok,
         "product": PRODUCT,
