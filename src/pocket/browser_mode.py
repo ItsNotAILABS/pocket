@@ -154,10 +154,16 @@ def open_edge_url(
         return fb
 
 
-def open_windows_copilot(*, query: str = "") -> Dict[str, Any]:
-    """Open the **Windows** Copilot app (not web). Query is best-effort via Bing if needed."""
+def open_windows_copilot(*, query: str = "", explicit: bool = True) -> Dict[str, Any]:
+    """Open the **Windows** Copilot app. Only when the operator asked (`explicit`)."""
     import os
     import subprocess
+
+    auto = (os.environ.get("POCKET_COPILOT_AUTO") or "").strip().lower()
+    if auto in ("0", "false", "no", "off"):
+        return {"ok": False, "skipped": True, "kind": "windows_copilot", "error": "Copilot auto-launch is off"}
+    if not explicit and auto not in ("1", "true", "yes", "on"):
+        return {"ok": False, "skipped": True, "kind": "windows_copilot", "error": "Copilot opens only on explicit 'open copilot'"}
 
     results: List[Dict[str, Any]] = []
     # Primary: URI scheme
@@ -292,7 +298,7 @@ def execute_pocket_tag(body: str) -> Dict[str, Any]:
     if low.startswith("lookup "):
         from pocket.step_agent import _lookup_and_bring_back
 
-        return _lookup_and_bring_back(body[7:].strip(), open_ui=True)
+        return _lookup_and_bring_back(body[7:].strip(), open_ui=False)
     if low.startswith("tweet "):
         return open_tweet_compose(body[6:].strip())
     if low.startswith("open "):
@@ -516,7 +522,7 @@ def run_browser_job(
         from pocket.step_agent import _lookup_and_bring_back
 
         emit("research", f"Lookup: {intent['query']}", agent="research_worker", role="python", session_id=sid)
-        r = _lookup_and_bring_back(intent["query"], open_ui=True)
+        r = _lookup_and_bring_back(intent["query"], open_ui=False)
         actions.append(r)
         parts.append(f"### Lookup: {intent['query']}")
         parts.append(r.get("brief") or r.get("message") or "")
@@ -552,7 +558,7 @@ def run_browser_job(
         q = intent.get("query") or "news"
         parts.append(f"### 1. Research (Python · research_worker): {q}")
         emit("research", f"Research for tweet: {q}", agent="research_worker", role="python", session_id=sid)
-        research = _lookup_and_bring_back(q, open_ui=True)
+        research = _lookup_and_bring_back(q, open_ui=False)
         actions.append(research)
         brief = research.get("brief") or ""
         parts.append(brief[:3000] if brief else research.get("message", ""))
@@ -608,12 +614,11 @@ def run_browser_job(
     parts.append(f"### Agent ({eng})\n\n{model_out[-12000:]}")
     tag_acts = execute_all_tags(model_out)
     if not tag_acts:
-        # heuristic assists
-        if "copilot" in prompt.lower():
-            if "web" in prompt.lower():
-                tag_acts.append(open_web_copilot(re.sub(r".*copilot\s*web\s*", "", prompt, flags=re.I)[:120]))
-            else:
-                tag_acts.append(open_windows_copilot(query=prompt[:120]))
+        # heuristic assists — never launch Copilot because the word appeared
+        if re.search(r"\bopen copilot web\b", prompt, re.I):
+            tag_acts.append(open_web_copilot(re.sub(r".*copilot\s*web\s*", "", prompt, flags=re.I)[:120]))
+        elif re.search(r"\bopen copilot\b", prompt, re.I):
+            tag_acts.append(open_windows_copilot(query="", explicit=True))
         if re.search(r"https?://", prompt):
             for u in re.findall(r"https?://[^\s]+", prompt)[:3]:
                 tag_acts.append(open_edge_url(u.rstrip(").,]")))

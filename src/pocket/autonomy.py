@@ -183,16 +183,12 @@ def _write_result(sid: str, prompt: str, result: str, error: str) -> str:
 def _execute_one(rec: Dict[str, Any]) -> None:
     prompt = rec.get("prompt") or ""
     sid = rec.get("id") or ""
-    yest = yesterday(sid).get("brief") or ""
-    week = last_week(sid).get("brief") or ""
-    memory = (
-        "You are a scheduled POCKET cron agent. Remember what you already did.\n"
-        f"## Yesterday\n{yest}\n\n## Last week\n{week}\n\n## Task now\n{prompt}"
-    )
     try:
         from pocket.step_agent import run_step_agent
 
-        result, error, engine = run_step_agent(memory, max_steps=10)
+        # Run the schedule prompt only. Do not wrap a memoir into extra
+        # lookup steps — that used to launch Copilot on every paragraph.
+        result, error, engine = run_step_agent(str(prompt), max_steps=10)
     except Exception as e:
         result, error, engine = "", str(e), "autonomy"
     path = _write_result(rec["id"], prompt, result, error)

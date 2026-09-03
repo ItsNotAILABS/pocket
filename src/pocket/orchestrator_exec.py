@@ -401,7 +401,7 @@ def dispatch_skill(sid: str, *, prompt: str = "", params: Dict[str, Any] | None 
         from pocket.step_agent import _lookup_and_bring_back
 
         q = prompt or params.get("query") or "multi agent desktop"
-        return _lookup_and_bring_back(q, open_ui=True)
+        return _lookup_and_bring_back(q, open_ui=False)
 
     if sid == "list_apps":
         from pocket.desktop import list_apps

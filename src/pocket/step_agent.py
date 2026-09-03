@@ -3,8 +3,8 @@
 Does not ask the user questions. Parses a plan and executes allowlisted actions
 sequentially. Edge+URL is already 2 internal launch steps.
 
-Also: lookup / copilot lookup — open the host app AND bring Python web results
-back (no LLM tokens on the worker path).
+Also: lookup — Python web results. Does **not** launch Windows Copilot unless
+the step is an explicit `open copilot`.
 """
 
 from __future__ import annotations
@@ -76,7 +76,6 @@ def parse_steps(prompt: str, *, max_steps: int = MAX_STEPS) -> List[str]:
                 "search ",
                 "fetch ",
                 "research ",
-                "copilot ",
                 "shell ",
                 "cmd ",
                 "schedule ",
@@ -96,23 +95,16 @@ def parse_steps(prompt: str, *, max_steps: int = MAX_STEPS) -> List[str]:
     return out[:max_steps]
 
 
-def _lookup_and_bring_back(query: str, *, open_ui: bool = True) -> Dict[str, Any]:
-    """Open Copilot/Bing on the host + Python search results (zero LLM tokens)."""
+def _lookup_and_bring_back(query: str, *, open_ui: bool = False) -> Dict[str, Any]:
+    """Python search results. Never auto-launches Windows Copilot."""
     q = (query or "").strip()
     t0 = time.time()
     opened = None
     if open_ui and q:
         from pocket.desktop import open_app
 
-        # Bing chat / Copilot-style surface in Edge + native Copilot if present
-        bing = "https://www.bing.com/search?" + urllib.parse.urlencode(
-            {"q": q, "showconv": "1"}
-        )
+        bing = "https://www.bing.com/search?" + urllib.parse.urlencode({"q": q})
         opened = open_app("edge", args=bing)
-        try:
-            open_app("copilot")
-        except Exception:
-            pass
 
     from pocket.web_research import search_web, fetch_url
 
@@ -172,21 +164,16 @@ def _run_one_step(step: str, *, cwd: str = "") -> Dict[str, Any]:
             "message": (
                 f"Headless doer / Guppy: up to {MAX_STEPS} steps, no chat. "
                 f"Apps: {len(apps)} ({len(native)} native + {len(third)} third-party). "
-                "lookup <q> opens Copilot/Bing + returns Python search. "
-                "schedule daily … for autonomous background."
+                "lookup <q> returns Python search (no Copilot window). "
+                "`open copilot` only if you explicitly want the Windows app."
             ),
             "apps_sample": [a["id"] for a in apps[:16]],
         }
 
-    # lookup / look up / copilot <query>
-    if low.startswith("lookup ") or low.startswith("look up ") or low.startswith("copilot "):
-        if low.startswith("look up "):
-            q = step[8:].strip()
-        elif low.startswith("lookup "):
-            q = step[7:].strip()
-        else:
-            q = step[8:].strip()
-        r = _lookup_and_bring_back(q, open_ui=True)
+    # lookup / look up — headless Python search. Never a Copilot window.
+    if low.startswith("lookup ") or low.startswith("look up "):
+        q = step[8:].strip() if low.startswith("look up ") else step[7:].strip()
+        r = _lookup_and_bring_back(q, open_ui=False)
         r["step"] = step
         r["index"] = None
         return r
@@ -223,7 +210,7 @@ def _run_one_step(step: str, *, cwd: str = "") -> Dict[str, Any]:
         # open copilot with trailing query → lookup path
         if low.startswith("open copilot ") and len(step) > 13:
             q = step[13:].strip()
-            r = _lookup_and_bring_back(q, open_ui=True)
+            r = _lookup_and_bring_back(q, open_ui=False)
             r["step"] = step
             return r
         from pocket.desktop import run_desktop_job

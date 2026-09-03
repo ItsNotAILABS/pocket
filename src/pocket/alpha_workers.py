@@ -217,7 +217,7 @@ def _scrutator(j: str, prompt: str, params: Dict) -> Tuple[str, str, str]:
 
         q = params.get("query") or prompt
         q = q.replace("lookup", "", 1).strip() if q.lower().startswith("lookup") else q
-        r = _lookup_and_bring_back(q, open_ui=True)
+        r = _lookup_and_bring_back(q, open_ui=False)
         md = f"## SCRUTATOR\n\n{r.get('message')}\n\n{r.get('brief') or ''}\n"
         if r.get("deep_fetch") and isinstance(r["deep_fetch"], dict):
             md += f"\n### Deep\n```\n{(r['deep_fetch'].get('text') or '')[:2500]}\n```\n"
