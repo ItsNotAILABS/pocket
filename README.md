@@ -1,373 +1,188 @@
 <p align="center">
-  <img src="docs/brand/pocket-mark.svg" width="120" alt="POCKET"/>
+  <img src="docs/brand/pocket-mark.svg" width="88" alt="POCKET"/>
 </p>
 
 <h1 align="center">POCKET</h1>
 
 <p align="center">
-  <strong>Multi-agent workstation and enterprise control plane.</strong><br/>
-  Desktop · Edge · Cloud account · teams · policy · devices · agents · voice · APIs
+  <strong>Your computer. Your agents. Your phone as the kernel.</strong><br/>
+  Native Agent OS — desk · PhoneAI · Portal · team workspaces · MCP — on this PC.
 </p>
 
-## Use on this PC
+<p align="center">
+  <a href="https://github.com/ItsNotAILABS/pocket"><img alt="version" src="https://img.shields.io/badge/version-3.16.4-10a37f?style=flat-square"></a>
+  <img alt="host" src="https://img.shields.io/badge/host-%3A8787-09090b?style=flat-square">
+  <img alt="edition" src="https://img.shields.io/badge/edition-founder-3b82f6?style=flat-square">
+</p>
 
-Sign in without the Edge password box:
+<p align="center">
+  <video src="docs/brand/hero-desk.mp4" poster="docs/brand/hero-desk.jpg" width="100%" autoplay loop muted playsinline controls></video>
+</p>
 
-- [http://127.0.0.1:8787/v1/auth/desktop/enter](http://127.0.0.1:8787/v1/auth/desktop/enter)
-- Desk: [http://127.0.0.1:8787/desk](http://127.0.0.1:8787/desk)
-- PhoneAI: [http://127.0.0.1:8787/phoneai](http://127.0.0.1:8787/phoneai)
+<p align="center">
+  <img src="docs/brand/hero-desk.jpg" width="100%" alt="POCKET desk — laptop and phone sharing one contained PC stream"/>
+</p>
 
-`GET /v1/phoneai/sessions` mints a Pocket or PhoneAI session. Agents think first (`route_think`) and use at most one tool.
+<p align="center">
+  <a href="http://127.0.0.1:8787/desk">Open Desk</a> ·
+  <a href="http://127.0.0.1:8787/phoneai">PhoneAI</a> ·
+  <a href="http://127.0.0.1:8787/phoneai/portal">Portal</a> ·
+  <a href="http://127.0.0.1:8787/v1/auth/desktop/enter">Sign in on this PC</a>
+</p>
 
-**Invention claims (Alfredo Medina, ItsNotAI Labs):** [001](docs/research/INVENTION_CLAIMS_2026.md) (31 Aug 2026) · [002](docs/research/INVENTION_CLAIMS_2026.002.md) (2 Sep 2026, claims 14–28) · [trademark memo](docs/research/TRADEMARK_AND_PATENT_MEMO_2026.md). Live: `GET /v1/claims` · `GET /v1/marks` · `/claims`. PhoneAI Kernel™ is a phone OS seat on this PC — not a receptionist. File marks: PHONEAI KERNEL, POCKET HOST, VLAPTOP, SCREEN-KERNEL. Do not brand PHONE.AI, FACE ID, ANTIGRAVITY, or WEBMCP.
+---
 
-**3.16.3 — Helpers + workers:** Tenant jail helpers bind every job cwd. Team worker ticks seats under the tenant root. Endure worker queues cycles with `learning: false`. MCP `mcp_dispatch` owns team/endure tools (not nested in screen). Boot arms both workers. Copilot still stays closed unless `open copilot` (3.15.2).
+## What it is
 
-The substantive Pocket **3.8** expansion reached `main` on **31 August 2026**. It introduced the PhoneAI kernel seat, first-class Portal (live PC stream + touch-to-mouse), Antigravity as a separate HWND desktop-app surface, twin mint on the operator machine, and WebMCP work functions (studios as agent tools — not extra screens). Live host is **3.12+** (immersive phone glass, Focus as a mobile window, vault encrypt-then-MAC, RAH).
+POCKET is not a chat tab. It is the **host** that seats agents on your machine, puts a **phone kernel** on that same host, and streams the real desktop into a glass you can touch.
 
-**Host-control policy (3.12.3):** public HTTP is static shells, health, and login only. Portal cookies are identity-bound (no anonymous mint). Twin vault identity is the signed-in principal. RAH fan-out is plan-only until a WorkGrant. Grok/Codex on PhoneAI run the real CLIs with the live desk session stripped. Pixel Memory no longer writes reconstructable `.rgb` sidecars.
+Agents think first. They use at most one tool. Long work lives in a **tenant-jailed team folder**, not in the chat transcript. KEEP dies with the session. The team room does not.
 
-**Portal** (first-class PC stream): [http://127.0.0.1:8787/phoneai/portal](http://127.0.0.1:8787/phoneai/portal)  
-**Antigravity** (HWND stream + touch): [http://127.0.0.1:8787/phoneai/anti](http://127.0.0.1:8787/phoneai/anti)  
-**Agent eyes:** `GET /v1/eyes?which=portal` · `GET /v1/eyes?which=anti` · MCP `eyes_see` / `eyes_touch`  
-Infra map: [docs/INFRA.md](docs/INFRA.md)
-
-## What POCKET is
-
-POCKET is the user/team/policy envelope for the wider ItsNotAI Labs runtime. It gives people one place to use local agents, voice, models, tools and devices while keeping identity, tenancy, policy, approvals, audit and product routing in one control plane.
-
-```text
-Users / Teams / Devices
-          │
-          ▼
-        POCKET
-          │
-          ├── identity + organizations
-          ├── RBAC / policy / approvals
-          ├── device pairing
-          ├── routing + capability discovery
-          ├── quotas + idempotency
-          ├── audit + incidents
-          ├── health / readiness
-          ├── Desk / Phone / Mail / Work UI
-          └── Cloud account + install channels
-          │
-          ▼
-NEXUS federation
-  ├── Pocket Voice
-  ├── POCKET Agent
-  ├── MatDaemon
-  ├── CAPSULA
-  ├── Medina Memory
-  └── model / connector / research runtimes
-```
-
-## Product channels
-
-| Channel | Purpose |
+| You open | You get |
 |---|---|
-| **POCKET Desktop** | Installable Electron application with bundled local host and tray/startup integration |
-| **POCKET Edge App** | Existing local engine in a dedicated Microsoft Edge app window |
-| **POCKET Cloud Account** | Cloudflare Worker + D1 + R2 account, organizations, invites, devices, task relay and entitlement plane |
-| **POCKET API** | Versioned local/cloud APIs for agents, voice, teams, work, mail, models and tools |
+| **Desk** | Codex, Grok, and ready engines — advertised only when they are actually on the host |
+| **PhoneAI Kernel** | A phone OS seat on this PC, not a receptionist |
+| **Portal** | One primary screen. Touch maps to the real mouse. No recursive nested desktops |
+| **Team workspace** | Founder-only. Canonical path under `~/.pocket/tenants/<you>/teams/<id>/` |
+| **MCP** | Agents call tools. You do not open extra studio tabs for them |
 
-Read [`docs/POCKET_PRODUCT_CHANNELS_V3.md`](docs/POCKET_PRODUCT_CHANNELS_V3.md).
+---
 
-## Core product surfaces
+## Product film
 
-| Surface | Path |
-|---|---|
-| Desk | `/desk` |
-| PhoneAI website | `/phoneai` |
-| PhoneAI kernel | `/phoneai/app` |
-| Setup / always-on | `/setup` · `python -m pocket install` |
-| Phone | `/phone` |
-| Voice Studio | `/studio/voice` |
-| Docs | `/docs` |
-| Agent Mail | `/mail` |
-| Install hub | `/install` |
-| Work Studio | `/work` |
-| LOOMGRAPH | `/loomgraph` |
-| Tour | `/tour` |
-| Get/install | `/get` |
-| Developer API | `/developers` |
-| Health | `/health` |
-| Catalog | `/v1/catalog` |
-| Ready/class | `/v1/ready` · `/v1/class` |
+<table>
+<tr>
+<td width="50%" valign="top">
+  <video src="docs/brand/phone-kernel.mp4" poster="docs/brand/phone-kernel.jpg" width="100%" autoplay loop muted playsinline controls></video>
+  <p align="center"><img src="docs/brand/phone-kernel.jpg" width="100%" alt="PhoneAI Kernel — the PC contained in the phone"/></p>
+  <p align="center"><b>PhoneAI Kernel</b><br/>The computer, contained in the glass.</p>
+</td>
+<td width="50%" valign="top">
+  <video src="docs/brand/team-workspace.mp4" poster="docs/brand/team-workspace.jpg" width="100%" autoplay loop muted playsinline controls></video>
+  <p align="center"><img src="docs/brand/team-workspace.jpg" width="100%" alt="Team workspace — jailed shared disk for a team of agents"/></p>
+  <p align="center"><b>Team workspace</b><br/>Shared disk. Jailed. Bound to you.</p>
+</td>
+</tr>
+</table>
 
-## Control-plane intelligence
+<p align="center">
+  <img src="docs/brand/pocket-mark-still.jpg" width="220" alt="POCKET mark — a pocket of light"/>
+</p>
 
-POCKET now includes deterministic control-plane helpers for decisions that should not live inside prompts:
+Stills are generated product frames. Loops are 6-second cinematic moves from those frames (`docs/brand/`).
 
-- capability routing with confidence and review fallback;
-- policy decisions: `allow`, `deny`, `confirm`;
-- tenant/principal/action-scoped idempotency;
-- quota evaluation;
-- approval records for privileged operations;
-- audit events;
-- incident objects;
-- secret references that point to operator-managed credentials rather than copying secret values;
-- dependency health aggregation;
-- release-state classification from machine-readable evidence.
+---
 
-The ecosystem declaration is [`ecosystem.surface.json`](ecosystem.surface.json).
-
-## POCKET family protocols
-
-Canonical family objects include:
+## Open it on this PC
 
 ```text
-pocket.family.v1
-pocket.context-snap.v1
-pocket.execution-receipt.v1
-pocket.screen.family.v1
-SCREEN-KERNEL/1.1
-pocket.stream.v1
-pocket.screen.body.v1
-pocket.device.pair.v1
-pocket.origin.v1
-pocket.runtime.singleton.v1
-pocket.agent.arch.v1
-```
-
-Spec: [`docs/POCKET_SCREEN_FAMILY_PROTOCOL.md`](docs/POCKET_SCREEN_FAMILY_PROTOCOL.md) · live `GET /v1/protocols/screen-family`
-
-NEXUS extends the family with shared objects for tasks, plans, policy, budgets, jobs, leases, retries, health, telemetry, memory, artifacts, approvals and handoffs.
-
-Machine-readable schemas live under the repository protocol/schema documentation added to the Alpha control plane.
-
-## Build POCKET Desktop
-
-Windows:
-
-```powershell
-.\scripts\Build-POCKET-Desktop-Exe.ps1 -Arch auto
-```
-
-Build x64 and Windows ARM64:
-
-```powershell
-.\scripts\Build-POCKET-Desktop-Exe.ps1 -Arch both
-```
-
-Developer modes:
-
-```powershell
-cd desktop-electron
-npm install
-npm run start:local
-npm run start:cloud
-npm run start:edge
-```
-
-The desktop host reuses a healthy local engine instead of repeatedly restarting it.
-
-## Run the local host
-
-Use the repository's documented host launcher for your platform, then open:
-
-```text
+http://127.0.0.1:8787/v1/auth/desktop/enter
 http://127.0.0.1:8787/desk
+http://127.0.0.1:8787/phoneai
+http://127.0.0.1:8787/phoneai/portal
 ```
-
-Useful checks:
 
 ```text
 GET /health
 GET /v1/ready
 GET /v1/catalog
+GET /v1/protocols/screen-family
 ```
 
-## Deploy POCKET Cloud
+`GET /v1/phoneai/sessions` mints a Pocket or PhoneAI session.
 
-Provision the Cloudflare resources described in [`docs/POCKET_CLOUD_ACCOUNT.md`](docs/POCKET_CLOUD_ACCOUNT.md), configure protected environment values, then run:
+Windows desktop build:
 
 ```powershell
-$env:POCKET_D1_DATABASE_ID = "your-d1-id"
-.\scripts\Deploy-POCKET-Cloud.ps1
+.\scripts\Build-POCKET-Desktop-Exe.ps1 -Arch auto
 ```
 
-The Cloud account provides the always-online identity/organization/device plane while local workstations remain execution substrates.
+---
 
-## Enterprise tenancy
+## Why operators pick it
 
-POCKET separates:
+**One identity, one route, one harness.** Not a pile of extra agents.
 
-- user identity;
-- organization membership;
-- owner/admin/member/viewer roles;
-- paired device identity;
-- local market/seat identity;
-- agent/session identity;
-- project/workspace scope.
+**The phone is a kernel seat** on the operator PC. Portal streams one primary screen. Touch is an exact mouse, contained — not a stretched rectangle.
 
-Cloud organizations use D1-backed membership and invitation records. A paired device receives a restricted device key rather than inheriting the founder/operator session.
+**Studios are agent tools**, not extra screens.
 
-See [`docs/MULTI_USER.md`](docs/MULTI_USER.md).
+**Market seats cannot walk the founder disk.** Team routes are founder-only. Paths canonicalize. `../escaped` is rejected. Jobs inherit the jailed cwd.
 
-## Device and execution model
+**Windows Copilot stays closed** unless you say `open copilot`. Lookup and scheduled work do not launch it because the prompt mentioned AI.
 
-```text
-User intent
-   │
-   ▼
-POCKET identity + tenant scope
-   │
-   ▼
-Policy decision
-   │
-   ├── deny ──► denial receipt
-   ├── confirm ──► approval surface
-   └── allow
-          │
-          ▼
-Capability route
-          │
-          ▼
-Agent / Voice / PhoneAI / CAPSULA / MatDaemon
-          │
-          ▼
-Artifact + execution receipt + audit event
-```
+**Auro Endure is not learning.** Pocket will not say it is until native stateful evaluation exists.
 
-This gives browser, desktop, mobile and API clients the same operating model instead of separate ad-hoc permissions.
+---
 
-## POCKET Agent
+## Now shipping (3.16.4)
 
-[POCKET Agent](https://github.com/ItsNotAILABS/pocket-agent) handles long-running execution, durable goals, recursive agent harnesses, schedules, capsules, budgets, retries, leases and receipts.
+- Tenant jail helpers bind every team path and job cwd
+- Team worker ticks seats under the tenant root
+- Endure worker queues cycles with `learning: false`
+- MCP `team_*` / `endure_*` dispatch is first-class, not nested inside screen tools
+- Catalog lists **ready** engines only
+- SCREEN-KERNEL/1.1 + `pocket.stream.v1` + device pair across hostnames
+- Product film in `docs/brand/` (generated stills + 6s loops)
 
-Typical family flow:
+Host-control policy: public HTTP is shells, health, and login. Portal cookies bind a principal. RAH execute needs a WorkGrant.
 
-```text
-POCKET request
-  -> agent.run
-  -> bounded long-running work
-  -> artifacts
-  -> pocket.execution-receipt.v1
-  -> POCKET activity / audit / memory
-```
+---
 
-## Pocket Voice
+## Surfaces
 
-[Pocket Voice](https://github.com/ItsNotAILABS/pocket-voice-to-text) handles patient turn-taking, STT control, personas, agentic voice flows, Voice Studio context and provider resilience.
-
-POCKET hosts same-origin product surfaces and can hand long-running voice work to POCKET Agent.
-
-## PhoneAI
-
-[PhoneAI](https://github.com/ItsNotAILABS/PhoneAI) is the mobile workstation-control surface. Its production MVP supports paired sessions, real bounded local filesystem/Git/system operations, execution receipts and revocation.
-
-## Agent Mail
-
-POCKET includes its own agent mail namespace:
-
-```text
-*@agents.pocket.local
-```
-
-UI:
-
-```text
-/mail
-```
-
-API:
-
-```text
-/v1/agent-mail/*
-```
-
-Install slice:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ItsNotAILABS/pocket-agent/master/install/mail.sh | sh
-```
-
-## Install slices
-
-The POCKET family can be installed by capability rather than as one monolith:
-
-```text
-agent
-sdk
-skills
-knowledge
-capsules
-mail
-plug
-```
-
-Catalog: [`pocket-agent/install/slices.json`](https://github.com/ItsNotAILABS/pocket-agent/blob/master/install/slices.json)
-
-## Enterprise operating model
-
-A strong deployment separates four planes:
-
-```text
-Cloud account plane
-  identity / org / entitlement / device relay
-
-Local host plane
-  private workstation data / local tools / local models
-
-Execution plane
-  POCKET Agent / CAPSULA / MatDaemon / connectors
-
-Evidence plane
-  receipts / audit / artifacts / health / release evidence
-```
-
-Recommended controls:
-
-```text
-[ ] tenant scope on every externally reachable mutation
-[ ] role/capability checks before privileged actions
-[ ] idempotency on retried mutations
-[ ] per-key / per-tenant quotas
-[ ] request IDs across cross-repo hops
-[ ] approval object for irreversible actions
-[ ] health + readiness endpoints
-[ ] artifact hashes and execution receipts
-[ ] revocable device sessions
-[ ] separate rollback and data-recovery procedures
-```
-
-## Release and packaging
-
-Canonical release documentation:
-
-- [`docs/POCKET_RELEASE_RUNBOOK.md`](docs/POCKET_RELEASE_RUNBOOK.md)
-- [`docs/POCKET_PRODUCT_CHANNELS_V3.md`](docs/POCKET_PRODUCT_CHANNELS_V3.md)
-- [`docs/POCKET_CLOUD_ACCOUNT.md`](docs/POCKET_CLOUD_ACCOUNT.md)
-- [`ENTERPRISE.md`](ENTERPRISE.md)
-- [`SECURITY.md`](SECURITY.md)
-- [`ALPHA.md`](ALPHA.md)
-
-Desktop packaging includes checksum-oriented artifact workflows and separate local/cloud/Edge launch modes.
-
-## Documentation
-
-| Document | Purpose |
+| Surface | Path |
 |---|---|
-| [`docs/INDEX.md`](docs/INDEX.md) | master platform map |
+| Desk | `/desk` |
+| PhoneAI | `/phoneai` · kernel `/phoneai/app` · OS `/phoneai/os` |
+| Portal | `/phoneai/portal` |
+| Antigravity (HWND app) | `/phoneai/anti` |
+| Agent mail | `/mail` · `*@agents.pocket.local` |
+| Work | `/work` |
+| Docs | `/docs` |
+| Install | `/install` · `python -m pocket install` |
+
+Agent eyes: `GET /v1/eyes?which=portal` · MCP `eyes_see` / `eyes_touch`.
+
+---
+
+## Family
+
+```text
+POCKET host  ── identity, tenancy, policy, desk, PhoneAI, Portal
+     │
+     ├── POCKET Agent     long-running execution, RAH, receipts
+     ├── Pocket Voice     turn-taking, studio, STT
+     ├── PhoneAI          mobile kernel / PWA
+     ├── vLaptop          SCREEN-KERNEL embody
+     ├── NEXUS            federation
+     ├── CAPSULA          isolated capsules
+     └── MatDaemon        bounded compute
+```
+
+[POCKET Agent](https://github.com/ItsNotAILABS/pocket-agent) · [PhoneAI](https://github.com/ItsNotAILABS/PhoneAI) · [vLaptop](https://github.com/ItsNotAILABS/vlaptop) · [NEXUS](https://github.com/ItsNotAILABS/nexus)
+
+Protocols: `pocket.stream.v1` · `SCREEN-KERNEL/1.1` · `pocket.device.pair.v1` · `pocket.team.workspace.v1` — spec in [`docs/POCKET_SCREEN_FAMILY_PROTOCOL.md`](docs/POCKET_SCREEN_FAMILY_PROTOCOL.md).
+
+---
+
+## Claims and marks
+
+Invention claims (Alfredo Medina, ItsNotAI Labs): [001](docs/research/INVENTION_CLAIMS_2026.md) · [002](docs/research/INVENTION_CLAIMS_2026.002.md) · [trademark memo](docs/research/TRADEMARK_AND_PATENT_MEMO_2026.md). Live: `GET /v1/claims` · `GET /v1/marks`.
+
+File marks: **PHONEAI KERNEL**, **POCKET HOST**, **VLAPTOP**, **SCREEN-KERNEL**. Do not brand PHONE.AI, FACE ID, ANTIGRAVITY, or WEBMCP as ours.
+
+---
+
+## Docs
+
+| | |
+|---|---|
+| [`docs/INDEX.md`](docs/INDEX.md) | platform map |
 | [`docs/HOW_TO.md`](docs/HOW_TO.md) | operator recipes |
-| [`docs/how-to/AGENT_MAIL.md`](docs/how-to/AGENT_MAIL.md) | agent mail |
-| [`docs/how-to/GENETIC_FLOW.md`](docs/how-to/GENETIC_FLOW.md) | internal model composition |
-| [`docs/how-to/WEB_UI_ENGINES.md`](docs/how-to/WEB_UI_ENGINES.md) | model-driven UI engines |
-| [`docs/how-to/MCP.md`](docs/how-to/MCP.md) | MCP integration |
-| [`docs/how-to/INSTALL.md`](docs/how-to/INSTALL.md) | install channels |
-| [`docs/how-to/API_RECIPES.md`](docs/how-to/API_RECIPES.md) | API recipes |
-
-## Ecosystem
-
-| Component | Role |
-|---|---|
-| [NEXUS](https://github.com/ItsNotAILABS/nexus) | federation and protocol authority |
-| [POCKET Agent](https://github.com/ItsNotAILABS/pocket-agent) | long-running execution |
-| [Pocket Voice](https://github.com/ItsNotAILABS/pocket-voice-to-text) | conversation control |
-| [PhoneAI](https://github.com/ItsNotAILABS/PhoneAI) | mobile device/workstation control |
-| [CAPSULA](https://github.com/ItsNotAILABS/CAPSULA) | isolated runtime/build capsules |
-| [MatDaemon](https://github.com/ItsNotAILABS/MatDaemon) | bounded compute |
-| [Medina Memory](https://github.com/ItsNotAILABS/MedinaMemorySystems) | durable continuity |
+| [`docs/INFRA.md`](docs/INFRA.md) | host map |
+| [`docs/how-to/INSTALL.md`](docs/how-to/INSTALL.md) | install |
+| [`SECURITY.md`](SECURITY.md) | security |
+| [`ENTERPRISE.md`](ENTERPRISE.md) | tenancy |
 
 Repository: https://github.com/ItsNotAILABS/pocket
