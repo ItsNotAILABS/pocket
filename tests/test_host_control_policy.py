@@ -64,6 +64,8 @@ def test_static_shells_and_login_stay_public():
     assert path_is_public("/phoneai/portal") is True
     assert path_is_public("/phoneai/app") is True
     assert path_is_public("/v1/auth/passkey/begin") is True
+    assert path_is_public("/v1/auth/device/begin") is True
+    assert path_is_public("/v1/auth/device/list") is False
 
 
 def test_portal_frame_needs_lan_or_device():
@@ -102,6 +104,46 @@ def test_portal_html_has_face_id():
     assert 'id="faceBtn"' in html
 
 
+def test_exact_origin_rejects_sibling_and_trycloudflare():
+    from pocket.origin_policy import origin_allowed, rp_id_for_host
+    from pocket.passkey import origin_allowed as pk_origin, rp_id_from_host
+    from pocket.phoneai_portal import origin_ok
+
+    host = "pocket.medinatechlabs.net"
+    assert origin_allowed("https://pocket.medinatechlabs.net", host) is True
+    assert origin_allowed("https://evil.medinatechlabs.net", host) is False
+    assert origin_allowed("https://random.trycloudflare.com", host) is False
+    assert pk_origin("https://evil.medinatechlabs.net", host) is False
+    assert rp_id_from_host("evil.medinatechlabs.net") == "evil.medinatechlabs.net"
+    assert rp_id_for_host("pocket.medinatechlabs.net") == "pocket.medinatechlabs.net"
+    assert origin_ok(
+        {"Origin": "https://evil.medinatechlabs.net", "Host": host, "CF-Connecting-IP": "8.8.8.8"},
+        ("8.8.8.8", 443),
+    ) is False
+    assert origin_ok(
+        {"Origin": "https://pocket.medinatechlabs.net", "Host": host},
+        ("8.8.8.8", 443),
+    ) is True
+
+
+def test_device_token_is_not_owner_and_cannot_shell(monkeypatch):
+    from pocket.host_control import allow
+    from pocket.users import issue_token, user_from_token
+
+    monkeypatch.setattr("pocket.device_pair.device_live", lambda p: True)
+    tok = issue_token("device:dev_test", role="portal_device", is_owner=False, device_id="dev_test", capability="portal")
+    rec = user_from_token(tok)
+    assert rec is not None
+    assert rec["is_owner"] is False
+    assert rec["role"] == "portal_device"
+    headers = {"Authorization": "Bearer " + tok, "CF-Connecting-IP": "8.8.8.8"}
+    addr = ("8.8.8.8", 443)
+    vis = allow(headers=headers, client_address=addr, consequence="portal")
+    assert vis.get("ok") is True
+    sh = allow(headers=headers, client_address=addr, consequence="shell")
+    assert sh.get("ok") is False
+
+
 def test_empty_origin_ok_with_portal_cookie():
     from pocket.phoneai_portal import mint_portal_token, origin_ok
 
@@ -115,14 +157,17 @@ def test_device_pair_roundtrip(tmp_path, monkeypatch):
 
     monkeypatch.setattr(dp, "ROOT", tmp_path)
     monkeypatch.setattr(dp, "FILE", tmp_path / "code.json")
+    monkeypatch.setattr(dp, "DEVICES", tmp_path / "devices.json")
     m = dp.mint(client_ip="127.0.0.1")
     assert m["ok"] is True
     assert len(m["code"]) == 6
+    assert m.get("need") == "webauthn"
     bad = dp.mint(client_ip="8.8.8.8")
     assert bad["ok"] is False
     r = dp.redeem(m["code"])
-    assert r["ok"] is True
-    assert r["user"] == "pocket"
+    assert r["ok"] is False
+    assert r.get("need") == "webauthn"
+    assert r.get("user") != "pocket"
 
 
 def test_anonymous_legacy_portal_token_is_dead():

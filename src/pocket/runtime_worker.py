@@ -24,6 +24,8 @@ ROOT = Path(os.environ.get("POCKET_ROOT") or Path(__file__).resolve().parents[2]
 STATE_DIR = Path.home() / ".pocket"
 HEART_FILE = STATE_DIR / "runtime_heartbeat.json"
 PID_FILE = STATE_DIR / "runtime_worker.pid"
+LOCK_FILE = STATE_DIR / "runtime.lock"
+_lock_fh = None
 
 _stop = threading.Event()
 _serve_proc: Optional[subprocess.Popen] = None
@@ -76,33 +78,87 @@ def http_ok(host: str = HOST, port: int = PORT) -> bool:
         return False
 
 
+def _exe_of(pid: int) -> str:
+    if sys.platform != "win32" or pid <= 0:
+        return ""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not h:
+            return ""
+        try:
+            buf = ctypes.create_unicode_buffer(32768)
+            size = wintypes.DWORD(32768)
+            ok = k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size))
+            return buf.value if ok else ""
+        finally:
+            k32.CloseHandle(h)
+    except Exception:
+        return ""
+
+
+def _is_pocket_python(pid: int) -> bool:
+    exe = _exe_of(pid).lower()
+    name = os.path.basename(exe)
+    return name in ("python.exe", "pythonw.exe") and ("python" in exe)
+
+
+def acquire_singleton() -> Dict[str, Any]:
+    """One watchdog. Process-attested lock file. Second launch exits."""
+    global _lock_fh
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "pid": os.getpid(),
+        "exe": sys.executable,
+        "argv": "pocket runtime",
+        "started": time.time(),
+        "port": PORT,
+    }
+    try:
+        fh = open(LOCK_FILE, "a+b")
+        fh.seek(0)
+        if sys.platform == "win32":
+            import msvcrt
+
+            try:
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError:
+                fh.close()
+                return {"ok": False, "already": True, "error": "watchdog lock held"}
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                fh.close()
+                return {"ok": False, "already": True, "error": "watchdog lock held"}
+        fh.seek(0)
+        fh.truncate()
+        fh.write(json.dumps(payload).encode("utf-8"))
+        fh.flush()
+        _lock_fh = fh
+        PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
+        return {"ok": True, "pid": os.getpid(), "lock": str(LOCK_FILE)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
 def _kill_port_holders() -> None:
-    """Drop hung listeners on PORT (Windows)."""
+    """Drop hung Pocket serve listeners only (python -m pocket), never strangers."""
     if sys.platform != "win32":
         return
-    try:
-        out = subprocess.check_output(
-            ["netstat", "-ano"],
-            text=True,
-            errors="replace",
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-        )
-        pids = set()
-        needle = f":{PORT}"
-        for line in out.splitlines():
-            if "LISTENING" not in line.upper() and "LISTEN" not in line.upper():
-                continue
-            if needle not in line:
-                continue
-            parts = line.split()
-            if parts:
-                try:
-                    pids.add(int(parts[-1]))
-                except ValueError:
-                    pass
-        for pid in pids:
-            if pid <= 0 or pid == os.getpid():
-                continue
+    pids = set(_listen_pids())
+    me = os.getpid()
+    child = _serve_proc.pid if _serve_proc and _serve_proc.poll() is None else None
+    for pid in pids:
+        if pid <= 0 or pid == me:
+            continue
+        if child and pid == child:
             try:
                 subprocess.run(
                     ["taskkill", "/F", "/PID", str(pid)],
@@ -111,8 +167,17 @@ def _kill_port_holders() -> None:
                 )
             except Exception:
                 pass
-    except Exception:
-        pass
+            continue
+        if not _is_pocket_python(pid):
+            continue
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/PID", str(pid)],
+                capture_output=True,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except Exception:
+            pass
 
 
 def _python() -> str:
@@ -151,7 +216,7 @@ def _listen_pids() -> list:
 
 
 def collapse_extras() -> None:
-    """One healthy listener. Drop newer duplicate serves (they cause Portal lag)."""
+    """One healthy Pocket listener. Never kill a non-python owner of the port."""
     pids = _listen_pids()
     if len(pids) <= 1:
         return
@@ -159,10 +224,15 @@ def collapse_extras() -> None:
     if _serve_proc and _serve_proc.poll() is None and _serve_proc.pid in pids:
         keep = _serve_proc.pid
     else:
-        keep = min(pids)
+        py = [p for p in pids if _is_pocket_python(p)]
+        keep = min(py) if py else None
     me = os.getpid()
     for pid in pids:
-        if pid in (keep, me):
+        if keep and pid in (keep, me):
+            continue
+        if pid == me:
+            continue
+        if not _is_pocket_python(pid):
             continue
         try:
             subprocess.run(
@@ -270,8 +340,12 @@ def heartbeat_loop() -> None:
 
 def run() -> None:
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    lock = acquire_singleton()
+    if not lock.get("ok"):
+        print("[POCKET runtime] another watchdog holds the lock — exit", flush=True)
+        return
     PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
-    print(f"[POCKET runtime] worker pid={os.getpid()} heart={HEART_MS}ms port={PORT}", flush=True)
+    print(f"[POCKET runtime] worker pid={os.getpid()} heart={HEART_MS}ms port={PORT} lock=1", flush=True)
     start_serve()
     t = threading.Thread(target=heartbeat_loop, name="pocket-heart-873", daemon=True)
     t.start()

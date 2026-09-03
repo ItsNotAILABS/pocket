@@ -1,7 +1,9 @@
 {
   "schema": "inl.invention_claims.v1",
-  "id": "INL-2026-CLAIMS.PORTAL.PHONEAI.001",
-  "effective": "2026-08-31",
+  "id": "INL-2026-CLAIMS.PORTAL.PHONEAI.002",
+  "parent": "INL-2026-CLAIMS.PORTAL.PHONEAI.001",
+  "effective": "2026-09-02",
+  "parent_effective": "2026-08-31",
   "kind": "defensive_publication",
   "inventor": {
     "name": "Alfredo Medina",
@@ -12,28 +14,75 @@
   "deposits": [
     "https://github.com/ItsNotAILABS/pocket",
     "https://github.com/ItsNotAILABS/PhoneAI",
-    "https://github.com/ItsNotAILABS/phoneai-desk"
+    "https://github.com/ItsNotAILABS/phoneai-desk",
+    "https://github.com/ItsNotAILABS/vlaptop"
   ],
   "embodiment": {
     "host": "POCKET :8787",
-    "version": "3.8+",
+    "version": "3.14+",
     "portal": "/phoneai/portal",
     "antigravity": "/phoneai/anti",
-    "kernel": "/phoneai"
+    "kernel": "/phoneai",
+    "screen": "/v1/screen/kernel",
+    "arch": "/v1/agents/arch",
+    "tv": "/phoneai/tv",
+    "protocol": "SCREEN-KERNEL/1.0"
   },
   "claims": [
-    {"n": 1, "title": "Phone kernel seat", "independent": true},
-    {"n": 2, "title": "Twin mint on the operator machine", "independent": true},
-    {"n": 3, "title": "Think-first routing", "independent": true},
-    {"n": 4, "title": "WebMCP work functions not extra screens", "independent": true},
-    {"n": 5, "title": "First-class visual Portal with touch-to-desktop", "independent": true},
-    {"n": 6, "title": "LAN-bounded Portal touch", "independent": true},
-    {"n": 7, "title": "Antigravity as a separate desktop-app surface", "independent": true},
-    {"n": 8, "title": "Nested-session exclusion", "independent": true},
-    {"n": 9, "title": "Dual write explorer + git + GitHub", "independent": true},
-    {"n": 10, "title": "Combined first-class system", "independent": true},
-    {"n": 11, "title": "HWND-attached Antigravity stream with window-local touch", "independent": true},
-    {"n": 12, "title": "Agent eyes on Portal and Antigravity frames", "independent": true},
-    {"n": 13, "title": "Voice-to-screen plus glasses HUD and live web view", "independent": true}
+    {"n": 1, "title": "Phone kernel seat", "independent": true, "doc": "001"},
+    {"n": 2, "title": "Twin mint on the operator machine", "independent": true, "doc": "001"},
+    {"n": 3, "title": "Think-first routing", "independent": true, "doc": "001"},
+    {"n": 4, "title": "WebMCP work functions not extra screens", "independent": true, "doc": "001"},
+    {"n": 5, "title": "First-class visual Portal with touch-to-desktop", "independent": true, "doc": "001"},
+    {"n": 6, "title": "LAN-bounded Portal touch", "independent": true, "doc": "001"},
+    {"n": 7, "title": "Antigravity as a separate desktop-app surface", "independent": true, "doc": "001"},
+    {"n": 8, "title": "Nested-session exclusion", "independent": true, "doc": "001"},
+    {"n": 9, "title": "Dual write explorer + git + GitHub", "independent": true, "doc": "001"},
+    {"n": 10, "title": "Combined first-class system", "independent": true, "doc": "001"},
+    {"n": 11, "title": "HWND-attached Antigravity stream with window-local touch", "independent": true, "doc": "001"},
+    {"n": 12, "title": "Agent eyes on Portal and Antigravity frames", "independent": true, "doc": "001"},
+    {"n": 13, "title": "Voice-to-screen plus glasses HUD and live web view", "independent": true, "doc": "001"},
+    {"n": 14, "title": "Shared screen kernel SCREEN-KERNEL/1.0", "independent": true, "doc": "002"},
+    {"n": 15, "title": "Hostname-agnostic device pair", "independent": true, "doc": "002"},
+    {"n": 16, "title": "Hostname is not authority", "independent": true, "doc": "002"},
+    {"n": 17, "title": "Identity-bound Portal cookie", "independent": true, "doc": "002"},
+    {"n": 18, "title": "Empty-Origin exception bound to a cookie", "independent": true, "doc": "002"},
+    {"n": 19, "title": "Contain-mapped desktop pointer, HWND-agnostic", "independent": true, "doc": "002"},
+    {"n": 20, "title": "Hold and drag mode with a visible badge", "independent": true, "doc": "002"},
+    {"n": 21, "title": "HUD window chrome on the streamed desktop", "independent": true, "doc": "002"},
+    {"n": 22, "title": "Type-into-field (UIA ValuePattern or keys)", "independent": true, "doc": "002"},
+    {"n": 23, "title": "TV as a view node, phone as controller", "independent": true, "doc": "002"},
+    {"n": 24, "title": "Hidden always-on host runtime", "independent": true, "doc": "002"},
+    {"n": 25, "title": "Six-layer agent architecture with WorkGrant", "independent": true, "doc": "002"},
+    {"n": 26, "title": "Agent mail on @agents.pocket.local", "independent": true, "doc": "002"},
+    {"n": 27, "title": "Public vLaptop protocol client", "independent": true, "doc": "002"},
+    {"n": 28, "title": "Combined ecosystem (001 + screen kernel + pair + WorkGrant + TV view)", "independent": true, "doc": "002"}
+  ],
+  "patent_families": [
+    {"id": "A", "core": "Phone kernel seat + twin mint + think-first + studios-as-tools on the operator PC"},
+    {"id": "B", "core": "Portal contain mapping + HWND-agnostic taps + identity-bound cookie + hostname-never-authority + device-pair redeem"},
+    {"id": "C", "core": "Shared screen kernel + six-layer plane + WorkGrant + TV-as-view"}
+  ],
+  "trademark_memo": "INL-2026-TM.PATENT.MEMO.001",
+  "file_marks": [
+    "PHONEAI KERNEL",
+    "PHONEAI OS",
+    "POCKET HOST",
+    "POCKET OS",
+    "VLAPTOP",
+    "SCREEN-KERNEL",
+    "ITSNOTAI LABS",
+    "MEDINA TECH LABS",
+    "RESEARCHERSHUB",
+    "TWIN MINT",
+    "WORKGRANT"
+  ],
+  "do_not_trademark": [
+    "PHONE.AI",
+    "FACE ID",
+    "ANTIGRAVITY",
+    "WEBMCP",
+    "PORTAL (alone)",
+    "POCKET (alone, weak)"
   ]
 }

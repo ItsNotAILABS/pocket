@@ -8,6 +8,7 @@ def test_arch_snapshot_has_six_layers():
     assert s["schema"] == SCHEMA
     assert s["layers"] == list(LAYERS)
     assert "pocket" in s["seats"] and "phoneai" in s["seats"]
+    assert "screen" in s["execute"]
     assert s["counts"]["personas"] >= 1
     assert "GET /v1/agents/arch" in s["http"]
 

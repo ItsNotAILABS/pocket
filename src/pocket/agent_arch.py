@@ -19,12 +19,12 @@ TURN = "pocket.agent.turn.v1"
 RECEIPT = "pocket.action_receipt.v1"
 
 LAYERS = ("identity", "seat", "route", "authority", "execute", "receipt")
-SEATS = ("pocket", "phoneai", "node")
+SEATS = ("pocket", "phoneai", "node", "screen")
 
 # Tools that may not run from wording alone.
 CONSEQUENCE = frozenset({"rah_run", "studio_ship", "twin_mint", "shell"})
 
-EXECUTE = ("harness", "rah", "invoke", "talk", "session", "plan")
+EXECUTE = ("harness", "rah", "invoke", "talk", "session", "plan", "screen")
 
 
 def _norm(s: str) -> str:
@@ -178,6 +178,8 @@ def turn(
             lane = "session"
         elif tool == "agent_talk":
             lane = "talk"
+        elif tool == "screen_embody" or thought.get("engine") == "screen":
+            lane = "screen"
         elif who.get("first_class") and who.get("invoke") and agent and not who.get("persona"):
             lane = "invoke"
         else:
@@ -227,6 +229,23 @@ def turn(
         from pocket.agent_invoke import invoke
 
         result = invoke(str(who.get("id") or agent), prompt=goal)
+    elif lane == "screen":
+        from pocket.screen_body import act as body_act, inhabit
+
+        low = goal.lower()
+        if "leave" in low or "stop embodying" in low:
+            result = body_act("leave", agent=who.get("id") or agent or "coder")
+        elif any(w in low for w in ("type ", "type into")):
+            result = body_act("type_into", agent=who.get("id") or agent or "coder", text=goal[:400])
+        elif "click" in low:
+            result = body_act("click_name", agent=who.get("id") or agent or "coder", name=goal[:80])
+        elif "tap" in low or "touch" in low:
+            result = body_act("touch", agent=who.get("id") or agent or "coder", kind="tap")
+        else:
+            result = inhabit(str(who.get("id") or agent or "coder"), which="desktop")
+            if "see" in low or "look" in low:
+                seen = body_act("see", agent=who.get("id") or agent or "coder")
+                result = {**result, "see": {k: seen.get(k) for k in ("ok", "bytes", "which", "via")}}
     else:
         from pocket.work_harness import run as harness_run
 

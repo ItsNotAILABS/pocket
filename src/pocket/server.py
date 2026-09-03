@@ -1533,20 +1533,19 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.wear import snapshot as wear_snap
 
             return self._json(200, wear_snap())
-        if path in ("/v1/claims", "/v1/invention", "/claims"):
-            from pathlib import Path
+        if path in ("/v1/claims", "/v1/invention"):
+            from pocket.marks import claims_payload
 
-            root = Path(__file__).resolve().parents[2]
-            js = root / "docs" / "research" / "invention_claims.v1.json"
-            md = "/docs/research/INVENTION_CLAIMS_2026.md"
-            data = {}
-            if js.is_file():
-                data = json.loads(js.read_text(encoding="utf-8"))
-            data.setdefault("ok", True)
-            data["markdown"] = md
-            data["pdf"] = "/docs/research/INVENTION_CLAIMS_2026.pdf"
-            data["inventor"] = data.get("inventor") or {"name": "Alfredo Medina", "lab": "ItsNotAI Labs"}
-            return self._json(200, data)
+            return self._json(200, claims_payload())
+        if path in ("/v1/marks",):
+            from pocket.marks import snapshot as marks_snap
+
+            return self._json(200, marks_snap())
+        if path in ("/claims", "/marks"):
+            from pocket.marks import page_html
+
+            html = page_html(kind="claims" if path == "/claims" else "marks")
+            return self._html(html)
         if path in ("/health", "/v1/health"):
             # Pure liveness — no score()/pillars (14s) and no background work.
             # Class grades live on /v1/class and /v1/ready so Edge/desk stay snappy.
@@ -1678,6 +1677,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.host_runtime import status as runtime_status
 
             return self._json(200, runtime_status())
+        if path in ("/v1/runtime/ports", "/v1/ports"):
+            from pocket.local_ports import snapshot as ports_snap
+
+            return self._json(200, ports_snap())
         if path in ("/v1/setup", "/api/setup"):
             from pocket.host_runtime import setup_snapshot
 
@@ -2984,6 +2987,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.screen_kernel import snapshot as sk_snap
 
             return self._json(200, sk_snap())
+        if path in ("/v1/screen/body", "/v1/vlaptop/body"):
+            from pocket.screen_body import snapshot as body_snap
+
+            return self._json(200, body_snap())
         if path in ("/v1/mcp", "/v1/mcp/catalog", "/v1/tools/mcp"):
             from pocket.mcp_bundle import catalog
 
@@ -4194,24 +4201,57 @@ class Handler(BaseHTTPRequestHandler):
 
             r = device_mint(client_ip=self._client_ip())
             return self._json(200 if r.get("ok") else 403, r)
+        if path in ("/v1/auth/device/begin", "/v1/auth/pair/begin"):
+            from pocket.device_pair import begin as device_begin
+
+            host = self.headers.get("Host") or "127.0.0.1:8787"
+            r = device_begin(host=host)
+            return self._json(200 if r.get("ok") else 403, r)
+        if path in ("/v1/auth/device/list",):
+            from pocket.auth import is_home_lan_client
+            from pocket.device_pair import list_devices
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                p = rbac_principal(self.headers)
+                if not (p.get("is_owner") or p.get("role") == "admin"):
+                    return self._json(403, {"ok": False, "error": "owner or LAN"})
+            return self._json(200, list_devices())
+        if path in ("/v1/auth/device/revoke",):
+            from pocket.auth import is_home_lan_client
+            from pocket.device_pair import revoke as device_revoke
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                p = rbac_principal(self.headers)
+                if not (p.get("is_owner") or p.get("role") == "admin"):
+                    return self._json(403, {"ok": False, "error": "owner or LAN"})
+            r = device_revoke(str((body or {}).get("id") or (body or {}).get("device_id") or ""))
+            return self._json(200 if r.get("ok") else 404, r)
         if path in ("/v1/auth/device/redeem", "/v1/auth/pair"):
             from pocket.device_pair import redeem as device_redeem
-            from pocket.phoneai_portal import mint_portal_token, portal_cookie
+            from pocket.phoneai_portal import portal_cookie
             from pocket.ratelimit import hit as rl_hit
 
             ip = self._client_ip()
             ok_rl, reason = rl_hit("login", ip, kind="login")
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
-            res = device_redeem(str((body or {}).get("code") or (body or {}).get("pair") or ""))
+            host = self.headers.get("Host") or "127.0.0.1:8787"
+            origin = (self.headers.get("Origin") or self.headers.get("origin") or "")
+            cred = (body or {}).get("credential") or (body or {}).get("passkey")
+            res = device_redeem(
+                str((body or {}).get("code") or (body or {}).get("pair") or ""),
+                credential=cred if isinstance(cred, dict) else None,
+                host=host,
+                origin=origin,
+            )
             if not res.get("ok"):
                 return self._json(401, res)
-            host = (self.headers.get("Host") or "").lower()
             xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
-            secure = xf == "https" or "medinatechlabs.net" in host or "trycloudflare.com" in host
+            hl = host.lower()
+            secure = xf == "https" or hl.endswith("medinatechlabs.net")
             extra = [
                 ("Set-Cookie", self._session_cookie(res["token"])),
-                ("Set-Cookie", portal_cookie(mint_portal_token(str(res.get("user") or "pocket")), secure=secure)),
+                ("Set-Cookie", portal_cookie(str(res.get("portal") or ""), secure=secure)),
             ]
             return self._json(200, res, extra_headers=extra)
         if path in ("/v1/auth/passkey/login",):
@@ -4448,6 +4488,15 @@ class Handler(BaseHTTPRequestHandler):
                 if not (who.get("user") or who.get("principal") in ("user", "api_key")):
                     return self._json(401, {"ok": False, "error": "sign in or use LAN to bring the host up"})
             return self._json(200, runtime_ensure(str(body.get("which") or body.get("id") or "all")))
+        if path in ("/v1/runtime/ports/maintain", "/v1/ports/maintain"):
+            from pocket.auth import is_home_lan_client
+            from pocket.local_ports import maintain as ports_maintain
+
+            if not is_home_lan_client(self.headers, getattr(self, "client_address", None)):
+                who = rbac_principal(self.headers)
+                if not (who.get("is_owner") or who.get("role") == "admin"):
+                    return self._json(403, {"ok": False, "error": "LAN or owner to maintain local ports"})
+            return self._json(200, ports_maintain())
         if path in ("/v1/runtime/install", "/api/runtime/install", "/v1/host/install"):
             from pocket.auth import is_home_lan_client
             from pocket.host_runtime import install as runtime_install
@@ -7863,6 +7912,43 @@ class Handler(BaseHTTPRequestHandler):
             if not gate.get("ok"):
                 return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, click_name(str(body.get("name") or body.get("text") or "")))
+        if path in ("/v1/screen/embody", "/v1/screen/inhabit", "/v1/vlaptop/embody"):
+            from pocket.host_control import allow as host_ok
+            from pocket.screen_body import inhabit
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            return self._json(
+                200,
+                inhabit(str(body.get("agent") or body.get("name") or "coder"), which=str(body.get("which") or "desktop")),
+            )
+        if path in ("/v1/screen/body", "/v1/vlaptop/body"):
+            from pocket.host_control import allow as host_ok
+            from pocket.screen_body import act as body_act, occupant, snapshot as body_snap
+
+            gate = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="observe")
+            if not gate.get("ok"):
+                return self._json(403, {"ok": False, "error": gate.get("error")})
+            if (body or {}).get("verb") or (body or {}).get("action"):
+                g2 = host_ok(headers=self.headers, client_address=getattr(self, "client_address", None), consequence="portal")
+                if not g2.get("ok"):
+                    return self._json(403, {"ok": False, "error": g2.get("error")})
+                return self._json(
+                    200,
+                    body_act(
+                        str(body.get("verb") or body.get("action") or "see"),
+                        agent=str(body.get("agent") or ""),
+                        which=str(body.get("which") or ""),
+                        nx=float(body.get("nx") if body.get("nx") is not None else 0.5),
+                        ny=float(body.get("ny") if body.get("ny") is not None else 0.5),
+                        text=str(body.get("text") or ""),
+                        name=str(body.get("name") or ""),
+                        kind=str(body.get("kind") or "tap"),
+                        submit=bool(body.get("submit")),
+                    ),
+                )
+            return self._json(200, occupant() if "occupant" in (self.path or "") else body_snap())
         if path in ("/v1/vcomp/act", "/v1/computer/act"):
             from pocket.host_control import allow as host_ok
             from pocket.ratelimit import hit as rl_hit

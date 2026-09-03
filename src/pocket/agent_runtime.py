@@ -73,6 +73,19 @@ def route_think(text: str, engine: str = "auto") -> Dict[str, Any]:
         for w in ("in parallel", "parallel agents", "fan out", "fan-out", "split the work", "several agents")
     ):
         return {"engine": "rah", "tool": "rah_run", "why": "RAH first-class fan-out"}
+    if any(
+        w in low
+        for w in (
+            "embody the screen",
+            "inhabit the screen",
+            "wear the screen",
+            "tap the screen",
+            "see the screen",
+            "type into the field",
+            "click the button named",
+        )
+    ):
+        return {"engine": "screen", "tool": "screen_embody", "why": "agent screen body"}
     if any(w in low for w in ("portal", "touch the pc", "remote desktop", "stream my screen")):
         return {"engine": "portal", "tool": None, "why": "pc stream"}
     if any(w in low for w in ("prove ", "theorem", "logic prover", "q.e.d")):

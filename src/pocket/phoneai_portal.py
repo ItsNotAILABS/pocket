@@ -738,25 +738,32 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
     g["bytes"] = len(data)
     g["via"] = "antigravity" if tlow in ("window", "anti", "antigravity", "app") else "primary"
     g["attached"] = tlow not in ("desktop", "", "primary")
+    try:
+        from pocket.screen_math import desktop_from_unit
+
+        g["matrix"] = desktop_from_unit(g)
+    except Exception:
+        g["matrix"] = None
+    g["schema"] = "pocket.stream.v1"
     with _grab_lock:
-        _last_jpeg.update({"t": now, "key": key, "data": data, "meta": g})
+        seq = int(_last_jpeg.get("seq") or 0) + 1
+        g["seq"] = seq
+        _last_jpeg.update({"t": now, "key": key, "data": data, "meta": g, "seq": seq})
     return data, g
 
 
 def map_touch(nx: float, ny: float, *, target: str = "desktop", hwnd: int = 0) -> Dict[str, int]:
-    """nx,ny are 0..1 of the pixels on the phone. Desktop stream = full laptop, not the last tab."""
-    nx = max(0.0, min(1.0, float(nx)))
-    ny = max(0.0, min(1.0, float(ny)))
+    """nx,ny are 0..1 of the contained image. Affine 3×3 → desktop pixel."""
+    from pocket.screen_math import apply_int, desktop_from_unit
+
     t = (target or "desktop").lower()
     hid = int(hwnd or 0)
     if t in ("desktop", "", "primary"):
         g = geom("desktop", hwnd=0)
-        x = int(g["x"] + nx * g["w"])
-        y = int(g["y"] + ny * g["h"])
+        x, y = apply_int(desktop_from_unit(g), nx, ny)
         return {"x": x, "y": y, "target": "desktop", "hwnd": hid}
     g = geom(t, hwnd=hid)
-    x = int(g["x"] + nx * g["w"])
-    y = int(g["y"] + ny * g["h"])
+    x, y = apply_int(desktop_from_unit(g), nx, ny)
     return {"x": x, "y": y, "target": g.get("target") or t, "hwnd": int(g.get("hwnd") or hid)}
 
 
@@ -1203,7 +1210,9 @@ def token_from_headers(headers=None, query: Optional[Dict[str, Any]] = None) -> 
 
 
 def origin_ok(headers=None, client_address=None) -> bool:
-    """Same-origin, LAN, or an already-authenticated phone. Hostname is not authority."""
+    """Exact origin, LAN, or an already-authenticated phone. Wildcards are not authority."""
+    from pocket.origin_policy import origin_allowed as exact_origin
+
     headers = headers or {}
     origin = (headers.get("Origin") or headers.get("origin") or "").strip()
     if not origin:
@@ -1219,16 +1228,7 @@ def origin_ok(headers=None, client_address=None) -> bool:
         tok = token_from_headers(headers, None)
         return bool(tok and check_portal_token(tok))
     host = str(headers.get("Host") or headers.get("host") or "").split(":")[0].lower()
-    oh = (urlparse(origin).hostname or "").lower()
-    if not oh:
-        return False
-    if host and oh == host:
-        return True
-    if oh.endswith(".medinatechlabs.net") and host.endswith(".medinatechlabs.net"):
-        return True
-    if oh in ("127.0.0.1", "localhost") or oh.startswith("192.168.") or oh.startswith("10."):
-        return True
-    return False
+    return exact_origin(origin, host)
 
 
 def touch_allowed(headers=None, client_address=None, query: Optional[Dict[str, Any]] = None) -> bool:
@@ -1342,7 +1342,17 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
     cfg = {"max_w": 1600, "q": 74, "target": "desktop", "fps": 16.0, "hwnd": 0}
     last = 0.0
     stash: list = [b""]
-    hello = json.dumps({"ok": True, "kind": "hello", "ws": True, "spatial": True}).encode("utf-8")
+    hello = json.dumps(
+        {
+            "ok": True,
+            "kind": "hello",
+            "ws": True,
+            "spatial": True,
+            "schema": "pocket.stream.v1",
+            "protocol": "SCREEN-KERNEL/1.1",
+            "embody": True,
+        }
+    ).encode("utf-8")
     try:
         _ws_send(sock, hello, 1)
     except Exception:
@@ -1350,7 +1360,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
     _kick_grab("desktop", 1280, 72)
     while True:
         now = time.time()
-        interval = 1.0 / max(4.0, min(float(cfg["fps"]), 20.0))
+        interval = 1.0 / max(4.0, min(float(cfg["fps"]), 24.0))
         if now - last >= interval:
             peeked = peek_jpeg(
                 target=str(cfg.get("target") or "desktop"),
@@ -1360,6 +1370,17 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
             )
             if peeked:
                 try:
+                    meta = peeked[1] if isinstance(peeked[1], dict) else {}
+                    env = {
+                        "kind": "frame",
+                        "schema": "pocket.stream.v1",
+                        "seq": meta.get("seq"),
+                        "geom": {k: meta.get(k) for k in ("x", "y", "w", "h", "hwnd") if k in meta},
+                        "matrix": meta.get("matrix"),
+                        "via": meta.get("via"),
+                        "bytes": len(peeked[0] or b""),
+                    }
+                    _ws_send(sock, json.dumps(env).encode("utf-8"), 1)
                     _ws_send(sock, peeked[0], 2)
                     last = now
                 except Exception:

@@ -15,9 +15,9 @@ PHONEAI_OS_HTML = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#05060a"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="PhoneAI"/>
+<meta name="apple-mobile-web-app-title" content="PhoneAI Kernel"/>
 <link rel="manifest" href="/phoneai/manifest.json"/>
-<title>PhoneAI</title>
+<title>PhoneAI Kernel</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--g:#00ff86;--c:#58a6ff;--p:#14141c}
 *{box-sizing:border-box}
@@ -115,9 +115,10 @@ body.desk .dock{display:none!important;pointer-events:none}
     <a class="app" href="/phoneai/tv"><div class="icon">📺</div><span>TV node</span></a>
     <a class="app" href="/phoneai/doorbell"><div class="icon">🔔</div><span>Doorbell</span></a>
     <a class="app" href="/phoneai/cam"><div class="icon">💻</div><span>PC cam</span></a>
+    <a class="app" href="/claims"><div class="icon">®</div><span>Claims</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
-  <p class="more">Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. Rotate the phone for a computer workspace. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
+  <p class="more">PhoneAI Kernel™ is the phone seat on this PC — not a receptionist. Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. Rotate the phone for a computer workspace. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a> · <a href="/claims">Claims</a></p>
   <div class="ws-desk" id="homeWs">__PHONEAI_WS_STAGE__</div>
 </section>
 
@@ -807,11 +808,11 @@ function netProfile(){
   if(save || type==='2g' || type==='slow-2g') return {label:'2G', max_w:720, q:48, fps:5};
   if(type==='3g') return {label:'3G', max_w:800, q:52, fps:6};
   if(cellular && (type==='4g' || type==='5g' || downlink>=8)){
-    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:1280, q:70, fps:12};
-    return {label:'LTE', max_w:960, q:62, fps:10};
+    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:960, q:62, fps:18};
+    return {label:'LTE', max_w:800, q:56, fps:12};
   }
-  if(cellular) return {label:'CELL', max_w:960, q:58, fps:8};
-  return {label:'LAN', max_w:1600, q:74, fps:16};
+  if(cellular) return {label:'CELL', max_w:800, q:52, fps:10};
+  return {label:'LAN', max_w:1280, q:68, fps:24};
 }
 function applyNet(){
   net=netProfile();
@@ -954,17 +955,19 @@ function openLive(){
   live.onerror=()=>{ liveOk=false; };
   live.onmessage=ev=>{
     if(typeof ev.data==='string') return;
-    const url=URL.createObjectURL(ev.data);
-    const prev=blobUrl;
-    const im=new Image();
-    im.onload=()=>{
+    const blob=ev.data;
+    const paint=bmp=>{
+      const url=URL.createObjectURL(blob);
+      const prev=blobUrl;
       img.src=url;
       layout();
       if(prev && prev!==url) URL.revokeObjectURL(prev);
       blobUrl=url;
+      if(bmp && bmp.close) try{ bmp.close(); }catch(_){}
     };
-    im.onerror=()=>{ URL.revokeObjectURL(url); };
-    im.src=url;
+    if(typeof createImageBitmap==='function'){
+      createImageBitmap(blob).then(bmp=>{ requestAnimationFrame(()=>paint(bmp)); }).catch(()=>paint(null));
+    } else paint(null);
   };
 }
 function b64urlToBuf(s){
@@ -1037,14 +1040,32 @@ document.getElementById('pairBtn').onclick=async()=>{
   const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
   if(lan){
     const j=await fetch('/v1/auth/device/mint',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
-    hint.textContent=j.code?('Pair code '+j.code+' — 10 min. Enter it on the tunnel.'):(j.error||'Could not mint');
+    hint.textContent=j.code?('Pair code '+j.code+' — 10 min. On the tunnel: Pair, enter code, then Face ID on this phone. Code alone is not a login.'):(j.error||'Could not mint');
     return;
   }
-  const code=prompt('Pair code from the PC (home Wi-Fi Portal → Pair)');
+  const code=prompt('Pair code from the PC, then Face ID on this phone');
   if(!code) return;
-  const j=await fetch('/v1/auth/device/redeem',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(r=>r.json()).catch(()=>({}));
-  if(j && j.ok){ hint.textContent='Paired — this phone can drive the PC off home Wi-Fi'; applyNet(); openLive(); applyView(); }
-  else hint.textContent=j.error||'Pair failed';
+  if(!window.PublicKeyCredential){ hint.textContent='This phone needs a passkey / Face ID to pair'; return; }
+  try{
+    const started=await fetch('/v1/auth/device/begin',{credentials:'include'}).then(r=>r.json());
+    if(!started.ok){ hint.textContent=started.error||'Mint a code on the PC first'; return; }
+    const pk=started.publicKey;
+    pk.challenge=strToBuf(pk.challenge);
+    if(pk.user&&pk.user.id) pk.user.id=b64urlToBuf(pk.user.id);
+    const cred=await navigator.credentials.create({publicKey:pk});
+    const payload={
+      id:cred.id,
+      rawId:bufToB64url(cred.rawId),
+      type:cred.type,
+      response:{
+        clientDataJSON:bufToB64url(cred.response.clientDataJSON),
+        attestationObject:cred.response.attestationObject?bufToB64url(cred.response.attestationObject):undefined
+      }
+    };
+    const j=await fetch('/v1/auth/device/redeem',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,credential:payload})}).then(r=>r.json()).catch(()=>({}));
+    if(j && j.ok){ hint.textContent='Paired phone (device seat) — not the owner login'; applyNet(); openLive(); applyView(); }
+    else hint.textContent=j.error||'Pair failed — code + Face ID required';
+  }catch(e){ hint.textContent=(e&&e.message)||'Pair cancelled'; }
 };
 faceGate().then(()=>{ openLive(); applyNet(); }).catch(()=>{ openLive(); applyNet(); });
 if(navigator.connection){ navigator.connection.addEventListener('change', applyNet); }

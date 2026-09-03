@@ -593,12 +593,28 @@ def verify(user: str, password: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def issue_token(user: str) -> str:
+def issue_token(
+    user: str,
+    *,
+    role: str = "",
+    is_owner: Optional[bool] = None,
+    device_id: str = "",
+    capability: str = "",
+) -> str:
     tok = secrets.token_urlsafe(24)
     now = time.time()
+    rec: Dict[str, Any] = {"user": user, "at": now, "last": now}
+    if role:
+        rec["role"] = role
+    if is_owner is not None:
+        rec["is_owner"] = bool(is_owner)
+    if device_id:
+        rec["device_id"] = device_id
+    if capability:
+        rec["capability"] = capability
     with _lock:
         data = _load()
-        data.setdefault("tokens", {})[tok] = {"user": user, "at": now, "last": now}
+        data.setdefault("tokens", {})[tok] = rec
         cut = now - TOKEN_TTL_SEC
         data["tokens"] = {k: v for k, v in data["tokens"].items() if (v.get("at") or 0) > cut}
         _save(data)
@@ -706,8 +722,28 @@ def user_from_token(token: str) -> Optional[Dict[str, Any]]:
             rec["last"] = now
             _save(data)
         u = rec.get("user")
+        if rec.get("role") in ("portal_device", "device") or str(u or "").startswith("device:"):
+            if rec.get("device_id"):
+                try:
+                    from pocket.device_pair import device_live
+
+                    if not device_live(str(u or rec.get("device_id"))):
+                        return None
+                except Exception:
+                    pass
+            return {
+                "user": u,
+                "role": "portal_device",
+                "display": "Paired phone",
+                "is_owner": False,
+                "edition": "device",
+                "device_id": rec.get("device_id") or "",
+                "capability": rec.get("capability") or "portal",
+                "plan": "",
+                "channel": "device-pair",
+            }
         urec = (data.get("users") or {}).get(u) or {}
-        role = urec.get("role") or "member"
+        role = rec.get("role") or urec.get("role") or "member"
         if not urec:
             try:
                 from pocket.auth import expected_user

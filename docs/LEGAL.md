@@ -33,6 +33,16 @@ By creating an account or API key you accept this model.
 - Do not submit secrets you cannot afford to store on the host.  
 - Operator can see all host activity; members should assume admin can audit.
 
+## Intellectual property (defensive)
+
+Inventions are published under Alfredo Medina / ItsNotAI Labs:
+
+- [INL-2026-CLAIMS.PORTAL.PHONEAI.001](research/INVENTION_CLAIMS_2026.md) (31 Aug 2026)
+- [INL-2026-CLAIMS.PORTAL.PHONEAI.002](research/INVENTION_CLAIMS_2026.002.md) (2 Sep 2026)
+- [Trademark and patent memo](research/TRADEMARK_AND_PATENT_MEMO_2026.md)
+
+Live: `/claims` · `/v1/marks`. PhoneAI Kernel™ is a phone OS seat — not a receptionist. Do not assign these claims without a written instrument from the inventor. This host is not a law firm; the memo is not legal advice.
+
 ## Support
 
 Contact the operator who invited you (invite issuer).  

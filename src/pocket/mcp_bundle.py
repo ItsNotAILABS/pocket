@@ -34,6 +34,7 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             "screen_status", "screen_set", "screen_sense", "screen_act",
             "vcomp_open", "vcomp_sense", "vcomp_act", "vcomp_shell",
             "eyes_see", "eyes_touch", "eyes_catalog",
+            "screen_embody", "screen_see", "screen_touch", "screen_type", "screen_click", "screen_cursor",
             "runtime_status", "runtime_ensure", "runtime_install",
             "work_start", "work_tick", "work_package", "work_handoff", "work_status",
             "fusion_voice", "fusion_schema", "aria_turn",
@@ -906,6 +907,31 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
             nx=float(params.get("nx") or 0.5),
             ny=float(params.get("ny") or 0.5),
             text=str(params.get("text") or ""),
+        )
+    if t in ("screen_embody", "screen_see", "screen_touch", "screen_type", "screen_click", "screen_cursor", "screen_body"):
+        from pocket.screen_body import act as body_act, inhabit
+
+        if t == "screen_embody":
+            return inhabit(str(params.get("agent") or params.get("name") or "coder"), which=str(params.get("which") or "desktop"))
+        if t == "screen_cursor":
+            return body_act("cursor", agent=str(params.get("agent") or ""))
+        verb = {
+            "screen_see": "see",
+            "screen_touch": "touch",
+            "screen_type": "type_into",
+            "screen_click": "click_name",
+            "screen_body": str(params.get("verb") or "see"),
+        }.get(t, "see")
+        return body_act(
+            verb,
+            agent=str(params.get("agent") or ""),
+            which=str(params.get("which") or ""),
+            nx=float(params.get("nx") or 0.5),
+            ny=float(params.get("ny") or 0.5),
+            text=str(params.get("text") or ""),
+            name=str(params.get("name") or ""),
+            kind=str(params.get("kind") or "tap"),
+            submit=bool(params.get("submit")),
         )
     if t.startswith("vcomp") or t in ("open", "shell"):
         from pocket import virtual_computer as vc

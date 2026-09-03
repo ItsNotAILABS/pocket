@@ -170,7 +170,7 @@ def catalog() -> List[Dict[str, Any]]:
             "up": watch_up,
             "heart": str(HEART),
             "how": "python -m pocket runtime",
-            "note": "Restarts serve when :8787 stops answering. Required for always-up.",
+            "note": "One process-attested watchdog (runtime.lock). Restarts serve when :8787 stops answering.",
             "inside": ["pocket", "phoneai"],
         },
         {
@@ -190,6 +190,13 @@ def catalog() -> List[Dict[str, Any]]:
 def status() -> Dict[str, Any]:
     servers = catalog()
     pocket = next((s for s in servers if s["id"] == "pocket"), {})
+    ports = {}
+    try:
+        from pocket.local_ports import snapshot as ports_snap
+
+        ports = ports_snap()
+    except Exception as e:
+        ports = {"ok": False, "error": str(e)[:120]}
     return {
         "ok": True,
         "schema": "pocket.host_runtime.v1",
@@ -209,6 +216,8 @@ def status() -> Dict[str, Any]:
             "install": "runtime_install",
             "cli": "python -m pocket ensure",
         },
+        "ports": ports,
+        "singleton": str(HOME / "runtime.lock"),
     }
 
 
@@ -362,36 +371,42 @@ def install() -> Dict[str, Any]:
         startup_cmd.write_text(vbs_path.read_text(encoding="ascii"), encoding="ascii")
         notes.append(f"startup {startup_cmd}")
 
-    task = {"ok": False, "name": "POCKET Runtime"}
-    if os.name == "nt":
-        try:
-            r = subprocess.run(
-                [
-                    "schtasks",
-                    "/Create",
-                    "/TN",
-                    "POCKET Runtime",
-                    "/SC",
-                    "ONLOGON",
-                    "/RL",
-                    "LIMITED",
-                    "/F",
-                    "/TR",
-                    f'wscript.exe //B "{vbs_path}"',
-                ],
-                capture_output=True,
-                text=True,
-                timeout=20,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            )
-            task = {
-                "ok": r.returncode == 0,
-                "name": "POCKET Runtime",
-                "out": ((r.stdout or "") + (r.stderr or ""))[:400],
-            }
-            notes.append("schtasks " + ("ok" if task["ok"] else "skipped"))
-        except Exception as e:
-            task = {"ok": False, "name": "POCKET Runtime", "error": str(e)[:200]}
+    task = {"ok": False, "name": "POCKET Runtime", "skipped": True}
+    # One launcher: Startup VBS. A second ONLOGON task would spawn a second
+    # watchdog; the runtime lock would reject it, but we do not install both.
+    if os.environ.get("POCKET_RUNTIME_TASK", "").strip() in ("1", "true", "yes"):
+        if os.name == "nt":
+            try:
+                r = subprocess.run(
+                    [
+                        "schtasks",
+                        "/Create",
+                        "/TN",
+                        "POCKET Runtime",
+                        "/SC",
+                        "ONLOGON",
+                        "/RL",
+                        "LIMITED",
+                        "/F",
+                        "/TR",
+                        f'wscript.exe //B "{vbs_path}"',
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+                task = {
+                    "ok": r.returncode == 0,
+                    "name": "POCKET Runtime",
+                    "out": ((r.stdout or "") + (r.stderr or ""))[:400],
+                    "skipped": False,
+                }
+                notes.append("schtasks " + ("ok" if task["ok"] else "failed"))
+            except Exception as e:
+                task = {"ok": False, "name": "POCKET Runtime", "error": str(e)[:200], "skipped": False}
+    else:
+        notes.append("single launcher: Startup VBS (no schtasks)")
 
     brought = ensure("all")
     return {

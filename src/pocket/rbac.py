@@ -201,7 +201,10 @@ def principal(headers) -> Dict[str, Any]:
 
         u = current_user(headers)
         if u:
-            edition = "founder" if (u.get("is_owner") or (u.get("role") or "") == "admin") else "market"
+            role = str(u.get("role") or "")
+            if role in ("portal_device", "device") or str(u.get("user") or "").startswith("device:"):
+                return {**u, "principal": "device", "edition": "device", "is_owner": False, "role": "portal_device"}
+            edition = "founder" if (u.get("is_owner") or role == "admin") else "market"
             return {**u, "principal": "user", "edition": edition}
     except Exception:
         pass

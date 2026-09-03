@@ -85,3 +85,14 @@ Alfredo Medina conceived and directed the reduction to practice on the reference
 ## How to cite
 
 Medina, A. (2026). *Invention disclosure: POCKET PhoneAI Portal, Antigravity desktop-app view, twin mint, WebMCP work functions.* ItsNotAI Labs, INL-2026-CLAIMS.PORTAL.PHONEAI.001. https://github.com/ItsNotAILABS/pocket
+
+---
+
+## Supplement (2 September 2026)
+
+Claims **14–28** (screen kernel, device pair, hostname-never-authority, type-into-field, TV view node, hidden runtime, six-layer WorkGrant plane, vLaptop, combined ecosystem) and the trademark/patent clearance memo live in:
+
+- [INVENTION_CLAIMS_2026.002.md](INVENTION_CLAIMS_2026.002.md) — INL-2026-CLAIMS.PORTAL.PHONEAI.002  
+- [TRADEMARK_AND_PATENT_MEMO_2026.md](TRADEMARK_AND_PATENT_MEMO_2026.md) — INL-2026-TM.PATENT.MEMO.001  
+
+Live host: `GET /v1/claims` · `GET /v1/marks` · `GET /claims`

@@ -19,7 +19,9 @@ Sign in without the Edge password box:
 
 `GET /v1/phoneai/sessions` mints a Pocket or PhoneAI session. Agents think first (`route_think`) and use at most one tool.
 
-**Invention claims (Alfredo Medina, ItsNotAI Labs, 31 Aug 2026):** [docs/research/INVENTION_CLAIMS_2026.md](docs/research/INVENTION_CLAIMS_2026.md) — Portal stream, Antigravity desktop-app view, twin mint, WebMCP work functions. Defensive publication.
+**Invention claims (Alfredo Medina, ItsNotAI Labs):** [001](docs/research/INVENTION_CLAIMS_2026.md) (31 Aug 2026) · [002](docs/research/INVENTION_CLAIMS_2026.002.md) (2 Sep 2026, claims 14–28) · [trademark memo](docs/research/TRADEMARK_AND_PATENT_MEMO_2026.md). Live: `GET /v1/claims` · `GET /v1/marks` · `/claims`. PhoneAI Kernel™ is a phone OS seat on this PC — not a receptionist. File marks: PHONEAI KERNEL, POCKET HOST, VLAPTOP, SCREEN-KERNEL. Do not brand PHONE.AI, FACE ID, ANTIGRAVITY, or WEBMCP.
+
+**3.15 — Screen body + `pocket.stream.v1`:** Portal WebSocket sends a JSON frame envelope (seq, geom, 3×3 matrix) then the JPEG. Agents **inhabit** that same kernel (`POST /v1/screen/embody`, MCP `screen_embody` / `screen_see` / `screen_touch` / `screen_type`). Pairing is code + passkey → `portal_device`, not owner. Origins are exact. One watchdog lock.
 
 The substantive Pocket **3.8** expansion reached `main` on **31 August 2026**. It introduced the PhoneAI kernel seat, first-class Portal (live PC stream + touch-to-mouse), Antigravity as a separate HWND desktop-app surface, twin mint on the operator machine, and WebMCP work functions (studios as agent tools — not extra screens). Live host is **3.12+** (immersive phone glass, Focus as a mobile window, vault encrypt-then-MAC, RAH).
 

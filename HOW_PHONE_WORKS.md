@@ -5,7 +5,7 @@
 **POCKET Phone** is a remote control for agents on your PC — with **Aria** and **Working** as first-class voice agents, plus plan/code/research.
 
 1. Phone opens the LAN URL (same Wi‑Fi as the lab PC).
-2. **Pair** with the desk (optional but recommended) using a pair code.
+2. **Pair** away from home with a 6-digit PC code **plus Face ID on this phone**. The code alone is not an owner login.
 3. Sign in with your seat (same as desk).
 4. Pick **Aria** / **Working** / Plan / Code / …
 5. Talk (🎙) or type. PC worker runs the agent.

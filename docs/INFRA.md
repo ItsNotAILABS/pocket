@@ -23,7 +23,11 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | Engines | `GET /v1/engines` | Live CLIs + internals |
 | Shell | `POST /v1/phoneai/shell` | Bounded PowerShell |
 | Harness | `POST /v1/phoneai/harness` | Think → shell → engine |
-| Claims | `GET /v1/claims` | Defensive publication |
+| Claims | `GET /v1/claims` · `GET /claims` | Defensive publication 001+002 |
+| Marks | `GET /v1/marks` · `GET /marks` | Trademark clearance registry |
+| Screen kernel | `GET /v1/screen/kernel` | SCREEN-KERNEL/1.1 |
+| Screen body | `POST /v1/screen/embody` · `GET /v1/screen/body` | Agents inhabit the live pointer |
+| Stream | `WS /v1/phoneai/portal/ws` | `pocket.stream.v1` JSON envelope + JPEG |
 | Glasses HUD | `/phoneai/glasses` | Glance cards (no JPEG until Stream). Wake word PhoneAI. Camera → Coder. |
 | AirPods | `/phoneai/airpods` | Always listen waits for PhoneAI …. Dictation until send. |
 | Wear | `POST /v1/phoneai/wear` | Wake, glance, spatial left/right window, dictation, HUD heartbeat, camera |

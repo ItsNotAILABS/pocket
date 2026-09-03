@@ -10,7 +10,8 @@ import time
 from typing import Any, Dict, Optional
 
 SCHEMA = "pocket.screen.kernel.v1"
-PROTOCOL = "SCREEN-KERNEL/1.0"
+PROTOCOL = "SCREEN-KERNEL/1.1"
+STREAM = "pocket.stream.v1"
 
 
 def see(*, which: str = "desktop", max_w: int = 960) -> Dict[str, Any]:
@@ -95,12 +96,30 @@ def type_into(
     click_first: bool = True,
     submit: bool = False,
 ) -> Dict[str, Any]:
-    """Click the selected field, then type. End-to-end caret → keys."""
+    """Click the selected field, then type via UIA ValuePattern or keys."""
     t0 = time.time()
     raw = (text or "")[:400]
     nx = max(0.0, min(1.0, float(nx)))
     ny = max(0.0, min(1.0, float(ny)))
-    typed = touch("type_field" if click_first else "key", nx=nx, ny=ny, text=raw, target=target)
+    tapped: Dict[str, Any] = {}
+    if click_first:
+        tapped = touch("tap", nx=nx, ny=ny, target=target)
+        time.sleep(0.05)
+    uia: Dict[str, Any] = {}
+    try:
+        from pocket.ui_click import type_focused_element
+
+        uia = type_focused_element(raw)
+    except Exception as e:
+        uia = {"ok": False, "via": "error", "error": str(e)[:120]}
+    typed: Dict[str, Any]
+    via = "uia" if uia.get("ok") and uia.get("via") == "value" else "keys"
+    if via == "uia":
+        typed = uia
+    else:
+        # Already tapped: keys only (second click can steal focus). Else type_field.
+        typed = touch("key" if click_first else "type_field", nx=nx, ny=ny, text=raw, target=target)
+        via = "keys"
     if submit:
         from pocket.phoneai_portal import touch as portal_touch
 
@@ -112,6 +131,9 @@ def type_into(
         "chars": len(raw),
         "nx": nx,
         "ny": ny,
+        "via": via,
+        "uia": {k: uia.get(k) for k in ("ok", "via", "detail") if k in uia},
+        "tapped": bool(tapped.get("ok")),
         "typed": typed,
         "ms": int((time.time() - t0) * 1000),
     }
@@ -130,13 +152,19 @@ def snapshot() -> Dict[str, Any]:
         "protocol": PROTOCOL,
         "product": "Screen kernel",
         "public": "https://github.com/ItsNotAILABS/vlaptop",
-        "verbs": ["see", "touch", "type_into", "click_name", "cursor"],
+        "verbs": ["see", "touch", "type_into", "click_name", "cursor", "embody"],
+        "stream": STREAM,
         "http": [
             "GET /v1/screen/kernel",
             "POST /v1/screen/see",
             "POST /v1/screen/touch",
             "POST /v1/screen/type",
             "POST /v1/screen/click",
+            "POST /v1/screen/embody",
+            "GET /v1/screen/body",
+            "WS /v1/phoneai/portal/ws  pocket.stream.v1",
         ],
-        "note": "People and agents share this. vLaptop is an agent's personal seat on the same kernel.",
+        "claims": "INL-2026-CLAIMS.PORTAL.PHONEAI.002",
+        "mark": "SCREEN-KERNEL",
+        "note": "People and agents share this. Agents inhabit the live pointer via screen_body.",
     }

@@ -118,32 +118,15 @@ def _cbor(buf: bytes, i: int = 0) -> Tuple[Any, int]:
 
 
 def rp_id_from_host(host: str) -> str:
-    h = (host or "").split(":")[0].strip().lower()
-    # Face ID must work on pocket.medinatechlabs.net when you leave home Wi-Fi.
-    if h.endswith(".medinatechlabs.net") or h == "medinatechlabs.net":
-        return "medinatechlabs.net"
-    return h or "localhost"
+    from pocket.origin_policy import rp_id_for_host
+
+    return rp_id_for_host(host)
 
 
 def origin_allowed(origin: str, host: str) -> bool:
-    o = (origin or "").strip()
-    if not o:
-        return False
-    oh = (urlparse(o).hostname or "").lower()
-    hh = rp_id_from_host(host)
-    if oh == hh:
-        return True
-    if oh in ("127.0.0.1", "localhost"):
-        return True
-    if oh.startswith("192.168.") or oh.startswith("10."):
-        return True
-    pub = os.environ.get("POCKET_PUBLIC_URL") or "https://pocket.medinatechlabs.net"
-    ph = (urlparse(pub).hostname or "").lower()
-    if ph and oh == ph:
-        return True
-    if oh.endswith(".medinatechlabs.net") or oh.endswith(".trycloudflare.com"):
-        return True
-    return False
+    from pocket.origin_policy import origin_allowed as exact_origin
+
+    return exact_origin(origin, host)
 
 
 def _put_challenge(kind: str, rp_id: str) -> str:
@@ -317,17 +300,18 @@ def _ecdsa_verify(x: bytes, y: bytes, message: bytes, signature: bytes) -> bool:
         return False
 
 
-def finish_register(body: Dict[str, Any], *, host: str, user: str = "") -> Dict[str, Any]:
-    from pocket.auth import expected_user
-    from pocket.users import issue_token
-
+def verify_create(body: Dict[str, Any], *, host: str, user: str = "") -> Dict[str, Any]:
+    """Verify a WebAuthn create payload. Does not issue a session."""
     rp_id = rp_id_from_host(host)
     cred = body.get("credential") or body
     raw_id = str(cred.get("id") or cred.get("rawId") or "")
     resp = cred.get("response") or {}
-    cjson = _b64url_decode(str(resp.get("clientDataJSON") or ""))
-    att = _b64url_decode(str(resp.get("attestationObject") or ""))
-    client = json.loads(cjson.decode("utf-8"))
+    try:
+        cjson = _b64url_decode(str(resp.get("clientDataJSON") or ""))
+        att = _b64url_decode(str(resp.get("attestationObject") or ""))
+        client = json.loads(cjson.decode("utf-8"))
+    except Exception:
+        return {"ok": False, "error": "credential"}
     chal = str(client.get("challenge") or "")
     try:
         chal_plain = _b64url_decode(chal).decode("utf-8")
@@ -337,27 +321,51 @@ def finish_register(body: Dict[str, Any], *, host: str, user: str = "") -> Dict[
         return {"ok": False, "error": "challenge expired — tap Face ID again"}
     if client.get("type") != "webauthn.create":
         return {"ok": False, "error": "clientData"}
-    if not origin_allowed(str(client.get("origin") or ""), host):
+    origin = str(client.get("origin") or "")
+    if not origin_allowed(origin, host):
         return {"ok": False, "error": "origin"}
-    att_map, _ = _cbor(att, 0)
-    auth_raw = att_map.get("authData")
-    if not isinstance(auth_raw, (bytes, bytearray)):
+    try:
+        att_map, _ = _cbor(att, 0)
+        auth_raw = att_map.get("authData")
+        if not isinstance(auth_raw, (bytes, bytearray)):
+            return {"ok": False, "error": "attestation"}
+        parsed = _parse_auth_data(bytes(auth_raw))
+    except Exception:
         return {"ok": False, "error": "attestation"}
-    parsed = _parse_auth_data(bytes(auth_raw))
     if not parsed.get("userVerified"):
         return {"ok": False, "error": "Face ID required"}
     if hashlib.sha256(rp_id.encode("utf-8")).digest() != parsed["rpIdHash"]:
         return {"ok": False, "error": "rpId"}
-    creds = _load(CREDS)
-    lst = creds.setdefault("credentials", [])
-    rec = {
-        "id": raw_id or _b64url(parsed["cred_id"]),
+    return {
+        "ok": True,
+        "cred_id": raw_id or _b64url(parsed["cred_id"]),
         "x": _b64url(parsed["x"]),
         "y": _b64url(parsed["y"]),
         "signCount": parsed["signCount"],
-        "user": user or expected_user() or "pocket",
-        "at": time.time(),
         "rp_id": rp_id,
+        "origin": origin,
+        "user": user,
+    }
+
+
+def finish_register(body: Dict[str, Any], *, host: str, user: str = "") -> Dict[str, Any]:
+    from pocket.auth import expected_user
+    from pocket.users import issue_token
+
+    who = user or expected_user() or "pocket"
+    attested = verify_create(body, host=host, user=who)
+    if not attested.get("ok"):
+        return attested
+    creds = _load(CREDS)
+    lst = creds.setdefault("credentials", [])
+    rec = {
+        "id": attested["cred_id"],
+        "x": attested["x"],
+        "y": attested["y"],
+        "signCount": attested["signCount"],
+        "user": who,
+        "at": time.time(),
+        "rp_id": attested["rp_id"],
     }
     lst = [c for c in lst if c.get("id") != rec["id"]]
     lst.append(rec)

@@ -31,6 +31,21 @@ def action_capability_snapshot() -> Dict[str, Any]:
 
 def action_screenshot() -> Dict[str, Any]:
     try:
+        from pocket.screen_kernel import see as sk_see
+
+        eyes = sk_see(which="desktop")
+        if eyes.get("ok"):
+            return {
+                "ok": True,
+                "action": "screenshot",
+                "via": "screen-kernel",
+                "bytes": eyes.get("bytes"),
+                "which": eyes.get("which"),
+                "message": "screen kernel see (agent body)",
+            }
+    except Exception:
+        pass
+    try:
         from pocket.capture import run_capture_job
 
         text, err, eng = run_capture_job("screenshot")
@@ -145,6 +160,21 @@ def dispatch_action(step: Dict[str, Any]) -> Dict[str, Any]:
         return action_capability_snapshot()
     if act in ("screenshot", "screen", "capture"):
         return action_screenshot()
+    if act in ("embody", "inhabit", "wear_screen"):
+        from pocket.screen_body import inhabit
+
+        return inhabit(step.get("agent") or "coder", which=step.get("which") or "desktop")
+    if act in ("see", "touch", "type_into", "click_name", "cursor"):
+        from pocket.screen_body import act as body_act
+
+        return body_act(
+            act,
+            agent=step.get("agent") or "",
+            nx=float(step.get("nx") or 0.5),
+            ny=float(step.get("ny") or 0.5),
+            text=step.get("text") or "",
+            name=step.get("name") or "",
+        )
     if act in ("open", "open_app", "app"):
         return action_open_app(step.get("app") or step.get("name") or "notepad", step.get("url") or "")
     if act in ("browser", "edge", "url"):

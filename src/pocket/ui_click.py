@@ -56,6 +56,46 @@ def scroll_page(times: int = 4, *, direction: str = "down") -> Dict[str, Any]:
     return {"ok": True, "scrolls": times, "direction": direction}
 
 
+def type_focused_element(text: str) -> Dict[str, Any]:
+    """Insert into the focused UI Automation control (ValuePattern), else report miss.
+
+    Claim 22: type-into-field prefers accessibility over synthetic keys so the caret
+    lands in the field the phone/agent just tapped.
+    """
+    raw = (text or "")[:400]
+    if not raw:
+        return {"ok": False, "via": "empty"}
+    lit = raw.replace("'", "''").replace("`", "``").replace("$", "`$")
+    ps = rf"""
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+$el = [System.Windows.Automation.AutomationElement]::FocusedElement
+if (-not $el) {{ 'nofocus'; exit 1 }}
+$name = $el.Current.Name
+try {{
+  $vp = $el.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+  if ($vp.Current.IsReadOnly) {{ 'readonly:' + $name; exit 3 }}
+  $vp.SetValue('{lit}')
+  'value:' + $name
+}} catch {{
+  'nopattern:' + $name
+  exit 2
+}}
+"""
+    try:
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps],
+            capture_output=True,
+            text=True,
+            timeout=6,
+        )
+        out = ((r.stdout or "") + (r.stderr or "")).strip()[:200]
+        ok = r.returncode == 0 and out.startswith("value:")
+        return {"ok": ok, "via": "value" if ok else "miss", "detail": out, "chars": len(raw)}
+    except Exception as e:
+        return {"ok": False, "via": "error", "error": str(e)[:160]}
+
+
 def click_named_element(name: str, *, control_type: str = "") -> Dict[str, Any]:
     """Click first UI Automation element whose Name matches (case-insensitive contains)."""
     nm = name.replace("'", "''")

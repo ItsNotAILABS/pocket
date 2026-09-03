@@ -1,6 +1,6 @@
 """POCKET — AI workspace that runs on your machine."""
 
-__version__ = "3.13.9"
+__version__ = "3.15.0"
 PRODUCT = "POCKET"
 PRODUCT_FULL = "POCKET"
 TAGLINE = "Native Agent OS — habitat · screen · studio · phone · MCP — on your computer."

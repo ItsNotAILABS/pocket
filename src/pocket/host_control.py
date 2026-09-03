@@ -31,13 +31,24 @@ def allow(
     if is_home_lan_client(headers, client_address):
         return {"ok": True, "via": "lan"}
     user = None
+    rec: Dict[str, Any] = {}
     try:
-        rec = current_user(headers or {})
+        rec = current_user(headers or {}) or {}
         if rec:
             user = rec.get("user")
     except Exception:
         user = None
+        rec = {}
     if user:
+        role = str(rec.get("role") or "")
+        if role in ("portal_device", "device") or str(user).startswith("device:"):
+            if kind in VISUAL or kind in ("observe", "input", "portal"):
+                return {"ok": True, "via": "device", "user": user, "role": "portal_device"}
+            return {
+                "ok": False,
+                "error": "Paired phone can see and touch the desk. Shell, RAH, vault, and install stay on the owner seat.",
+                "via": "device",
+            }
         return {"ok": True, "via": "seat", "user": user}
     try:
         from pocket.passkey import session_user
