@@ -27,14 +27,14 @@ STAGE_ALIASES = {
 }
 
 
-def _invoke(name: str, prompt: str, job: str = "") -> Dict[str, Any]:
+def _invoke(name: str, prompt: str, job: str = "", params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     from pocket.agent_invoke import invoke
 
     # Try preferred name then aliases
     names = [name] + list(STAGE_ALIASES.get(name, []))
     last: Dict[str, Any] = {}
     for n in names:
-        last = invoke(n, prompt=prompt, job=job, sync=False)
+        last = invoke(n, prompt=prompt, job=job, sync=False, params=params)
         if last.get("ok"):
             last["routed_as"] = n
             last["requested"] = name
@@ -50,6 +50,7 @@ def run_loop(
     lanes: int = 0,
     parallel: bool = True,
     stages: Optional[List[str]] = None,
+    params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     from pocket.kernels.probe import probe_host
     from pocket.kernels.slab import get_cache
@@ -65,7 +66,7 @@ def run_loop(
 
     def one(s: Dict[str, str]) -> Dict[str, Any]:
         st = time.perf_counter()
-        r = _invoke(s["agent"], goal, job=s.get("job") or "")
+        r = _invoke(s["agent"], goal, job=s.get("job") or "", params=params)
         r["stage"] = s["id"]
         r["stage_ms"] = round((time.perf_counter() - st) * 1000, 3)
         r["why"] = s["why"]

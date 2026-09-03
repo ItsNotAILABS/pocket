@@ -2996,13 +2996,20 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._json(200, body_snap())
         if path in ("/v1/team/workspace", "/v1/team", "/v1/teams"):
-            from pocket.team_workspace import get as team_get, list_teams, snapshot as team_snap
+            from pocket.team_workspace import get as team_get, list_teams, owner_from_user, snapshot as team_snap
 
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            try:
+                owner = owner_from_user(u)
+            except ValueError as e:
+                return self._json(403, {"ok": False, "error": str(e)})
             q = parse_qs(urlparse(self.path).query)
             tid = str((q.get("id") or [""])[0])
             if tid:
-                return self._json(200, team_get(tid))
-            return self._json(200, team_snap() if path.endswith("workspace") else list_teams())
+                return self._json(200, team_get(tid, principal=owner))
+            return self._json(200, team_snap(principal=owner) if path.endswith("workspace") else list_teams(principal=owner))
         if path in ("/v1/mcp", "/v1/mcp/catalog", "/v1/tools/mcp"):
             from pocket.mcp_bundle import catalog
 
@@ -7925,8 +7932,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(403, {"ok": False, "error": gate.get("error")})
             return self._json(200, click_name(str(body.get("name") or body.get("text") or "")))
         if path in ("/v1/team/workspace", "/v1/team/open", "/v1/teams/open"):
-            from pocket.team_workspace import open_team
+            from pocket.team_workspace import open_team, owner_from_user
 
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            try:
+                owner = owner_from_user(u)
+            except ValueError as e:
+                return self._json(403, {"ok": False, "error": str(e)})
             return self._json(
                 200,
                 open_team(
@@ -7935,21 +7949,37 @@ class Handler(BaseHTTPRequestHandler):
                     agents=(body or {}).get("agents") if isinstance((body or {}).get("agents"), list) else None,
                     engines=(body or {}).get("engines") if isinstance((body or {}).get("engines"), list) else None,
                     label=str((body or {}).get("label") or ""),
+                    principal=owner,
                 ),
             )
         if path in ("/v1/team/invite",):
-            from pocket.team_workspace import invite as team_invite
+            from pocket.team_workspace import invite as team_invite, owner_from_user
 
-            return self._json(200, team_invite(str((body or {}).get("id") or ""), str((body or {}).get("agent") or "")))
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            try:
+                owner = owner_from_user(u)
+            except ValueError as e:
+                return self._json(403, {"ok": False, "error": str(e)})
+            return self._json(200, team_invite(str((body or {}).get("id") or ""), str((body or {}).get("agent") or ""), principal=owner))
         if path in ("/v1/team/note",):
-            from pocket.team_workspace import note as team_note
+            from pocket.team_workspace import note as team_note, owner_from_user
 
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            try:
+                owner = owner_from_user(u)
+            except ValueError as e:
+                return self._json(403, {"ok": False, "error": str(e)})
             return self._json(
                 200,
                 team_note(
                     str((body or {}).get("id") or ""),
                     str((body or {}).get("text") or ""),
                     agent=str((body or {}).get("agent") or "api"),
+                    principal=owner,
                 ),
             )
         if path in ("/v1/screen/embody", "/v1/screen/inhabit", "/v1/vlaptop/embody"):

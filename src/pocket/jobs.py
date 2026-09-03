@@ -41,6 +41,7 @@ VALID_MODES = frozenset({
     "muse_spark", "muse", "spark", "muse-spark", "musespark",
     "assist", "assistant", "digital", "life", "day", "personal",
     "python", "python_wsl",
+    "auro-endure", "endure", "auro_endure",
 })
 
 
@@ -79,6 +80,7 @@ def create_job(
     message_id: str = "",
     client_device: Optional[Dict[str, Any]] = None,
     owner: str = "",
+    team_id: str = "",
 ) -> Dict[str, Any]:
     mode = (mode or "codex").lower()
     if mode not in VALID_MODES:
@@ -109,6 +111,7 @@ def create_job(
         "session_id": session_id or "",
         "message_id": message_id or "",
         "owner": (owner or "").strip().lower() or "",
+        "team_id": (team_id or "").strip().lower() or "",
         "client_device": client_device or None,
         "engine_thread_id": engine_thread_id,
         "engine_thread_engine": engine_thread_engine,

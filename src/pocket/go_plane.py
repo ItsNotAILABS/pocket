@@ -226,7 +226,7 @@ def sync() -> Dict[str, Any]:
     try:
         from pocket.team_workspace import snapshot as team_snap
 
-        ts = team_snap()
+        ts = team_snap(principal="pocket")
         set_surface(
             "team_workspace",
             status="ready" if ts.get("count") else "idle",

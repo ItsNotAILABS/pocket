@@ -166,6 +166,8 @@ FOUNDER_ONLY_PATH_PREFIXES = (
     "/v1/twin/mint",
     "/v1/agent-mail/send",
     "/v1/eyes/touch",
+    "/v1/team",
+    "/v1/teams",
 )
 
 

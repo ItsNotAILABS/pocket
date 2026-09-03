@@ -222,7 +222,16 @@ def _resolve(name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _queue_job(mode: str, prompt: str, *, session_id: str = "", name: str = "") -> Dict[str, Any]:
+def _queue_job(
+    mode: str,
+    prompt: str,
+    *,
+    session_id: str = "",
+    name: str = "",
+    team_id: str = "",
+    cwd: str = "",
+    owner: str = "",
+) -> Dict[str, Any]:
     from pocket.jobs import create_job
     from pocket.worker import process_one
 
@@ -231,6 +240,9 @@ def _queue_job(mode: str, prompt: str, *, session_id: str = "", name: str = "") 
         name=(name or f"invoke:{mode}")[:40],
         mode=mode if mode else "plan",
         session_id=session_id or "",
+        cwd=cwd or "",
+        owner=owner or "",
+        team_id=team_id or "",
     )
     try:
         process_one()
@@ -289,15 +301,25 @@ def invoke(
     if kind == "team" or aid in ("team-workspace", "team", "long-work"):
         from pocket.team_workspace import get as team_get, list_teams, open_team
 
+        try:
+            from pocket.team_workspace import owner_from_user
+
+            owner = owner_from_user({"user": str((params or {}).get("owner") or (params or {}).get("principal") or "pocket")})
+        except ValueError as e:
+            return {"ok": False, "error": str(e), **out}
         if (job or prompt or "").lower() in ("list", "status"):
-            r = list_teams()
+            r = list_teams(principal=owner)
             r.update(out)
             return r
         if (params or {}).get("id") and not prompt:
-            r = team_get(str(params.get("id")))
+            r = team_get(str(params.get("id")), principal=owner)
             r.update(out)
             return r
-        r = open_team(prompt or job or "long work", agents=list((params or {}).get("agents") or []) or None)
+        r = open_team(
+            prompt or job or "long work",
+            agents=list((params or {}).get("agents") or []) or None,
+            principal=owner,
+        )
         r.update(out)
         return r
     if kind == "endure" or aid in ("auro-endure", "endure", "auro_endure"):
@@ -455,7 +477,15 @@ def invoke(
             pulse(str(mode), status="working", task=(prompt or job)[:80], line=f"invoked {aid}")
         except Exception:
             pass
-        q = _queue_job(str(mode), prompt or job, session_id=session_id, name=str(rec.get("name") or aid))
+        q = _queue_job(
+            str(mode),
+            prompt or job,
+            session_id=session_id,
+            name=str(rec.get("name") or aid),
+            team_id=str((params or {}).get("team_id") or ""),
+            cwd=str((params or {}).get("cwd") or ""),
+            owner=str((params or {}).get("owner") or ""),
+        )
         q.update(out)
         return q
 

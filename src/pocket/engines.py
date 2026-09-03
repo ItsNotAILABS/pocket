@@ -71,10 +71,6 @@ def catalog() -> Dict[str, Any]:
     ready = [c["id"] for c in clis if c.get("available")] + [i["id"] for i in internals if i.get("available")]
     desk_order = ("codex", "grok", "claude", "gemini", "qwen", "opencode", "copilot", "spark")
     desk = [x for x in desk_order if x in ready]
-    if "codex" not in desk:
-        desk = ["codex"] + desk
-    if "grok" not in desk:
-        desk = desk[:1] + ["grok"] + desk[1:]
     return {
         "ok": True,
         "product": "POCKET engines",
@@ -83,7 +79,7 @@ def catalog() -> Dict[str, Any]:
         "surfaces": surfaces,
         "ready": ready,
         "desk": desk,
-        "first_class": ["codex", "grok", "claude"],
+        "first_class": [x for x in ("codex", "grok", "claude") if x in ready],
         "phone_fast": [x for x in ready if x in ("auro", "ghost", "logic", "pattern", "heuristic", "world", "guppy")],
     }
 

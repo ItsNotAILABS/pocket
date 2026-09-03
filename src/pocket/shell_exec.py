@@ -61,7 +61,7 @@ def pick_cwd_for_goal(goal: str) -> Path:
         try:
             from pocket.team_workspace import cwd_for
 
-            p = Path(cwd_for())
+            p = Path(cwd_for(principal="pocket"))
             if p.is_dir():
                 return p
         except Exception:

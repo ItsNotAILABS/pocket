@@ -199,7 +199,7 @@ def _desk_agents() -> List[Dict[str, Any]]:
             desk_mode="auro-endure",
             engine="auro-endure",
             harness=True,
-            blurb="Auro14B: try variants, keep looping, write receipts — does not die after one shot",
+            blurb="Auro14B adapter: experiment variants and keep looping. Not learning until native stateful evaluation exists.",
             surfaces=["desk", "phone"],
             aliases=["endure", "auro_endure", "experiment-endure"],
         ),

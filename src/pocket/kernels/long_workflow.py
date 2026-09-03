@@ -149,15 +149,18 @@ def start(
     try:
         from pocket.team_workspace import bind_workflow, open_team
 
+        owner = "pocket"
         team = open_team(
             wf["goal"],
             agents=list(wf.get("extra_agents") or []) + ["codex", "grok"],
             label=wf["label"],
+            principal=owner,
         )
         if team.get("ok"):
             wf["team_id"] = team.get("id") or ""
             wf["cwd"] = team.get("cwd") or ""
-            bind_workflow(str(wf["team_id"]), wid)
+            wf["team_owner"] = owner
+            bind_workflow(str(wf["team_id"]), wid, principal=owner)
     except Exception as e:
         wf["team_error"] = str(e)[:160]
     if keep:
@@ -240,13 +243,25 @@ def tick(wid: str) -> Dict[str, Any]:
     blob = _ctx_blob(wf)
     prompt = f"{wf.get('goal')}\n\n--- long context ---\n{blob}"
     t0 = time.perf_counter()
-    loop = run_loop(prompt, parallel=True)
+    team_params = {
+        "team_id": str(wf.get("team_id") or ""),
+        "cwd": str(wf.get("cwd") or ""),
+        "owner": str(wf.get("team_owner") or "pocket"),
+    }
+    loop = run_loop(prompt, parallel=True, params=team_params)
     extras: List[Dict[str, Any]] = []
     try:
         from pocket.agent_invoke import invoke
 
         for name in wf.get("extra_agents") or []:
-            extras.append(invoke(name, prompt=prompt[:1500], sync=False))
+            extras.append(
+                invoke(
+                    name,
+                    prompt=prompt[:1500],
+                    sync=False,
+                    params=team_params,
+                )
+            )
     except Exception as e:
         extras.append({"ok": False, "error": str(e)})
 
@@ -258,8 +273,13 @@ def tick(wid: str) -> Dict[str, Any]:
         try:
             from pocket.team_workspace import note as team_note, receipt as team_receipt
 
-            team_note(tid, f"tick {n} {ms}ms extras={len(extras)}", agent="workflow")
-            team_receipt(tid, {"tick": n, "ms": ms, "workflow": wid, "extras": len(extras)})
+            owner = str(wf.get("team_owner") or "pocket")
+            team_note(tid, f"tick {n} {ms}ms extras={len(extras)} cwd={wf.get('cwd')}", agent="workflow", principal=owner)
+            team_receipt(
+                tid,
+                {"tick": n, "ms": ms, "workflow": wid, "extras": len(extras), "cwd": wf.get("cwd"), "team_id": tid},
+                principal=owner,
+            )
         except Exception:
             pass
     for r in loop.get("results") or []:
