@@ -682,6 +682,8 @@ def _run_leaf_harness(
         cwd=cwd or "",
         session_id=session_id or "",
         message_id="",
+        team_id=str(leaf.get("team_id") or ""),
+        owner=str(leaf.get("owner") or ""),
     )
     job["rah_run_id"] = run_id
     job["rah_leaf_id"] = lid

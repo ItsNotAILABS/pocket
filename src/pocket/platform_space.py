@@ -257,7 +257,12 @@ def ensure_job_isolation(job: Dict[str, Any], *, founder: bool) -> Dict[str, Any
     if founder:
         job["host_power"] = True
         job["edition"] = "founder"
-        # Still reject if someone stuffed a market owner into founder session wrongly
+        try:
+            from pocket.tenant_jail import attach_team_to_job
+
+            attach_team_to_job(job)
+        except Exception:
+            pass
         return job
     if not owner or owner == "anonymous":
         job["host_power"] = False

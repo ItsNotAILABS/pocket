@@ -110,6 +110,7 @@ def start(
     label: str = "",
     host_bound: bool = True,
     auto_arm: bool = True,
+    principal: str = "pocket",
 ) -> Dict[str, Any]:
     """Begin a long workflow. host_bound=True survives chat (default)."""
     wid = "wf-" + uuid.uuid4().hex[:12]
@@ -149,7 +150,7 @@ def start(
     try:
         from pocket.team_workspace import bind_workflow, open_team
 
-        owner = "pocket"
+        owner = (principal or "pocket").strip().lower() or "pocket"
         team = open_team(
             wf["goal"],
             agents=list(wf.get("extra_agents") or []) + ["codex", "grok"],
@@ -392,6 +393,9 @@ def get(wid: str) -> Dict[str, Any]:
         "stop_reason": wf.get("stop_reason"),
         "created_at": wf.get("created_at"),
         "updated_at": wf.get("updated_at"),
+        "team_id": wf.get("team_id") or "",
+        "cwd": wf.get("cwd") or "",
+        "team_owner": wf.get("team_owner") or "",
         "poll": f"/v1/workflows/{wf['id']}",
     }
 

@@ -21,7 +21,7 @@ Sign in without the Edge password box:
 
 **Invention claims (Alfredo Medina, ItsNotAI Labs):** [001](docs/research/INVENTION_CLAIMS_2026.md) (31 Aug 2026) · [002](docs/research/INVENTION_CLAIMS_2026.002.md) (2 Sep 2026, claims 14–28) · [trademark memo](docs/research/TRADEMARK_AND_PATENT_MEMO_2026.md). Live: `GET /v1/claims` · `GET /v1/marks` · `/claims`. PhoneAI Kernel™ is a phone OS seat on this PC — not a receptionist. File marks: PHONEAI KERNEL, POCKET HOST, VLAPTOP, SCREEN-KERNEL. Do not brand PHONE.AI, FACE ID, ANTIGRAVITY, or WEBMCP.
 
-**3.16.2 — Team jail + honest Endure:** Team routes are founder-only. Paths canonicalize under `~/.pocket/tenants/<principal>/teams/<safe-id>/`. Market seats get 403. Jobs carry `team_id`+cwd; MCP `team_*` is a real dispatcher. Auro Endure is not learning until native stateful evaluation exists. Copilot stays closed unless the operator says `open copilot` (3.15.2).
+**3.16.3 — Helpers + workers:** Tenant jail helpers bind every job cwd. Team worker ticks seats under the tenant root. Endure worker queues cycles with `learning: false`. MCP `mcp_dispatch` owns team/endure tools (not nested in screen). Boot arms both workers. Copilot still stays closed unless `open copilot` (3.15.2).
 
 The substantive Pocket **3.8** expansion reached `main` on **31 August 2026**. It introduced the PhoneAI kernel seat, first-class Portal (live PC stream + touch-to-mouse), Antigravity as a separate HWND desktop-app surface, twin mint on the operator machine, and WebMCP work functions (studios as agent tools — not extra screens). Live host is **3.12+** (immersive phone glass, Focus as a mobile window, vault encrypt-then-MAC, RAH).
 

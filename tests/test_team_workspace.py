@@ -72,11 +72,15 @@ def test_market_cannot_open_team_routes():
 
 def test_mcp_team_open_is_not_nested_in_screen():
     from pocket import mcp_bundle
+    from pocket.mcp_dispatch import handles
 
     src = inspect.getsource(mcp_bundle._invoke_pocket)
-    team_pos = src.find('if t in ("team_open"')
+    gate_pos = src.find("gate_handles")
     screen_pos = src.find('if t in ("screen_embody"')
-    assert 0 <= team_pos < screen_pos
+    assert 0 <= gate_pos < screen_pos
+    assert handles("team_open")
+    assert handles("endure_run")
+    assert not handles("screen_embody")
 
 
 def test_mcp_team_open_runs(tmp_path, monkeypatch):

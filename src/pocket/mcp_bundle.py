@@ -35,7 +35,8 @@ INTERNAL_MCPS: List[Dict[str, Any]] = [
             "vcomp_open", "vcomp_sense", "vcomp_act", "vcomp_shell",
             "eyes_see", "eyes_touch", "eyes_catalog",
             "screen_embody", "screen_see", "screen_touch", "screen_type", "screen_click", "screen_cursor",
-            "team_open", "team_list", "team_note", "team_invite",
+            "team_open", "team_list", "team_note", "team_invite", "team_tick", "team_bind", "team_status",
+            "endure_run", "endure_status", "endure_enqueue",
             "runtime_status", "runtime_ensure", "runtime_install",
             "work_start", "work_tick", "work_package", "work_handoff", "work_status",
             "fusion_voice", "fusion_schema", "aria_turn",
@@ -909,28 +910,10 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
             ny=float(params.get("ny") or 0.5),
             text=str(params.get("text") or ""),
         )
-    if t in ("team_open", "team_list", "team_note", "team_invite", "team_workspace"):
-        from pocket.team_workspace import get as team_get, invite as team_invite, list_teams, note as team_note, open_team, owner_from_user, snapshot as team_snap
+    from pocket.mcp_dispatch import dispatch as gate_dispatch, handles as gate_handles
 
-        try:
-            owner = owner_from_user({"user": str(params.get("owner") or params.get("principal") or "pocket")})
-        except ValueError as e:
-            return {"ok": False, "error": str(e)}
-        if t == "team_list":
-            return list_teams(principal=owner)
-        if t == "team_workspace":
-            return team_snap(principal=owner) if not params.get("id") else team_get(str(params.get("id")), principal=owner)
-        if t == "team_invite":
-            return team_invite(str(params.get("id") or params.get("team") or ""), str(params.get("agent") or ""), principal=owner)
-        if t == "team_note":
-            return team_note(str(params.get("id") or ""), str(params.get("text") or ""), agent=str(params.get("agent") or "mcp"), principal=owner)
-        return open_team(
-            str(params.get("goal") or params.get("prompt") or ""),
-            team_id=str(params.get("id") or ""),
-            agents=list(params.get("agents") or []) or None,
-            label=str(params.get("label") or ""),
-            principal=owner,
-        )
+    if gate_handles(t):
+        return gate_dispatch(t, params)
     if t in ("screen_embody", "screen_see", "screen_touch", "screen_type", "screen_click", "screen_cursor", "screen_body"):
         from pocket.screen_body import act as body_act, inhabit
 

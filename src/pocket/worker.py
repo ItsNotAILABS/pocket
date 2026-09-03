@@ -35,6 +35,12 @@ def _run_claimed(job: dict) -> None:
     except Exception:
         pass
     try:
+        from pocket.tenant_jail import attach_team_to_job
+
+        job = attach_team_to_job(dict(job))
+    except Exception:
+        pass
+    try:
         result, error, engine = run_job(job)
         try:
             from pocket.reply_format import polish_agent_output

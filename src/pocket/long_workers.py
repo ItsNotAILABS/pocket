@@ -111,6 +111,20 @@ def start_always_on_pulse(*, interval_sec: int = 120) -> Dict[str, Any]:
     return {"ok": True, "worker": key, "interval_sec": interval_sec}
 
 
+def start_team_worker(*, principal: str = "pocket") -> Dict[str, Any]:
+    from pocket.team_worker import ensure_running
+
+    return ensure_running(principal=principal)
+
+
+def start_endure_worker() -> Dict[str, Any]:
+    from pocket.endure_worker import ensure_running
+
+    r = ensure_running()
+    r["learning"] = False
+    return r
+
+
 def start_daily_research(topic: str = "AI agent desktop") -> Dict[str, Any]:
     """Schedules research via autonomy + marks long worker."""
     from pocket.autonomy import create_schedule, ensure_runner

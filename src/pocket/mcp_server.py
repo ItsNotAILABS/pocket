@@ -52,6 +52,13 @@ def _tools_list() -> list:
                             "server": {"type": "string"},
                             "tool": {"type": "string"},
                             "params": {"type": "object"},
+                            "principal": {"type": "string"},
+                            "owner": {"type": "string"},
+                            "team_id": {"type": "string"},
+                            "id": {"type": "string"},
+                            "agent": {"type": "string"},
+                            "experiments": {"type": "integer"},
+                            "cycles": {"type": "integer"},
                         },
                     },
                 }

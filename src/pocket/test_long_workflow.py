@@ -7,6 +7,8 @@ def test_start_tick_stop_persists():
     r = lw.start("hold a long context about POCKET desk", interval_sec=99999, max_hours=1, keep=False, auto_arm=False)
     assert r["ok"] and r["id"].startswith("wf-")
     assert r["host_bound"] is True
+    assert r.get("team_id")
+    assert r.get("cwd")
     assert r["max_hours"] >= 1
     wid = r["id"]
     t = lw.tick(wid)

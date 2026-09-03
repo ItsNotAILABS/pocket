@@ -738,8 +738,18 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         from pocket.repos import run_repos_job
 
         return run_repos_job(prompt)
+    if mode in ("team", "team-workspace"):
+        from pocket.team_workspace import snapshot as team_snap
+
+        owner = str(job.get("owner") or job.get("team_owner") or "pocket")
+        r = team_snap(principal=owner)
+        return (
+            str(r.get("note") or json.dumps({k: r.get(k) for k in ("ok", "count", "owner", "root")}, default=str)),
+            "" if r.get("ok") else str(r.get("error") or "team"),
+            "team",
+        )
     if mode in ("auro-endure", "endure", "auro_endure"):
-        from pocket.auro_endure import run as endure_run
+        from pocket.endure_worker import run as endure_run
 
         r = endure_run(prompt)
         return str(r.get("summary") or r.get("error") or ""), "" if r.get("ok") else str(r.get("error") or "endure"), "auro-endure"

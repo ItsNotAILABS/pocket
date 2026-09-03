@@ -514,6 +514,8 @@ def run_headless(
     extra: str = "",
     client_device: Optional[dict] = None,
     api_key_id: str = "",
+    team_id: str = "",
+    owner: str = "",
 ) -> Dict[str, Any]:
     """Run a headless agent. sync=True waits for result (API product default)."""
     from pocket.jobs import create_job, get as get_job
@@ -557,6 +559,8 @@ def run_headless(
         session_id="",
         message_id="",
         client_device=client_device,
+        team_id=team_id,
+        owner=owner,
     )
     job["agent_id"] = aid
     job["api_key_id"] = api_key_id or ""

@@ -42,6 +42,7 @@ VALID_MODES = frozenset({
     "assist", "assistant", "digital", "life", "day", "personal",
     "python", "python_wsl",
     "auro-endure", "endure", "auro_endure",
+    "team", "team-workspace",
 })
 
 
@@ -112,6 +113,7 @@ def create_job(
         "message_id": message_id or "",
         "owner": (owner or "").strip().lower() or "",
         "team_id": (team_id or "").strip().lower() or "",
+        "jailed": False,
         "client_device": client_device or None,
         "engine_thread_id": engine_thread_id,
         "engine_thread_engine": engine_thread_engine,
@@ -126,6 +128,12 @@ def create_job(
     }
     if not job["prompt"]:
         raise ValueError("prompt required")
+    try:
+        from pocket.tenant_jail import attach_team_to_job
+
+        attach_team_to_job(job)
+    except Exception:
+        pass
     save(job)
     _refresh_inbox_md()
     return job

@@ -14,55 +14,18 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from pocket.tenant_jail import (
+    jail as _jail,
+    owner_from_user,
+    safe_principal as _principal,
+    safe_team_id as _safe_id,
+    team_dir as _dir,
+    team_root as tenant_root,
+)
+
 SCHEMA = "pocket.team.workspace.v1"
 PROTOCOL = "POCKET-TEAM-WORKSPACE/1.0"
-SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
-SAFE_PRINCIPAL = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 DEFAULT_AGENTS = ("codex", "grok", "coder")
-
-
-def _principal(raw: str) -> str:
-    p = (raw or "").strip().lower()
-    if not p or not SAFE_PRINCIPAL.match(p) or ".." in p or "/" in p or "\\" in p:
-        raise ValueError("invalid principal")
-    return p
-
-
-def owner_from_user(user: Optional[Dict[str, Any]] = None) -> str:
-    """Filesystem-safe tenant id bound to an authenticated principal."""
-    raw = ""
-    if user:
-        raw = str(user.get("user") or "")
-    s = re.sub(r"[^a-z0-9._-]+", "-", (raw or "").strip().lower()).strip("-.")[:64]
-    if s in ("", "anonymous", "none", "market"):
-        raise ValueError("unauthenticated principal")
-    if not SAFE_PRINCIPAL.match(s) or ".." in s:
-        raise ValueError("invalid principal")
-    return s
-
-
-def tenant_root(principal: str) -> Path:
-    who = _principal(principal)
-    return (Path.home() / ".pocket" / "tenants" / who / "teams").resolve()
-
-
-def _safe_id(raw: str) -> str:
-    s = (raw or "").strip().lower()
-    if not SAFE_ID.match(s) or ".." in s or "/" in s or "\\" in s:
-        raise ValueError("invalid team id")
-    return s
-
-
-def _jail(root: Path, child: Path) -> Path:
-    r = root.resolve()
-    c = child.resolve()
-    c.relative_to(r)
-    return c
-
-
-def _dir(tid: str, principal: str) -> Path:
-    root = tenant_root(principal)
-    return _jail(root, root / _safe_id(tid))
 
 
 def _meta(tid: str, principal: str) -> Path:
@@ -318,9 +281,13 @@ def snapshot(*, principal: str = "") -> Dict[str, Any]:
         "founder_only": True,
         "http": [
             "GET /v1/team/workspace",
+            "GET /v1/team/workers",
             "POST /v1/team/workspace",
             "POST /v1/team/invite",
             "POST /v1/team/note",
+            "POST /v1/team/tick",
+            "GET /v1/endure",
+            "POST /v1/endure",
         ],
         "note": "Founder-only. Tenant-jailed. Long workflows pass cwd+team_id into jobs.",
     }

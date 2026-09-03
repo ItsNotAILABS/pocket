@@ -219,6 +219,14 @@ def ensure_embedded_worker() -> None:
         except Exception as e:
             print(f"[POCKET] long workflows skipped: {e}", flush=True)
         try:
+            from pocket.endure_worker import ensure_running as ensure_endure
+            from pocket.team_worker import ensure_running as ensure_teams
+
+            print(f"[POCKET] team worker {ensure_teams().get('alive')}", flush=True)
+            print(f"[POCKET] endure worker {ensure_endure().get('alive')} learning=false", flush=True)
+        except Exception as e:
+            print(f"[POCKET] team/endure workers skipped: {e}", flush=True)
+        try:
             from pocket.damian_fleet import ensure_running as ensure_damians
 
             # Internal Damian keepers (up to 100) — user-invisible background
@@ -2995,7 +3003,7 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.screen_body import snapshot as body_snap
 
             return self._json(200, body_snap())
-        if path in ("/v1/team/workspace", "/v1/team", "/v1/teams"):
+        if path in ("/v1/team/workspace", "/v1/team", "/v1/teams", "/v1/team/workers", "/v1/team/worker"):
             from pocket.team_workspace import get as team_get, list_teams, owner_from_user, snapshot as team_snap
 
             u = rbac_principal(self.headers)
@@ -3007,9 +3015,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(403, {"ok": False, "error": str(e)})
             q = parse_qs(urlparse(self.path).query)
             tid = str((q.get("id") or [""])[0])
+            if path in ("/v1/team/workers", "/v1/team/worker"):
+                from pocket.team_worker import status as tw_status
+
+                return self._json(200, tw_status())
             if tid:
                 return self._json(200, team_get(tid, principal=owner))
             return self._json(200, team_snap(principal=owner) if path.endswith("workspace") else list_teams(principal=owner))
+        if path in ("/v1/endure", "/v1/endure/status"):
+            from pocket.endure_worker import status as endure_status
+            from pocket.rbac import is_host_power
+
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            return self._json(200, endure_status())
         if path in ("/v1/mcp", "/v1/mcp/catalog", "/v1/tools/mcp"):
             from pocket.mcp_bundle import catalog
 
@@ -6436,6 +6456,7 @@ class Handler(BaseHTTPRequestHandler):
                 message_id=msg["id"],
                 client_device=dev,
                 owner=sess.get("owner") or p.get("user") or "",
+                team_id=body.get("team_id") or sess.get("team_id") or "",
             )
             job = ensure_job_isolation(job, founder=is_founder(p))
             from pocket.jobs import save as save_job
@@ -6482,6 +6503,7 @@ class Handler(BaseHTTPRequestHandler):
                     cwd=body.get("cwd") or "",
                     workspace=body.get("workspace") or "",
                     owner=p.get("user") or "",
+                    team_id=body.get("team_id") or "",
                 )
             except ValueError as e:
                 return self._json(400, {"error": str(e)})
@@ -7202,13 +7224,23 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "query": q, "hits": find_symbols(q)})
 
         if path == "/v1/long_workers/start":
-            from pocket.long_workers import start_folder_watch, start_always_on_pulse, start_daily_research
+            from pocket.long_workers import (
+                start_always_on_pulse,
+                start_daily_research,
+                start_endure_worker,
+                start_folder_watch,
+                start_team_worker,
+            )
 
             kind = (body.get("kind") or "always_on").lower()
             if kind == "folder_watch":
                 return self._json(200, start_folder_watch())
             if kind == "daily_research":
                 return self._json(200, start_daily_research(body.get("topic") or "AI agents"))
+            if kind in ("team", "team_worker"):
+                return self._json(200, start_team_worker(principal=str(body.get("principal") or "pocket")))
+            if kind in ("endure", "endure_worker"):
+                return self._json(200, start_endure_worker())
             return self._json(200, start_always_on_pulse(interval_sec=int(body.get("interval") or 120)))
 
         if path == "/v1/purchase/scaffold":
@@ -7982,6 +8014,32 @@ class Handler(BaseHTTPRequestHandler):
                     principal=owner,
                 ),
             )
+        if path in ("/v1/team/tick", "/v1/team/workers/start"):
+            from pocket.team_worker import ensure_running as tw_ensure, tick as tw_tick
+            from pocket.team_workspace import owner_from_user
+
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            try:
+                owner = owner_from_user(u)
+            except ValueError as e:
+                return self._json(403, {"ok": False, "error": str(e)})
+            if path.endswith("start"):
+                return self._json(200, tw_ensure(principal=owner))
+            return self._json(200, tw_tick(principal=owner))
+        if path in ("/v1/endure", "/v1/endure/run", "/v1/endure/enqueue"):
+            from pocket.endure_worker import enqueue as endure_enqueue, run as endure_run
+
+            u = rbac_principal(self.headers)
+            if not is_host_power(u):
+                return self._json(403, {"ok": False, "error": "founder only", "edition": u.get("edition") or "market"})
+            goal = str((body or {}).get("goal") or (body or {}).get("prompt") or (body or {}).get("text") or "")
+            exp = int((body or {}).get("experiments") or 2)
+            cyc = int((body or {}).get("cycles") or 1)
+            if path.endswith("enqueue"):
+                return self._json(200, endure_enqueue(goal, experiments=exp, cycles=cyc))
+            return self._json(200, endure_run(goal, experiments=exp, cycles=cyc))
         if path in ("/v1/screen/embody", "/v1/screen/inhabit", "/v1/vlaptop/embody"):
             from pocket.host_control import allow as host_ok
             from pocket.screen_body import inhabit

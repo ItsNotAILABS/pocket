@@ -9,6 +9,8 @@ from pocket.kernels.cognitive_loop import STAGES, run_loop
 from pocket.kernels.long_workflow import ensure_running as ensure_workflows
 from pocket.kernels.long_workflow import list_runs, start as start_workflow
 from pocket.kernels.neuro_silicon import calibrate, driver_status
+from pocket.team_worker import ensure_running as ensure_team_worker
+from pocket.endure_worker import ensure_running as ensure_endure_worker
 from pocket.kernels.probe import probe_host
 from pocket.kernels.slab import SlabCache, slab_status
 
@@ -17,6 +19,8 @@ __all__ = [
     "SlabCache",
     "calibrate",
     "driver_status",
+    "ensure_endure_worker",
+    "ensure_team_worker",
     "ensure_workflows",
     "list_runs",
     "probe_host",

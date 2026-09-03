@@ -168,6 +168,7 @@ FOUNDER_ONLY_PATH_PREFIXES = (
     "/v1/eyes/touch",
     "/v1/team",
     "/v1/teams",
+    "/v1/endure",
 )
 
 
