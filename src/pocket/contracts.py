@@ -48,6 +48,7 @@ CATALOG: Dict[str, Any] = {
         "pocket.origin.v1": "Exact origin set. No wildcards.",
         "pocket.runtime.singleton.v1": "One attested watchdog lock.",
         "pocket.screen.family.v1": "Umbrella for kernel, stream, body, pair, origin, runtime, arch.",
+        "pocket.team.workspace.v1": "Persistent on-disk room for a team of agents doing long work.",
     },
     "agent_tools": [
         "agent_arch",

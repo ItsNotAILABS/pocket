@@ -143,7 +143,23 @@ def start(
         "stop_reason": "",
         "created_at": now,
         "updated_at": now,
+        "team_id": "",
+        "cwd": "",
     }
+    try:
+        from pocket.team_workspace import bind_workflow, open_team
+
+        team = open_team(
+            wf["goal"],
+            agents=list(wf.get("extra_agents") or []) + ["codex", "grok"],
+            label=wf["label"],
+        )
+        if team.get("ok"):
+            wf["team_id"] = team.get("id") or ""
+            wf["cwd"] = team.get("cwd") or ""
+            bind_workflow(str(wf["team_id"]), wid)
+    except Exception as e:
+        wf["team_error"] = str(e)[:160]
     if keep:
         try:
             from pocket.keep_agents import start as keep_start
@@ -237,6 +253,15 @@ def tick(wid: str) -> Dict[str, Any]:
     ms = round((time.perf_counter() - t0) * 1000, 3)
     n = int(wf.get("tick_count") or 0) + 1
     note_parts = []
+    tid = str(wf.get("team_id") or "")
+    if tid:
+        try:
+            from pocket.team_workspace import note as team_note, receipt as team_receipt
+
+            team_note(tid, f"tick {n} {ms}ms extras={len(extras)}", agent="workflow")
+            team_receipt(tid, {"tick": n, "ms": ms, "workflow": wid, "extras": len(extras)})
+        except Exception:
+            pass
     for r in loop.get("results") or []:
         st = r.get("stage")
         if st == "plan":

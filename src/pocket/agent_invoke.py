@@ -137,6 +137,7 @@ def _entries() -> List[Dict[str, Any]]:
         ("mini-brain", "Host thoughts", "organism", True),
         ("auro-endure", "Auro experiment-and-endure", "endure", True),
         ("codex", "First-class Codex CLI", "job", False),
+        ("team-workspace", "Persistent long-work team folder", "team", True),
     ):
         add(
             {
@@ -285,6 +286,20 @@ def invoke(
     out: Dict[str, Any] = {"agent": aid, "name": rec.get("name"), "kind": rec.get("kind"), "resolved": rec["id"]}
 
     # --- runtime specials ---
+    if kind == "team" or aid in ("team-workspace", "team", "long-work"):
+        from pocket.team_workspace import get as team_get, list_teams, open_team
+
+        if (job or prompt or "").lower() in ("list", "status"):
+            r = list_teams()
+            r.update(out)
+            return r
+        if (params or {}).get("id") and not prompt:
+            r = team_get(str(params.get("id")))
+            r.update(out)
+            return r
+        r = open_team(prompt or job or "long work", agents=list((params or {}).get("agents") or []) or None)
+        r.update(out)
+        return r
     if kind == "endure" or aid in ("auro-endure", "endure", "auro_endure"):
         from pocket.auro_endure import run as endure_run
 

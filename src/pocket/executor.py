@@ -225,6 +225,17 @@ def resolve_cwd(job: Dict) -> str:
     host_power = bool(job.get("host_power"))
     edition = (job.get("edition") or ("founder" if host_power else "market")).lower()
     ws = (job.get("workspace") or "").strip()
+    team_id = (job.get("team_id") or "").strip()
+    if team_id:
+        try:
+            from pocket.team_workspace import get as team_get
+
+            tw = team_get(team_id)
+            cwd_t = tw.get("cwd") or ""
+            if tw.get("ok") and cwd_t and Path(cwd_t).is_dir():
+                return str(Path(cwd_t).resolve())
+        except Exception:
+            pass
 
     # Market / non-founder: jail to their space
     if edition == "market" or (owner and not host_power):

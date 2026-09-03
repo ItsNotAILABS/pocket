@@ -48,6 +48,7 @@ SURFACES = (
     "runtime",
     "agents",
     "agent_arch",
+    "team_workspace",
 )
 
 LIVE = {"live", "running", "listening", "primary", "ready", "online", "ok"}
@@ -221,6 +222,18 @@ def sync() -> Dict[str, Any]:
         set_surface("long_workflow", status="running" if running else "idle", detail={"running": len(running), "listed": len(runs)})
     except Exception as e:
         set_surface("long_workflow", status="error", detail=str(e)[:120])
+
+    try:
+        from pocket.team_workspace import snapshot as team_snap
+
+        ts = team_snap()
+        set_surface(
+            "team_workspace",
+            status="ready" if ts.get("count") else "idle",
+            detail={"count": ts.get("count"), "protocol": ts.get("protocol")},
+        )
+    except Exception as e:
+        set_surface("team_workspace", status="error", detail=str(e)[:120])
 
     try:
         from pocket.live_desk import desk as live_desk

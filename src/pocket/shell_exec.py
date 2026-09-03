@@ -57,6 +57,15 @@ def pick_cwd_for_goal(goal: str) -> Path:
         cand = Path.home() / "OneDrive" / "pocket-os"
         if cand.is_dir():
             return cand
+    if any(w in low for w in ("long work", "team workspace", "agent team")):
+        try:
+            from pocket.team_workspace import cwd_for
+
+            p = Path(cwd_for())
+            if p.is_dir():
+                return p
+        except Exception:
+            pass
     return WS
 
 

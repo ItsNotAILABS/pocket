@@ -379,7 +379,8 @@ h1{font-size:28px;letter-spacing:-.04em;margin:10px 0 4px}
 </div>
 <div class="grid">
   <a class="card" href="/phoneai/app#chat"><b>Chat</b><span>Grok · Codex first-class</span></a>
-  <a class="card" href="/phoneai/work"><b>Code desk</b><span>Codex CLI on this PC</span></a>
+  <a class="card" href="/phoneai/work"><b>Code desk</b><span>Codex CLI already on this PC</span></a>
+  <a class="card" href="/v1/team/workspace"><b>Team workspace</b><span>Long work · shared disk</span></a>
   <a class="card" href="/phoneai/portal"><b>Screen</b><span>pocket.stream.v1 · embody</span></a>
   <a class="card" href="/agents"><b>Agents</b><span>Every first-class roster</span></a>
   <a class="card" href="/phoneai/app#settings"><b>Pair</b><span>Code + Face ID, not owner</span></a>
