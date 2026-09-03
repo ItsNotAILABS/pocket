@@ -1,0 +1,66 @@
+{
+  "schema": "pocket.protocol_manifest.v1",
+  "family": "pocket.screen.family.v1",
+  "spec": "docs/POCKET_SCREEN_FAMILY_PROTOCOL.md",
+  "generated_at": "2026-09-02",
+  "repo": "ItsNotAILABS/pocket",
+  "clients": ["ItsNotAILABS/PhoneAI", "ItsNotAILABS/vlaptop", "ItsNotAILABS/pocket-agent"],
+  "protocols": [
+    {
+      "id": "SCREEN-KERNEL/1.1",
+      "slug": "screen-kernel",
+      "object": "pocket.screen.kernel.v1",
+      "verbs": ["see", "touch", "type_into", "click_name", "cursor", "embody"]
+    },
+    {
+      "id": "POCKET-STREAM/1.0",
+      "slug": "stream",
+      "object": "pocket.stream.v1",
+      "transport": "WS /v1/phoneai/portal/ws",
+      "frame": ["json-envelope", "jpeg-binary"]
+    },
+    {
+      "id": "POCKET-SCREEN-BODY/1.0",
+      "slug": "screen-body",
+      "object": "pocket.screen.body.v1"
+    },
+    {
+      "id": "POCKET-DEVICE-PAIR/1.0",
+      "slug": "device-pair",
+      "object": "pocket.device.pair.v1",
+      "steps": ["mint", "begin", "redeem"],
+      "principal": "device:<id>",
+      "role": "portal_device"
+    },
+    {
+      "id": "POCKET-ORIGIN/1.0",
+      "slug": "origin",
+      "object": "pocket.origin.v1",
+      "wildcards": false
+    },
+    {
+      "id": "POCKET-RUNTIME-SINGLETON/1.0",
+      "slug": "runtime",
+      "object": "pocket.runtime.singleton.v1",
+      "lock": "~/.pocket/runtime.lock"
+    },
+    {
+      "id": "POCKET-AGENT-ARCH/1.0",
+      "slug": "agent-arch",
+      "object": "pocket.agent.arch.v1",
+      "layers": ["identity", "seat", "route", "authority", "execute", "receipt"]
+    },
+    {
+      "id": "POCKET-SCREEN-MATRIX/1.0",
+      "slug": "screen-matrix",
+      "object": "pocket.screen.matrix.v1"
+    }
+  ],
+  "rules": [
+    "hostname-is-not-authority",
+    "code-alone-is-not-owner",
+    "exact-origin",
+    "one-watchdog",
+    "humans-and-agents-share-verbs"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itsnotailabs.dev/schemas/pocket-stream-v1.schema.json",
+  "title": "pocket.stream.v1 frame envelope",
+  "type": "object",
+  "required": ["kind", "schema"],
+  "properties": {
+    "kind": { "enum": ["hello", "frame", "cfg", "reauth"] },
+    "schema": { "const": "pocket.stream.v1" },
+    "ok": { "type": "boolean" },
+    "protocol": { "type": "string" },
+    "embody": { "type": "boolean" },
+    "ws": { "type": "boolean" },
+    "spatial": { "type": "boolean" },
+    "seq": { "type": ["integer", "null"] },
+    "geom": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "w": { "type": "number" },
+        "h": { "type": "number" },
+        "hwnd": { "type": "number" }
+      }
+    },
+    "matrix": {
+      "type": ["array", "null"],
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } }
+    },
+    "via": { "type": "string" },
+    "bytes": { "type": "integer" }
+  }
+}

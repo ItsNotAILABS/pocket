@@ -120,7 +120,17 @@ Canonical family objects include:
 pocket.family.v1
 pocket.context-snap.v1
 pocket.execution-receipt.v1
+pocket.screen.family.v1
+SCREEN-KERNEL/1.1
+pocket.stream.v1
+pocket.screen.body.v1
+pocket.device.pair.v1
+pocket.origin.v1
+pocket.runtime.singleton.v1
+pocket.agent.arch.v1
 ```
+
+Spec: [`docs/POCKET_SCREEN_FAMILY_PROTOCOL.md`](docs/POCKET_SCREEN_FAMILY_PROTOCOL.md) · live `GET /v1/protocols/screen-family`
 
 NEXUS extends the family with shared objects for tasks, plans, policy, budgets, jobs, leases, retries, health, telemetry, memory, artifacts, approvals and handoffs.
 

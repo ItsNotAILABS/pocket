@@ -195,6 +195,19 @@ MAJOR_PROTOCOLS: List[Dict[str, Any]] = [
 ]
 
 
+def _screen_family_entries() -> List[Dict[str, Any]]:
+    try:
+        from pocket.protocols.screen_family import catalog_entries
+
+        return catalog_entries()
+    except Exception:
+        return []
+
+
+if not any(p.get("slug") == "screen-family" for p in MAJOR_PROTOCOLS):
+    MAJOR_PROTOCOLS.extend(_screen_family_entries())
+
+
 def list_protocols() -> List[Dict[str, Any]]:
     return [dict(p) for p in MAJOR_PROTOCOLS]
 
@@ -328,6 +341,50 @@ def _health_one(p: Dict[str, Any]) -> Dict[str, Any]:
 
             r = domain_status()
             out["ok"] = bool(r.get("ok", True)) and bool(r.get("healthy", True))
+            out["probe"] = r
+        elif slug in (
+            "screen-kernel",
+            "stream",
+            "screen-body",
+            "device-pair",
+            "origin",
+            "runtime",
+            "agent-arch",
+            "screen-matrix",
+            "screen-family",
+        ):
+            from pocket.protocols.screen_family import status as fam
+
+            r = fam()
+            if slug == "screen-kernel":
+                from pocket.screen_kernel import snapshot as ks
+
+                r = ks()
+            elif slug == "screen-body":
+                from pocket.screen_body import occupant
+
+                r = occupant()
+            elif slug == "device-pair":
+                from pocket.device_pair import list_devices
+
+                r = list_devices()
+            elif slug == "origin":
+                from pocket.origin_policy import configured_hosts
+
+                r = {"ok": True, "hosts": sorted(configured_hosts())}
+            elif slug == "runtime":
+                from pocket.host_runtime import status as rst
+
+                r = rst()
+            elif slug == "agent-arch":
+                from pocket.agent_arch import snapshot as arch
+
+                r = arch()
+            elif slug == "screen-matrix":
+                from pocket.screen_math import identity
+
+                r = {"ok": True, "matrix": identity()}
+            out["ok"] = bool(r.get("ok", True))
             out["probe"] = r
         else:
             out["ok"] = True

@@ -28,6 +28,7 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 | Screen kernel | `GET /v1/screen/kernel` | SCREEN-KERNEL/1.1 |
 | Screen body | `POST /v1/screen/embody` · `GET /v1/screen/body` | Agents inhabit the live pointer |
 | Stream | `WS /v1/phoneai/portal/ws` | `pocket.stream.v1` JSON envelope + JPEG |
+| Screen family protocols | `GET /v1/protocols/screen-family` | Kernel, stream, body, pair, origin, runtime, arch |
 | Glasses HUD | `/phoneai/glasses` | Glance cards (no JPEG until Stream). Wake word PhoneAI. Camera → Coder. |
 | AirPods | `/phoneai/airpods` | Always listen waits for PhoneAI …. Dictation until send. |
 | Wear | `POST /v1/phoneai/wear` | Wake, glance, spatial left/right window, dictation, HUD heartbeat, camera |
@@ -36,7 +37,7 @@ Operator host `:8787`. Inventor: Alfredo Medina / ItsNotAI Labs.
 
 ## Agent eyes
 
-MCP tools: `eyes_see`, `eyes_touch`, `eyes_catalog`  
+MCP tools: `eyes_see`, `eyes_touch`, `eyes_catalog`, `screen_embody`, `screen_see`, `screen_touch`, `screen_type`, `screen_click`  
 WebMCP invoke: `eyes_see_portal`, `eyes_see_anti`, `eyes_touch`  
 HTTP: `GET /v1/eyes?which=portal` · `POST /v1/eyes/touch`
 

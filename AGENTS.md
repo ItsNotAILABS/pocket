@@ -229,6 +229,13 @@ MESIE_<SURFACE>_EVIDENCE.md
 | `POCKET-HANDOFF` | 1.0 | How agents leave work for other agents |
 | `POCKET-SECRET-REF` | 1.0 | Secrets are references, never source-controlled values |
 | `POCKET-RELEASE` | 1.0 | Release claims require evidence and receipt trail |
+| `SCREEN-KERNEL` | 1.1 | Shared see/touch/type/click for phone and agents |
+| `POCKET-STREAM` | 1.0 | WS envelope + JPEG (`pocket.stream.v1`) |
+| `POCKET-SCREEN-BODY` | 1.0 | Agent inhabits the live pointer |
+| `POCKET-DEVICE-PAIR` | 1.0 | Code + WebAuthn → `portal_device` |
+| `POCKET-ORIGIN` | 1.0 | Exact hosts only |
+| `POCKET-RUNTIME-SINGLETON` | 1.0 | One attested watchdog |
+| `POCKET-AGENT-ARCH` | 1.0 | Six-layer turn plane including screen lane |
 
 ## 10. Pocket-aware final response style
 

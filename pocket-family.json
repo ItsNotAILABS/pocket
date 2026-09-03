@@ -16,7 +16,13 @@
       "voice.reality.seal",
       "model.mesh.route",
       "model.cli.invoke",
-      "agent.constellation.route"
+      "agent.constellation.route",
+      "screen.kernel",
+      "screen.stream",
+      "screen.embody",
+      "device.pair",
+      "origin.exact",
+      "runtime.singleton"
     ]
   },
   "voice": {
@@ -42,7 +48,13 @@
     "context_snap": "pocket.context-snap.v1",
     "studio": "pocket.studio.v1",
     "voice_reality": "pocket.voice-reality-envelope.v1",
-    "voice_reality_receipt": "pocket.voice-reality-receipt.v1"
+    "voice_reality_receipt": "pocket.voice-reality-receipt.v1",
+    "screen_kernel": "pocket.screen.kernel.v1",
+    "stream": "pocket.stream.v1",
+    "screen_body": "pocket.screen.body.v1",
+    "device_pair": "pocket.device.pair.v1",
+    "origin": "pocket.origin.v1",
+    "runtime": "pocket.runtime.singleton.v1"
   },
   "control_runtimes": ["python", "go"],
   "rules": {

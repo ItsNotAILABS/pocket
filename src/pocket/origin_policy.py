@@ -8,7 +8,7 @@ Sibling subdomains (*.medinatechlabs.net, *.trycloudflare.com) are not trusted.
 from __future__ import annotations
 
 import os
-from typing import Iterable, Set
+from typing import Any, Dict, Iterable, Set
 from urllib.parse import urlparse
 
 
@@ -80,3 +80,14 @@ def origin_allowed(origin: str, host: str, *, extra: Iterable[str] = ()) -> bool
         if h:
             allowed.add(h)
     return oh in allowed
+
+
+def status() -> Dict[str, Any]:
+    return {
+        "ok": True,
+        "schema": "pocket.origin.v1",
+        "hosts": sorted(configured_hosts()),
+        "wildcards": False,
+        "rpId": "exact-request-host",
+        "env": ["POCKET_PUBLIC_URL", "POCKET_ALLOWED_ORIGINS"],
+    }

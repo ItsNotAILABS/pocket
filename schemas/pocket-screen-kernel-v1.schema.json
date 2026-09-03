@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itsnotailabs.dev/schemas/pocket-screen-kernel-v1.schema.json",
+  "title": "SCREEN-KERNEL/1.1 snapshot",
+  "type": "object",
+  "required": ["ok", "schema", "protocol"],
+  "properties": {
+    "ok": { "const": true },
+    "schema": { "const": "pocket.screen.kernel.v1" },
+    "protocol": { "type": "string", "pattern": "^SCREEN-KERNEL/" },
+    "stream": { "const": "pocket.stream.v1" },
+    "verbs": {
+      "type": "array",
+      "items": { "enum": ["see", "touch", "type_into", "click_name", "cursor", "embody"] }
+    },
+    "http": { "type": "array", "items": { "type": "string" } }
+  }
+}
