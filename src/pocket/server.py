@@ -1823,6 +1823,11 @@ class Handler(BaseHTTPRequestHandler):
                         "engine": {"worker_alive": _worker_started},
                     },
                 )
+        if path in ("/v1/auth/device/mint", "/v1/auth/pair/mint"):
+            from pocket.device_pair import mint as device_mint
+
+            r = device_mint(client_ip=self._client_ip())
+            return self._json(200 if r.get("ok") else 403, r)
         if path in ("/v1/auth/passkey", "/v1/auth/passkey/begin"):
             from pocket.auth import is_home_lan_client
             from pocket.passkey import begin_login, begin_register, can_register, snapshot as pk_snap
@@ -4182,6 +4187,31 @@ class Handler(BaseHTTPRequestHandler):
             extra = [
                 ("Set-Cookie", self._session_cookie(res["token"])),
                 ("Set-Cookie", portal_cookie(mint_portal_token(str(res.get("user") or "face")), secure=secure)),
+            ]
+            return self._json(200, res, extra_headers=extra)
+        if path in ("/v1/auth/device/mint", "/v1/auth/pair/mint"):
+            from pocket.device_pair import mint as device_mint
+
+            r = device_mint(client_ip=self._client_ip())
+            return self._json(200 if r.get("ok") else 403, r)
+        if path in ("/v1/auth/device/redeem", "/v1/auth/pair"):
+            from pocket.device_pair import redeem as device_redeem
+            from pocket.phoneai_portal import mint_portal_token, portal_cookie
+            from pocket.ratelimit import hit as rl_hit
+
+            ip = self._client_ip()
+            ok_rl, reason = rl_hit("login", ip, kind="login")
+            if not ok_rl:
+                return self._json(429, {"ok": False, "error": reason})
+            res = device_redeem(str((body or {}).get("code") or (body or {}).get("pair") or ""))
+            if not res.get("ok"):
+                return self._json(401, res)
+            host = (self.headers.get("Host") or "").lower()
+            xf = (self.headers.get("X-Forwarded-Proto") or "").lower()
+            secure = xf == "https" or "medinatechlabs.net" in host or "trycloudflare.com" in host
+            extra = [
+                ("Set-Cookie", self._session_cookie(res["token"])),
+                ("Set-Cookie", portal_cookie(mint_portal_token(str(res.get("user") or "pocket")), secure=secure)),
             ]
             return self._json(200, res, extra_headers=extra)
         if path in ("/v1/auth/passkey/login",):

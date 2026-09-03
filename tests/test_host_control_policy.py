@@ -102,6 +102,29 @@ def test_portal_html_has_face_id():
     assert 'id="faceBtn"' in html
 
 
+def test_empty_origin_ok_with_portal_cookie():
+    from pocket.phoneai_portal import mint_portal_token, origin_ok
+
+    tok = mint_portal_token("pocket")
+    assert origin_ok({"Cookie": "pocket_portal=" + tok, "CF-Connecting-IP": "8.8.8.8"}, ("8.8.8.8", 443)) is True
+    assert origin_ok({"CF-Connecting-IP": "8.8.8.8"}, ("8.8.8.8", 443)) is False
+
+
+def test_device_pair_roundtrip(tmp_path, monkeypatch):
+    from pocket import device_pair as dp
+
+    monkeypatch.setattr(dp, "ROOT", tmp_path)
+    monkeypatch.setattr(dp, "FILE", tmp_path / "code.json")
+    m = dp.mint(client_ip="127.0.0.1")
+    assert m["ok"] is True
+    assert len(m["code"]) == 6
+    bad = dp.mint(client_ip="8.8.8.8")
+    assert bad["ok"] is False
+    r = dp.redeem(m["code"])
+    assert r["ok"] is True
+    assert r["user"] == "pocket"
+
+
 def test_anonymous_legacy_portal_token_is_dead():
     from pocket.phoneai_portal import check_portal_token, mint_portal_token
 

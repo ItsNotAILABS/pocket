@@ -723,6 +723,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
 <body class="hud-off">
 <div class="pills">
   <button type="button" id="faceBtn">Face ID</button>
+  <button type="button" id="pairBtn">Pair</button>
   <button type="button" id="focusPill">Focus</button>
   <button type="button" id="hudbtn">HUD</button>
 </div>
@@ -1032,6 +1033,19 @@ async function faceGate(){
   return true;
 }
 document.getElementById('faceBtn').onclick=()=>{ faceGate().then(()=>{ applyNet(); openLive(); applyView(); }); };
+document.getElementById('pairBtn').onclick=async()=>{
+  const lan=/^(127\.0\.0\.1|localhost|192\.168\.|10\.)/.test(location.hostname);
+  if(lan){
+    const j=await fetch('/v1/auth/device/mint',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+    hint.textContent=j.code?('Pair code '+j.code+' — 10 min. Enter it on the tunnel.'):(j.error||'Could not mint');
+    return;
+  }
+  const code=prompt('Pair code from the PC (home Wi-Fi Portal → Pair)');
+  if(!code) return;
+  const j=await fetch('/v1/auth/device/redeem',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(r=>r.json()).catch(()=>({}));
+  if(j && j.ok){ hint.textContent='Paired — this phone can drive the PC off home Wi-Fi'; applyNet(); openLive(); applyView(); }
+  else hint.textContent=j.error||'Pair failed';
+};
 faceGate().then(()=>{ openLive(); applyNet(); }).catch(()=>{ openLive(); applyNet(); });
 if(navigator.connection){ navigator.connection.addEventListener('change', applyNet); }
 function loadWins(){

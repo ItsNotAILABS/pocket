@@ -76,6 +76,7 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/auth/passkey/register",
     "/v1/auth/passkey/allow",
     "/v1/auth/passkey",
+    "/v1/auth/device/redeem",
     "/v1/auth/clis",
     "/ecosystem",
     "/v1/ecosystem",
@@ -392,6 +393,7 @@ LOCAL_PUBLIC_PATHS = frozenset({
     "/v1/engines",
     "/api/engines",
     "/v1/clis",
+    "/v1/auth/device/mint",
 })
 
 # Back-compat name used by auth_summary / older callers
@@ -1191,6 +1193,14 @@ def is_authorized(headers: Mapping[str, str]) -> bool:
                 return True
         except Exception:
             pass
+
+    try:
+        from pocket.passkey import session_user
+
+        if session_user(headers):
+            return True
+    except Exception:
+        pass
 
     return False
 

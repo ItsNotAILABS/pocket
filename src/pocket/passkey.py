@@ -119,6 +119,9 @@ def _cbor(buf: bytes, i: int = 0) -> Tuple[Any, int]:
 
 def rp_id_from_host(host: str) -> str:
     h = (host or "").split(":")[0].strip().lower()
+    # Face ID must work on pocket.medinatechlabs.net when you leave home Wi-Fi.
+    if h.endswith(".medinatechlabs.net") or h == "medinatechlabs.net":
+        return "medinatechlabs.net"
     return h or "localhost"
 
 
