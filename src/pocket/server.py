@@ -8855,9 +8855,10 @@ def main(argv: Optional[list] = None) -> None:
         runtime_worker_run()
         return
     if args.cmd == "runtime":
-        from pocket.runtime import main as runtime_main
+        # One hidden watchdog: heartbeat + at most one serve child.
+        from pocket.runtime_worker import run as runtime_worker_run
 
-        runtime_main(["--once"] if getattr(args, "once", False) else [])
+        runtime_worker_run()
         return
     if args.cmd == "ensure":
         from pocket.host_runtime import ensure as runtime_ensure

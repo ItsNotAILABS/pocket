@@ -119,18 +119,72 @@ def _python() -> str:
     return sys.executable
 
 
+def _listen_pids() -> list:
+    pids = []
+    if sys.platform != "win32":
+        return pids
+    try:
+        out = subprocess.check_output(
+            ["netstat", "-ano"],
+            text=True,
+            errors="replace",
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        needle = f":{PORT}"
+        seen = set()
+        for line in out.splitlines():
+            if "LISTENING" not in line.upper():
+                continue
+            if needle not in line:
+                continue
+            parts = line.split()
+            try:
+                pid = int(parts[-1])
+            except (ValueError, IndexError):
+                continue
+            if pid > 0 and pid not in seen:
+                seen.add(pid)
+                pids.append(pid)
+    except Exception:
+        pass
+    return pids
+
+
+def collapse_extras() -> None:
+    """One healthy listener. Drop newer duplicate serves (they cause Portal lag)."""
+    pids = _listen_pids()
+    if len(pids) <= 1:
+        return
+    keep = None
+    if _serve_proc and _serve_proc.poll() is None and _serve_proc.pid in pids:
+        keep = _serve_proc.pid
+    else:
+        keep = min(pids)
+    me = os.getpid()
+    for pid in pids:
+        if pid in (keep, me):
+            continue
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/PID", str(pid)],
+                capture_output=True,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except Exception:
+            pass
+
+
 def start_serve() -> None:
     global _serve_proc
     if _serve_proc and _serve_proc.poll() is None:
+        if http_ok():
+            collapse_extras()
         return
-    # If something is listening but not answering HTTP, kill it first
+    if port_open() and http_ok():
+        collapse_extras()
+        return
     if port_open() and not http_ok():
         print("[POCKET runtime] hung listener — killing before start", flush=True)
-        _kill_port_holders()
-        time.sleep(1.0)
-    if port_open() and http_ok():
-        return
-    if port_open() and not http_ok():
         _kill_port_holders()
         time.sleep(1.0)
     env = os.environ.copy()
@@ -190,7 +244,9 @@ def heartbeat_loop() -> None:
                     time.sleep(0.8)
                 start_serve()
                 fail = 0
-            _write_heart({"port_open": listening, "http_ok": ok})
+            elif ok:
+                collapse_extras()
+            _write_heart({"port_open": listening, "http_ok": ok, "listeners": len(_listen_pids())})
         except Exception as e:
             try:
                 _write_heart({"ok": False, "error": str(e)[:200]})

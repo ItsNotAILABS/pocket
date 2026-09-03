@@ -318,30 +318,48 @@ def ensure(which: str = "all") -> Dict[str, Any]:
     return snap
 
 
+def _pythonw() -> str:
+    p = Path(PY)
+    if p.name.lower() == "python.exe":
+        w = p.with_name("pythonw.exe")
+        if w.is_file():
+            return str(w)
+    return PY
+
+
 def install() -> Dict[str, Any]:
-    """Whole always-on install: cmd launcher + logon task + Startup shortcut."""
+    """Hidden always-on: pythonw watchdog, logon task, Startup. No console window."""
     HOME.mkdir(parents=True, exist_ok=True)
+    pyw = _pythonw()
     cmd_path = HOME / "run-pocket-runtime.cmd"
     body = (
         "@echo off\r\n"
         f'cd /d "{ROOT}"\r\n'
         f'set PYTHONPATH={SRC}\r\n'
         f'set POCKET_PUBLIC_URL={PUBLIC}\r\n'
-        f'"{PY}" -u -m pocket runtime\r\n'
+        f'set POCKET_EDITION=founder\r\n'
+        f'start "" "{pyw}" -m pocket runtime\r\n'
     )
     cmd_path.write_text(body, encoding="ascii")
-    notes: List[str] = [f"wrote {cmd_path}"]
+    notes: List[str] = [f"wrote {cmd_path}", f"hidden interpreter {pyw}"]
+
+    vbs_path = HOME / "run-pocket-runtime.vbs"
+    esc = lambda p: str(p).replace("\\", "\\\\")
+    vbs_path.write_text(
+        "Set sh = CreateObject(\"Wscript.Shell\")\r\n"
+        f'sh.CurrentDirectory = "{esc(ROOT)}"\r\n'
+        f'sh.Environment("Process")("PYTHONPATH") = "{esc(SRC)}"\r\n'
+        'sh.Environment("Process")("POCKET_EDITION") = "founder"\r\n'
+        f'sh.Run """{esc(pyw)}"" -m pocket runtime", 0, False\r\n',
+        encoding="ascii",
+    )
+    notes.append(f"wrote {vbs_path}")
 
     startup = Path(os.environ.get("APPDATA") or "") / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
     startup_cmd = None
     if startup.is_dir():
-        startup_cmd = startup / "POCKET-Runtime.cmd"
-        startup_cmd.write_text(
-            "@echo off\r\n"
-            f'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{ROOT / "scripts" / "Start-POCKET-AlwaysOn.ps1"}"\r\n'
-            f'if errorlevel 1 "{cmd_path}"\r\n',
-            encoding="ascii",
-        )
+        startup_cmd = startup / "POCKET-Runtime.vbs"
+        startup_cmd.write_text(vbs_path.read_text(encoding="ascii"), encoding="ascii")
         notes.append(f"startup {startup_cmd}")
 
     task = {"ok": False, "name": "POCKET Runtime"}
@@ -359,7 +377,7 @@ def install() -> Dict[str, Any]:
                     "LIMITED",
                     "/F",
                     "/TR",
-                    str(cmd_path),
+                    f'wscript.exe //B "{vbs_path}"',
                 ],
                 capture_output=True,
                 text=True,

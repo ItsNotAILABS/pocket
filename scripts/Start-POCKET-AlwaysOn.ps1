@@ -71,20 +71,13 @@ function Read-AccessEnv {
 }
 
 function StartPocket {
-  $cred = Read-AccessEnv
-  Log ("Starting POCKET py=$py user=$($cred.User)")
-  $lines = @(
-    "@echo off",
-    "cd /d `"$Root`"",
-    "set PYTHONPATH=$Src",
-    "set Path=C:\Users\Medin\.grok\bin;%Path%",
-    "set POCKET_PUBLIC_URL=https://pocket.medinatechlabs.net",
-    "set POCKET_BASIC_AUTH_USER=$($cred.User)",
-    "set POCKET_BASIC_AUTH_PASSWORD=$($cred.Pass)",
-    "`"$py`" -m pocket serve --host 0.0.0.0 --port 8787 >> `"$LogDir\pocket-serve.log`" 2>&1"
-  )
-  Set-Content -Path $RunBat -Value ($lines -join "`r`n") -Encoding ASCII
-  Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$RunBat`"" -WindowStyle Hidden | Out-Null
+  Log ("Starting hidden runtime py=$py")
+  $env:PYTHONPATH = $Src
+  $env:POCKET_PUBLIC_URL = "https://pocket.medinatechlabs.net"
+  $env:POCKET_EDITION = "founder"
+  $pyw = $py -replace 'python.exe$','pythonw.exe'
+  if (-not (Test-Path $pyw)) { $pyw = $py }
+  Start-Process -FilePath $pyw -ArgumentList "-m","pocket","runtime" -WorkingDirectory $Root -WindowStyle Hidden | Out-Null
 }
 
 Log "Always-On watchdog started (will NOT thrash a healthy host)"
