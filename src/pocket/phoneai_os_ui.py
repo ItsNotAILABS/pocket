@@ -127,7 +127,8 @@ body.desk .dock{display:none!important;pointer-events:none}
     <button class="app" data-go="remind"><div class="icon">⏰</div><span>Remind</span></button>
     <button class="app" data-go="list"><div class="icon">☑</div><span>List</span></button>
     <a class="app" href="/studio/voice"><div class="icon">🎙</div><span>Voice</span></a>
-    <a class="app" href="sms:"><div class="icon">✉️</div><span>Messages</span></a>
+    <a class="app" href="/mail"><div class="icon">✉️</div><span>Mailbox</span></a>
+    <a class="app" href="sms:"><div class="icon">💬</div><span>SMS</span></a>
     <a class="app" href="tel:"><div class="icon">📞</div><span>Phone</span></a>
     <a class="app" href="/imagine"><div class="icon">✨</div><span>Imagine</span></a>
   </div>
