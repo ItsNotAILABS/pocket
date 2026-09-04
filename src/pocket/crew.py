@@ -19,7 +19,7 @@ ROOT = Path.home() / ".pocket"
 STATE = ROOT / "crew.json"
 SCHEMA = "pocket.crew.v1"
 MAX_SEATS = 2
-CLIS = ("grok", "codex", "meta", "gemini")
+CLIS = ("grok", "codex", "meta", "gemini", "spark")
 
 _lock = threading.Lock()
 _runs: Dict[str, threading.Thread] = {}

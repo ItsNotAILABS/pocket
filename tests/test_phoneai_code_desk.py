@@ -7,8 +7,8 @@ from pocket.phoneai_bridge import work
 from pocket.phoneai_os_ui import PHONEAI_TWIN_HTML
 
 
-def test_wired_clis_are_the_four():
-    assert CLI_IDS == ("grok", "codex", "meta", "gemini")
+def test_wired_clis_are_the_five():
+    assert CLI_IDS == ("grok", "codex", "meta", "gemini", "spark")
     ids = [c["id"] for c in detect_clis()]
     assert ids == list(CLI_IDS)
 

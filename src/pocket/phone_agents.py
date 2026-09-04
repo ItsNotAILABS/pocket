@@ -166,7 +166,18 @@ def which_muse() -> str:
 
 
 def spark_ask(text: str, *, cwd: str = "") -> Dict[str, Any]:
-    """Muse Glimmer open weights locally; Muse Code CLI if the paid Spark binary is here."""
+    """Reagent Spark API first; then Muse Glimmer / Muse Code CLI."""
+    try:
+        from pocket.spark_api import chat as spark_chat, status as spark_status
+
+        if spark_status().get("configured"):
+            r = spark_chat(text, system="You are Spark on PhoneAI. Short, useful replies.")
+            if r.get("ok") and r.get("reply"):
+                return r
+            if r.get("http") in (401, 403):
+                return r
+    except Exception:
+        pass
     g = glimmer_ask(text)
     if g.get("ok"):
         return g

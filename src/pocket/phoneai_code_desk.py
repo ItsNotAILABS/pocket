@@ -56,14 +56,21 @@ CODE_CLIS: List[Dict[str, Any]] = [
         ],
         "note": "Gemini CLI from the Antigravity platform, run in the chosen repo.",
     },
+    {
+        "id": "spark",
+        "label": "Spark API",
+        "bins": [],
+        "note": "Reagent Spark · OpenAI-compatible · qwen3.8-27b",
+    },
 ]
 
 CLI_IDS = tuple(c["id"] for c in CODE_CLIS)
 ALIASES = {
     "muse": "meta",
     "muse-code": "meta",
-    "spark": "meta",
     "spark-code": "meta",
+    "reagent": "spark",
+    "qwen-spark": "spark",
     "antigravity": "gemini",
     "anti": "gemini",
     "agy": "gemini",
@@ -73,6 +80,14 @@ ALIASES = {
 
 def _which(spec: Dict[str, Any]) -> str:
     extra = list(spec.get("extra") or [])
+    if spec.get("id") == "spark":
+        try:
+            from pocket.spark_api import status as spark_status
+
+            st = spark_status()
+            return str(st.get("base_url") or "") if st.get("configured") else ""
+        except Exception:
+            return ""
     for n in spec.get("bins") or []:
         w = shutil.which(n) or ""
         if w.lower().endswith(".ps1"):
@@ -431,6 +446,18 @@ def _run_cli(cli: str, text: str, cwd: str) -> Dict[str, Any]:
         return {"ok": False, "engine": cli, "error": "say something"}
     Path(cwd).mkdir(parents=True, exist_ok=True)
     timeout = float(os.environ.get("POCKET_CODE_DESK_TIMEOUT") or "180")
+
+    if cli == "spark":
+        from pocket.spark_api import chat as spark_chat
+
+        r = spark_chat(
+            prompt,
+            system=f"You are Spark coding on {cwd}. Edit this repo. Be specific.",
+            max_tokens=2048,
+            timeout=min(timeout, 120),
+        )
+        r["cwd"] = cwd
+        return r
 
     if cli == "grok":
         from pocket.grok_bridge import run_grok_phone, which_grok

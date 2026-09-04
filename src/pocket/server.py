@@ -1596,6 +1596,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.engines import catalog as engines_catalog
 
             return self._json(200, engines_catalog())
+        if path in ("/v1/spark", "/v1/spark/status", "/api/spark"):
+            from pocket.spark_api import status as spark_status
+
+            return self._json(200, spark_status())
         if path in ("/v1/eyes", "/api/eyes"):
             from pocket.agent_eyes import catalog as eyes_cat, see as eyes_see
             from pocket.host_control import allow as host_ok

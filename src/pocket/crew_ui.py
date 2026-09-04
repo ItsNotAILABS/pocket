@@ -43,9 +43,9 @@ h1{font-size:22px;letter-spacing:-.04em;margin:8px 0 4px}
 <p class="lead">One lane per repo. Spawn 1–2 agents side by side on different parts. You steer each seat. They share notes — they do not share a window pile.</p>
 <form class="spawn" id="sp">
   <select id="repo"></select>
-  <select id="c1"><option value="grok">Grok</option><option value="codex">Codex</option><option value="meta">Meta</option><option value="gemini">Gemini</option></select>
+  <select id="c1"><option value="grok">Grok</option><option value="codex">Codex</option><option value="spark">Spark</option><option value="meta">Meta</option><option value="gemini">Gemini</option></select>
   <input id="p1" placeholder="Part A (e.g. portal)"/>
-  <select id="c2"><option value="">(one seat)</option><option value="codex">Codex</option><option value="grok">Grok</option><option value="gemini">Gemini</option><option value="meta">Meta</option></select>
+  <select id="c2"><option value="">(one seat)</option><option value="codex">Codex</option><option value="spark">Spark</option><option value="grok">Grok</option><option value="gemini">Gemini</option><option value="meta">Meta</option></select>
   <input id="p2" placeholder="Part B (e.g. auth)"/>
   <input id="goal" placeholder="Lane goal (optional)" style="flex:1;min-width:180px"/>
   <button>Spawn</button>

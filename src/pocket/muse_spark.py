@@ -106,6 +106,28 @@ def run_muse_spark_job(
         )
         return body, "" if ok else str(r.get("error") or "open failed"), "muse_spark"
 
+    # Reagent Spark (OpenAI-compatible qwen) if the host key is set.
+    try:
+        from pocket.spark_api import chat as spark_chat, status as spark_status
+
+        st = spark_status()
+        if st.get("configured"):
+            _progress(jid, f"Spark · {st.get('model')} via {st.get('base_url')}…")
+            r = spark_chat(
+                text,
+                system="You are Spark on POCKET. Direct, useful answers. Name files and next steps.",
+                max_tokens=2048,
+            )
+            if r.get("ok") and r.get("reply"):
+                body = (
+                    f"# Spark\n\n_{r.get('model')} · {r.get('via')}_\n\n"
+                    f"{r.get('reply')}\n"
+                )
+                return body, "", "muse_spark"
+            _progress(jid, f"Spark HTTP missed ({r.get('error') or r.get('http')}) — local lanes")
+    except Exception as e:
+        _progress(jid, f"Spark skip: {e}"[:160])
+
     _progress(jid, "Muse Spark · contemplating (parallel lanes)…")
     lanes = _plan_lanes(text)
     lane_out: Dict[str, List[Dict[str, str]]] = {}
