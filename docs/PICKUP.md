@@ -14,7 +14,8 @@
 - Portal `/phoneai/portal`: 1:1 laptop pane, controls under the screen, WS-only live stream
 - **Keyboard does not open on screen tap.** Tap **Type** (pill) when you need it; Done hides it
 - Code desk `/phoneai/work`: Grok / Codex / Meta / Gemini CLIs + GitHubs, New session is `cd-…` not an agent
-- **Crew** `/crew`: one lane per repo, 1–2 agent seats side by side on different parts. You steer. No extra OS windows.
+- **Crew** `/crew` **and Desk Crew tab**: one lane per repo, 1–2 agent seats side by side. Desktop/Edge: seat a second agent on `/desk` to auto-split — not standalone views.
+- Desk `/desk?split=1` · `/desk?agent=spark` · Spark + Grok workflow in one window
 
 ## Done (do not redo)
 

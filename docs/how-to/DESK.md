@@ -14,6 +14,18 @@ Login: user `pocket` + password in `%USERPROFILE%\.pocket\ACCESS.txt`
 
 Codex · Grok · Claude · Assistant · Muse Spark · Auro · Aria · Plan · Build · Genetic · Coding Swarm · Browser · GitHub · NEXUS · MESIE · …
 
+## Multi-work (Desktop + Edge)
+
+Stay on `/desk` — do not open Spark or Crew as standalone pages.
+
+1. Click **Spark** (or Codex / Grok) to seat one agent.
+2. Click a **second** agent — the desk splits. Two panes, two composers, one window.
+3. Or click **Side by side**, then pick two agents / Shift-click sessions.
+4. **Spark + Grok** on the empty desk seats both at once.
+5. **Crew** (More menu) is an in-window repo lane (1–2 seats). Still this Desktop/Edge app.
+
+Deep links (same window): `/desk?split=1` · `/desk?agent=spark` · `/desk?tab=crew`
+
 ## Common modes
 
 | Mode | Use |

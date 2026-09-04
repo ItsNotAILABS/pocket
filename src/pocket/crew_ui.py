@@ -38,9 +38,9 @@ h1{font-size:22px;letter-spacing:-.04em;margin:8px 0 4px}
 .run{color:#fbbf24}
 </style></head>
 <body>
-<p><a href="/phoneai/app">Kernel</a> · <a href="/phoneai/work">Code desk</a> · <a href="/desk">Desk</a></p>
+<p><a href="/desk">Desk</a> · <a href="/desk?split=1">Side by side</a> · <a href="/phoneai/work">Code desk</a></p>
 <h1>Crew</h1>
-<p class="lead">One lane per repo. Spawn 1–2 agents side by side on different parts. You steer each seat. They share notes — they do not share a window pile.</p>
+<p class="lead">One lane per repo. Spawn 1–2 agents side by side on different parts. This board stays inside the Pocket Desktop / Edge window — pick Spark + Grok on Desk for the same split without leaving /desk.</p>
 <form class="spawn" id="sp">
   <select id="repo"></select>
   <select id="c1"><option value="grok">Grok</option><option value="codex">Codex</option><option value="spark">Spark</option><option value="meta">Meta</option><option value="gemini">Gemini</option></select>

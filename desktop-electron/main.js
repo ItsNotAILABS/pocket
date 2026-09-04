@@ -389,6 +389,19 @@ function buildMenu(cfg) {
           click: () => openDesk(readConfig()),
         },
         {
+          label: "Side by side (two agents)",
+          accelerator: "CmdOrCtrl+Shift+2",
+          click: () => openPath(readConfig(), "/desk?split=1"),
+        },
+        {
+          label: "Spark on desk",
+          click: () => openPath(readConfig(), "/desk?agent=spark"),
+        },
+        {
+          label: "Crew (in this window)",
+          click: () => openPath(readConfig(), "/desk?tab=crew"),
+        },
+        {
           label: "Docs hub",
           accelerator: "CmdOrCtrl+2",
           click: () => openPath(readConfig(), "/docs"),

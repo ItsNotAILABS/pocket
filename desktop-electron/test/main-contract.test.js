@@ -7,6 +7,14 @@ const source = fs.readFileSync(path.join(__dirname, "..", "main.js"), "utf8");
 const manager = fs.readFileSync(path.join(__dirname, "..", "lib", "host-manager.js"), "utf8");
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
 
+test("desktop stays on /desk for multi-agent work", () => {
+  assert.match(source, /return base \+ "\/desk"/);
+  assert.match(source, /\/desk\?split=1/);
+  assert.match(source, /\/desk\?agent=spark/);
+  assert.match(source, /\/desk\?tab=crew/);
+  assert.match(source, /Side by side \(two agents\)/);
+});
+
 test("desktop package includes its local host", () => {
   assert.equal(pkg.version, "3.0.0");
   assert.equal(pkg.build.extraResources[0].to, "host/pocket-host.exe");

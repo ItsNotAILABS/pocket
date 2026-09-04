@@ -1475,6 +1475,7 @@ body.device-computer .rail{display:flex!important}
           <a href="#" data-tab="work" role="menuitem" onclick="event.preventDefault();showAppTab('work');closeTabMore()" title="Design agent loops"><span>Work Studio</span><small>Design loops → run on desk</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="studio" role="menuitem" onclick="event.preventDefault();showAppTab('studio');closeTabMore()" title="Record · viral · ship"><span>Product Studio</span><small>Record · viral pack · agent ship</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="imagine" role="menuitem" onclick="event.preventDefault();showAppTab('imagine');closeTabMore()" title="Device stills · letterbox glass"><span>Imagine Studio</span><small>Phone / laptop stills · fusion remake</small><span class="mm-go">→</span></a>
+          <a href="#" data-tab="crew" role="menuitem" onclick="event.preventDefault();showAppTab('crew');closeTabMore()" title="1–2 agents per repo, side by side in this window"><span>Crew</span><small>Repo lanes · 1–2 seats · no extra windows</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="bots" role="menuitem" onclick="event.preventDefault();showAppTab('bots');closeTabMore()" title="Named teammates with their own computer"><span>Bots</span><small>pocket-agent teammates · Grok-Bot style</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="loomgraph" role="menuitem" onclick="event.preventDefault();showAppTab('loomgraph');closeTabMore()" title="LOOMGRAPH — graphs + loops harness"><span>LOOMGRAPH</span><small>See the graph · run the loop</small><span class="mm-go">→</span></a>
           <a href="#" data-tab="creative" role="menuitem" onclick="event.preventDefault();showAppTab('creative');closeTabMore()" title="Friendly AI chat · image · video · blog"><span>Creative Studio</span><small>Chat · image · video · blog · social</small><span class="mm-go">→</span></a>
@@ -1590,7 +1591,8 @@ body.device-computer .rail{display:flex!important}
       <span class="tag" id="mainWs">workspace</span>
       <select id="wsSelect"></select>
       <div class="grow"></div>
-      <button type="button" class="icon" id="btnSplit" onclick="toggleSplit()" title="Two agents side by side on this desk">Side by side</button>
+      <button type="button" class="icon" id="btnSplit" onclick="toggleSplit()" title="Two agents side by side on this desk — pick a second agent to dock">Side by side</button>
+      <button type="button" class="icon" id="btnCrew" onclick="showAppTab('crew')" title="Crew — 1–2 agents per repo, still in this window">Crew</button>
       <button type="button" class="icon sess-ctl" id="btnVoiceEngine" onclick="toggleVoiceEngine()" title="Activate voice engine — this agent talks and listens" style="display:none">🎙 Voice engine</button>
       <button type="button" class="icon sess-ctl" id="btnStop" onclick="stopActiveSession()" title="Stop work (keep this chat)" style="display:none">Stop</button>
       <button type="button" class="icon sess-ctl" id="btnEnd" onclick="endActiveSession()" title="End this chat" style="display:none">End</button>
@@ -1621,6 +1623,8 @@ body.device-computer .rail{display:flex!important}
           <button type="button" data-mode="studio">Studio</button>
           <button type="button" data-mode="spark">Spark</button>
           <button type="button" data-mode="muse_spark">Muse</button>
+          <button type="button" onclick="runWorkflow('side_by_side')">Spark + Grok</button>
+          <button type="button" onclick="toggleSplit()">Side by side</button>
           <button type="button" data-mode="voice">Aria</button>
           <button type="button" data-mode="build">Build</button>
           <button type="button" data-mode="plan">Plan</button>
@@ -1650,7 +1654,7 @@ body.device-computer .rail{display:flex!important}
         <div id="firstRunTips" style="display:none;margin-top:18px;text-align:left;max-width:460px;margin-left:auto;margin-right:auto;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel)">
           <div style="font-size:12px;font-weight:700;color:var(--fg);margin-bottom:8px">How the main desk flows</div>
           <ol style="margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.55">
-            <li><b style="color:var(--fg)">Desk</b> — chat + tools + Working board. Agents sit here.</li>
+            <li><b style="color:var(--fg)">Desk</b> — chat + tools. Seat one agent, then another — they split this window (Desktop / Edge), not standalone pages.</li>
             <li><b style="color:var(--fg)">Habitat / Screen</b> — agents on the floor; host eyes View/Control.</li>
             <li><b style="color:var(--fg)">Working</b> — life ops board (buy / reserve — you pay).</li>
             <li><b style="color:var(--fg)">Studio / Lab</b> — demos &amp; readiness (own panels under More).</li>
@@ -3013,7 +3017,7 @@ function renderAgentPicker(){
   // keep keyboard selection if still valid
   if(_apKbIndex>=0) apKbHighlight(_apKbIndex);
 }
-/** Prefer resume existing session of this agent; else start new. */
+/** Seat on this desk. A second different agent auto-splits the same window (Desktop/Edge). */
 async function pickAgent(mode){
   if(!mode) return;
   try{
@@ -3025,6 +3029,33 @@ async function pickAgent(mode){
     }catch(_){}
     setAgentPickUI(mode);
     const existing=(sessions||[]).filter(s=>s.mode===mode);
+    const cur=(sessions||[]).find(s=>s.id===activeId);
+    const otherActive=!!(cur && String(cur.mode||'')!==String(mode));
+    async function seatThisMode(){
+      const undocked=existing.filter(s=>splitIds.indexOf(s.id)<0);
+      if(undocked.length){ await selectSess(undocked[0].id); return undocked[0].id; }
+      await newSess(mode);
+      return activeId;
+    }
+    if(otherActive && activeId){
+      const left=activeId;
+      const right=await seatThisMode();
+      if(right && right!==left){
+        splitIds[0]=left;
+        splitIds[1]=right;
+        if(!splitOn) toggleSplit();
+        else paintSplit();
+        toast('Side by side on this desk — two agents, one window');
+      }
+      if(sideIsDrawer()) closeDrawers();
+      return;
+    }
+    if(splitOn){
+      const id=await seatThisMode();
+      if(id) dockSplit(id);
+      if(sideIsDrawer()) closeDrawers();
+      return;
+    }
     if(existing.length){
       const s=existing[0];
       await selectSess(s.id);
@@ -3033,7 +3064,6 @@ async function pickAgent(mode){
       if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
         try{ await armComputerVision(); }catch(_){}
       }
-      if(splitOn && activeId) dockSplit(activeId);
       return;
     }
     await newSess(mode);
@@ -3041,7 +3071,6 @@ async function pickAgent(mode){
     if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
       try{ await armComputerVision(); }catch(_){}
     }
-    if(splitOn && activeId) dockSplit(activeId);
   }catch(e){
     toast('Could not open '+(mode||'agent')+': '+(e.message||e),'err');
   }
@@ -3056,7 +3085,7 @@ function toggleSplit(){
     paintSplit();
     if(splitTimer) clearInterval(splitTimer);
     splitTimer=setInterval(()=>{ if(splitOn) paintSplit(); }, 2500);
-    toast('Side by side on this desk — Shift-click a session to dock the other pane');
+    if(!splitIds[1]) toast('Side by side — pick another agent (or Shift-click a session)');
   } else if(splitTimer){
     clearInterval(splitTimer); splitTimer=null;
   }
@@ -4175,6 +4204,16 @@ const APP_TAB_ROUTES={
       {label:'Desk', fn:'showAppTab', arg:'desk'}
     ]
   },
+  crew:{
+    path:'/crew', title:'Crew', group:'Agents',
+    blurb:'One lane per repo. 1–2 agents side by side on different parts. Stays in this Desktop/Edge window.',
+    actions:[
+      {label:'Side by side desk', fn:'runWorkflow', arg:'side_by_side', primary:true},
+      {label:'Seat Spark', fn:'pickAgent', arg:'spark'},
+      {label:'Seat Grok', fn:'pickAgent', arg:'grok'},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
   bots:{
     path:'/bots', title:'POCKET Bots', group:'Agents',
     blurb:'Named teammates with their own computer. Message like a colleague. Powered by pocket-agent.',
@@ -4527,6 +4566,14 @@ window.addEventListener('message', (ev)=>{
 async function runWorkflow(name){
   name=String(name||'').toLowerCase();
   try{
+    if(name==='side_by_side' || name==='crew_desk' || name==='split_desk'){
+      closeAppPanel(); closeBrowser();
+      _markAppTabs('desk');
+      try{ await pickAgent('spark'); }catch(_){}
+      try{ await pickAgent('grok'); }catch(_){}
+      toast('Multi-work on this desk — Spark + Grok, one window');
+      return;
+    }
     if(name==='ship_loop'){
       // Habitat + Screen eyes + Codex for ship work
       closeAppPanel(); closeBrowser();
@@ -8051,9 +8098,15 @@ boot().then(async()=>{
   }catch(_){}
   try{
     const q=new URLSearchParams(location.search||'');
-    const agent=(q.get('agent')||'').toLowerCase();
+    const hash=(location.hash||'').replace(/^#/,'');
+    const hq=new URLSearchParams(hash.replace(/,/g,'&'));
+    const wantSplit=q.get('split')==='1' || hq.get('split')==='1' || hash==='split' || /(^|&)split(&|$|=1)/.test(hash);
+    if(wantSplit && !splitOn) toggleSplit();
+    const agent=(q.get('agent')||hq.get('agent')||'').toLowerCase();
+    const tabQ=(q.get('tab')||hq.get('tab')||'').toLowerCase();
+    if(tabQ==='crew'){ try{ showAppTab('crew'); }catch(_){} }
     const authed=sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token');
-    if(agent && authed){
+    if(agent){
       const map={
         mesie:'mesie',nexus:'nexus',auro:'auro',auro14b:'auro',ro14b:'auro',
         grok:'grok',codex:'codex',claude:'claude',build:'build',wiki:'wiki',

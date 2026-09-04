@@ -55,3 +55,4 @@ def test_crew_html_is_side_by_side():
     assert "/v1/crew/spawn" in html
     assert "/v1/crew/steer" in html
     assert "No extra OS windows" in html or "side by side" in html.lower()
+    assert "/desk?split=1" in html
