@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.project.v1",
+  "projectId": "pocket",
+  "kiln": "ItsNotAILABS/KILN",
+  "repository": "ItsNotAILABS/pocket",
+  "workspace": "pocket-os",
+  "lane": "pocket",
+  "mcpEndpoint": "http://127.0.0.1:8787",
+  "defaultBranch": "main",
+  "comesWithKiln": true,
+  "authority": "Agents propose. Policy evaluates. Owners approve. Wallets sign. Receipts remember.",
+  "family": [
+    "ItsNotAILABS/pocket-agent",
+    "ItsNotAILABS/pocket-voice-to-text",
+    "ItsNotAILABS/PhoneAI"
+  ]
+}
