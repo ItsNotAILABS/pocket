@@ -1003,6 +1003,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_twin_html
 
             return self._html(phoneai_twin_html())
+        if path in ("/crew", "/phoneai/crew", "/team/board"):
+            from pocket.crew import html as crew_html
+
+            return self._html(crew_html())
+        if path in ("/v1/crew", "/api/crew"):
+            from pocket.crew import board as crew_board
+
+            return self._json(200, crew_board())
         if path in ("/phoneai/anti", "/phoneai/antigravity"):
             from pocket.phoneai_os_ui import phoneai_anti_html
 
@@ -4773,6 +4781,35 @@ class Handler(BaseHTTPRequestHandler):
                     long_term=body.get("long_term"),
                 ),
             )
+        if path in ("/v1/crew/spawn", "/api/crew/spawn"):
+            from pocket.crew import spawn as crew_spawn
+
+            clis = body.get("clis") if isinstance(body.get("clis"), list) else None
+            parts = body.get("parts") if isinstance(body.get("parts"), list) else None
+            return self._json(
+                200,
+                crew_spawn(
+                    repo=str(body.get("repo") or ""),
+                    clis=clis,
+                    parts=parts,
+                    goal=str(body.get("goal") or ""),
+                ),
+            )
+        if path in ("/v1/crew/steer", "/api/crew/steer"):
+            from pocket.crew import steer as crew_steer
+
+            return self._json(
+                200,
+                crew_steer(
+                    str(body.get("seat_id") or body.get("id") or ""),
+                    str(body.get("text") or body.get("prompt") or ""),
+                    wait=bool(body.get("wait")),
+                ),
+            )
+        if path in ("/v1/crew/close", "/api/crew/close"):
+            from pocket.crew import close_seat as crew_close
+
+            return self._json(200, crew_close(str(body.get("seat_id") or body.get("id") or "")))
         if path in (
             "/v1/phoneai/code-desk/session",
             "/v1/phoneai/code-desk/sessions",

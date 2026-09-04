@@ -135,6 +135,7 @@ body.desk .dock{display:none!important;pointer-events:none}
   <div class="sec">Computer</div>
   <div class="grid">
     <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Code desk</span></a>
+    <a class="app" href="/crew"><div class="icon">⧉</div><span>Crew</span></a>
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
     <a class="app" href="/phoneai/computer"><div class="icon">🖥</div><span>Computer</span></a>
