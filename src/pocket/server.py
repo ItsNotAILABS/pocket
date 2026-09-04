@@ -938,6 +938,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.live_desk import desk as live_desk
 
             return self._json(200, live_desk())
+        if path in ("/v1/phoneai/code-desk", "/v1/phoneai/codedesk", "/api/phoneai/code-desk"):
+            from pocket.phoneai_code_desk import snapshot as code_desk_snap
+
+            return self._json(200, code_desk_snap())
+        if path in ("/v1/phoneai/code-desk/repos", "/api/phoneai/code-desk/repos"):
+            from pocket.phoneai_code_desk import list_repos as code_desk_repos
+
+            return self._json(200, code_desk_repos(80))
         if path in ("/v1/phoneai/sessions", "/api/phoneai/sessions"):
             from pocket.agent_runtime import list_phoneai_sessions
 
@@ -4765,6 +4773,21 @@ class Handler(BaseHTTPRequestHandler):
                     long_term=body.get("long_term"),
                 ),
             )
+        if path in (
+            "/v1/phoneai/code-desk/session",
+            "/v1/phoneai/code-desk/sessions",
+            "/api/phoneai/code-desk/session",
+        ):
+            from pocket.phoneai_code_desk import new_session as code_desk_new
+
+            return self._json(
+                200,
+                code_desk_new(
+                    cli=str(body.get("cli") or body.get("engine") or "grok"),
+                    repo=str(body.get("repo") or body.get("cwd") or ""),
+                    title=str(body.get("title") or ""),
+                ),
+            )
         if path in ("/v1/phoneai/talk", "/api/phoneai/talk"):
             from pocket.agent_runtime import talk
 
@@ -4786,9 +4809,23 @@ class Handler(BaseHTTPRequestHandler):
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
-            engine = str(body.get("engine") or "auto")
+            engine = str(body.get("engine") or body.get("cli") or "grok")
             thread_id = str(body.get("thread_id") or body.get("session_id") or "")
-            return self._json(200, phoneai_work(text, engine=engine, thread_id=thread_id))
+            repo = str(body.get("repo") or "")
+            cwd = str(body.get("cwd") or "")
+            new = bool(body.get("new") or body.get("new_session"))
+            return self._json(
+                200,
+                phoneai_work(
+                    text,
+                    engine=engine,
+                    thread_id=thread_id,
+                    cwd=cwd,
+                    repo=repo,
+                    session_id=thread_id,
+                    new=new,
+                ),
+            )
         if path in ("/v1/phoneai/work/stream", "/api/phoneai/work/stream"):
             from pocket.phoneai_bridge import work_stream_chunks
             from pocket.ratelimit import hit
@@ -4798,14 +4835,19 @@ class Handler(BaseHTTPRequestHandler):
             if not ok_rl:
                 return self._json(429, {"ok": False, "error": reason})
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
-            engine = str(body.get("engine") or "auto")
+            engine = str(body.get("engine") or body.get("cli") or "grok")
             thread_id = str(body.get("thread_id") or body.get("session_id") or "")
+            repo = str(body.get("repo") or "")
+            cwd = str(body.get("cwd") or "")
+            new = bool(body.get("new") or body.get("new_session"))
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream; charset=utf-8")
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "close")
             self.end_headers()
-            for ev, payload in work_stream_chunks(text, engine=engine, thread_id=thread_id):
+            for ev, payload in work_stream_chunks(
+                text, engine=engine, thread_id=thread_id, cwd=cwd, repo=repo, session_id=thread_id, new=new
+            ):
                 data = payload if isinstance(payload, str) else json.dumps(payload, default=str)
                 chunk = f"event: {ev}\ndata: {data}\n\n".encode("utf-8")
                 self.wfile.write(chunk)

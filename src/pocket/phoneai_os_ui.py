@@ -604,7 +604,7 @@ h1{font-size:28px;letter-spacing:-.04em;margin:10px 0 4px}
 <div class="sec">Work</div>
 <div class="grid" data-sec="Work">
   <a class="card" href="/phoneai/app#chat"><b>Chat</b><span>Grok · Codex first-class</span></a>
-  <a class="card" href="/phoneai/work"><b>Code desk</b><span>Codex CLI already on this PC</span></a>
+  <a class="card" href="/phoneai/work"><b>Code desk</b><span>Grok · Codex · Meta · Gemini + your GitHubs</span></a>
   <a class="card" href="/v1/team/workspace"><b>Team workspace</b><span>Long work · shared disk</span></a>
   <a class="card" href="/agents"><b>Agents</b><span>Every first-class roster</span></a>
 </div>
@@ -718,68 +718,31 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;padding:en
 .form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .form textarea{flex:1;min-height:44px;max-height:120px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:var(--fg);padding:10px;font:inherit}
 .form button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
+select.pick{flex:1;min-width:140px;padding:8px;border-radius:10px;background:#0c0c0e;color:#fafafa;border:1px solid var(--line)}
+.engines button.off{opacity:.45}
 </style></head>
 <body>
 <div class="top"><a href="/phoneai">Home</a><b style="flex:1">Code desk</b><a href="/phoneai/anti">Anti</a></div>
 <div class="ws-desk" id="workWs">__PHONEAI_WS_STAGE__</div>
-<div id="now" style="padding:8px 14px;font-size:12px;color:#a1a1aa;border-bottom:1px solid var(--line)">Loading your live Grok/Codex/Antigravity threads…</div>
+<div id="now" style="padding:8px 14px;font-size:12px;color:#a1a1aa;border-bottom:1px solid var(--line)">Pick a CLI and a GitHub, then New session. These are wired tools, not attached agents.</div>
+<div class="engines" id="eng"></div>
 <div style="display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap">
-<select id="thr" style="flex:1;min-width:140px;padding:8px;border-radius:10px;background:#0c0c0e;color:#fafafa;border:1px solid var(--line)"></select>
-<select id="per" style="padding:8px;border-radius:10px;background:#0c0c0e;color:#fafafa;border:1px solid var(--line)"></select>
+<select id="repo" class="pick"></select>
+</div>
+<div style="display:flex;gap:8px;padding:0 12px 8px;flex-wrap:wrap">
+<select id="thr" class="pick"></select>
 <button type="button" id="ns" style="border:0;border-radius:10px;background:#10a37f;color:#042;font-weight:800;padding:8px 12px">New session</button>
 </div>
-<div class="engines" id="eng"></div>
 <div class="log" id="log"></div>
 <form class="form" id="f">
-  <textarea id="t" placeholder="Coder · Grok — any repo, long-term. What should we ship?" rows="1"></textarea>
+  <textarea id="t" placeholder="Talk to the chosen CLI in the chosen repo…" rows="1"></textarea>
   <button type="submit">Send</button>
 </form>
-<form class="form" id="sh" style="border-top:0">
-  <input id="sc" placeholder="Shell (pytest, python, git)…" style="flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit"/>
-  <button type="submit" style="background:#222;color:#fff">Harness</button>
-</form>
 <script>
-let engine='grok'; // Coder persona — Grok, long-term, family repos
-let threadId='';
-const LABELS={auto:'Auto',grok:'Grok',codex:'Codex',claude:'Claude',gemini:'Gemini',qwen:'Qwen',spark:'Glimmer',opencode:'OpenCode',cursor:'Cursor',aider:'Aider',copilot:'Copilot',antigravity:'Anti',auro:'Auro',ghost:'Ghost',logic:'Logic',portal:'Portal',rah:'Parallel'};
-fetch('/v1/engines').then(r=>r.json()).then(cat=>{
-  const desk=cat.desk||[];
-  const fast=cat.phone_fast||[];
-  const ids=['auto',...desk.filter(x=>x!=='spark'),...fast.slice(0,4),'antigravity','portal'];
-  const uniq=[...new Set(ids)];
-  document.getElementById('eng').innerHTML=uniq.map(i=>'<button type="button" data-e="'+i+'"'+(i===engine?' class="on"':'')+'>'+(LABELS[i]||i)+'</button>').join('');
-}).catch(()=>{ document.getElementById('eng').innerHTML='<button type="button" data-e="auto" class="on">Auto</button><button type="button" data-e="codex">Codex</button><button type="button" data-e="claude">Claude</button><button type="button" data-e="antigravity">Anti</button>'; });
-fetch('/v1/phoneai/sessions').then(r=>r.json()).then(s=>{
-  const per=document.getElementById('per');
-  per.innerHTML=(s.personas||[]).map(p=>'<option value="'+p.id+'">'+p.id+' · '+(p.blurb||p.mode)+'</option>').join('');
-  per.value='coder';
-}).catch(()=>{});
-document.getElementById('ns').onclick=async()=>{
-  const persona=document.getElementById('per').value||'coder';
-  const j=await fetch('/v1/phoneai/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({persona,kind:'both',title:'PhoneAI '+persona})}).then(r=>r.json());
-  const id=(j.pocket_session&&j.pocket_session.id)||(j.phoneai_session&&j.phoneai_session.id)||'';
-  if(id){ threadId=id; document.getElementById('now').textContent='New session '+id+' · '+persona; }
-  else alert(j.error||'could not create session');
-};
-fetch('/v1/phoneai/desk').then(r=>r.json()).then(d=>{
-  const live=d.you_are_working_on||{};
-  threadId=live.id||'';
-  const now=document.getElementById('now');
-  now.textContent=live.title
-    ? ('You are working on: '+live.title+' · '+(live.engine||'')+' · '+(live.cwd||''))
-    : 'No live threads found.';
-  const sel=document.getElementById('thr');
-  const all=[...(d.grok||[]),...(d.codex||[]),...(d.antigravity_threads||[])];
-  sel.innerHTML=all.map(t=>'<option value="'+t.id+'" data-e="'+t.engine+'">'+t.engine+' · '+(t.title||t.id).slice(0,70)+'</option>').join('');
-  if(threadId) sel.value=threadId;
-  sel.onchange=()=>{ threadId=sel.value; const o=sel.selectedOptions[0]; if(o) now.textContent='Attached: '+o.textContent; };
-  add('bot', now.textContent, 'desk');
-}).catch(()=>add('bot','Could not load live desk. Is Pocket up?','err'));
-document.getElementById('eng').onclick=e=>{
-  const b=e.target.closest('button'); if(!b) return;
-  engine=b.getAttribute('data-e');
-  [...document.getElementById('eng').children].forEach(x=>x.classList.toggle('on',x===b));
-};
+let engine='grok';
+let sessionId='';
+let repo='';
+const LABELS={grok:'Grok CLI',codex:'Codex CLI',meta:'Meta',gemini:'Gemini CLI'};
 const log=document.getElementById('log');
 function add(who, text, eng){
   const d=document.createElement('div');
@@ -789,38 +752,84 @@ function add(who, text, eng){
   log.appendChild(d); log.scrollTop=log.scrollHeight;
   return d;
 }
-document.getElementById('sh').onsubmit=async ev=>{
-  ev.preventDefault();
-  const cmd=document.getElementById('sc').value.trim();
-  const text=(document.getElementById('t').value||'').trim();
-  if(!cmd && !text) return;
-  add('me', (cmd?('$ '+cmd+'\n'):'')+text, 'harness');
-  add('bot','Harness…', 'harness');
-  try{
-    const j=await fetch('/v1/phoneai/harness',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:text||cmd,shell:cmd,engine})}).then(r=>r.json());
-    log.lastChild.remove();
-    const out=(j.reply||(j.shell&&j.shell.stdout)||j.error||'done');
-    add('bot', out, (j.engine&&j.engine.engine)||'harness');
-  }catch(e){ log.lastChild.remove(); add('bot','Harness unreachable','err'); }
+function paintSessions(sessions){
+  const sel=document.getElementById('thr');
+  const rows=sessions||[];
+  sel.innerHTML=rows.length
+    ? rows.map(s=>'<option value="'+s.id+'">'+(s.cli||'')+' · '+(s.repo||s.title||s.id).slice(0,70)+'</option>').join('')
+    : '<option value="">No sessions yet — tap New session</option>';
+  if(sessionId) sel.value=sessionId;
+}
+function paintNow(s){
+  const now=document.getElementById('now');
+  if(!s || !s.id){ now.textContent='No session. Pick CLI + GitHub, then New session.'; return; }
+  now.textContent=(s.cli||engine)+' · '+(s.repo||s.cwd||'')+(s.cli_available===false?' · CLI missing on this PC':'');
+}
+fetch('/v1/phoneai/code-desk',{credentials:'include'}).then(r=>r.json()).then(d=>{
+  const clis=d.clis||[];
+  document.getElementById('eng').innerHTML=clis.map(c=>{
+    const on=c.id===engine?' on':'';
+    const miss=c.available?'':' off';
+    return '<button type="button" data-e="'+c.id+'" class="'+(on+miss).trim()+'" title="'+(c.path||c.note||'')+'">'+(LABELS[c.id]||c.label)+(c.available?'':' · off')+'</button>';
+  }).join('');
+  const rs=d.repos||[];
+  const rsel=document.getElementById('repo');
+  rsel.innerHTML=rs.map(x=>{
+    const id=x.full||x.id||x.name;
+    const loc=x.local?' · disk':'';
+    return '<option value="'+id+'">'+id+loc+'</option>';
+  }).join('') || '<option value="">gh not signed in — local folders only</option>';
+  const live=d.you_are_working_on||{};
+  if(live.id){ sessionId=live.id; engine=live.cli||engine; repo=live.repo||''; }
+  if(repo) rsel.value=repo;
+  paintSessions(d.sessions||[]);
+  paintNow(live);
+  add('bot', d.note||'Code desk ready.', 'desk');
+}).catch(()=>add('bot','Could not load code desk. Is Pocket up?','err'));
+document.getElementById('eng').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  engine=b.getAttribute('data-e');
+  [...document.getElementById('eng').children].forEach(x=>x.classList.toggle('on',x===b));
+};
+document.getElementById('repo').onchange=()=>{ repo=document.getElementById('repo').value; };
+document.getElementById('thr').onchange=()=>{
+  sessionId=document.getElementById('thr').value;
+  const o=document.getElementById('thr').selectedOptions[0];
+  if(o) document.getElementById('now').textContent='Session '+o.textContent;
+};
+document.getElementById('ns').onclick=async()=>{
+  repo=document.getElementById('repo').value||repo;
+  const j=await fetch('/v1/phoneai/code-desk/session',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({cli:engine,repo,title:engine+' · '+repo})}).then(r=>r.json());
+  const s=j.session||{};
+  if(!s.id){ alert(j.error||j.repo_error||'could not create session'); return; }
+  sessionId=s.id;
+  const sel=document.getElementById('thr');
+  const opt=document.createElement('option');
+  opt.value=s.id; opt.textContent=(s.cli||engine)+' · '+(s.repo||s.cwd||s.id);
+  sel.insertBefore(opt, sel.firstChild); sel.value=s.id;
+  paintNow(s);
+  add('bot','New session '+s.id+' · '+(s.cli||engine)+' in '+(s.repo||s.cwd), s.cli||engine);
 };
 document.getElementById('f').onsubmit=async ev=>{
   ev.preventDefault();
   const t=document.getElementById('t');
   const text=(t.value||'').trim(); if(!text) return;
+  repo=document.getElementById('repo').value||repo;
   t.value=''; add('me', text, 'you');
   add('bot','Working…', engine);
-  if(typeof setBuildStage==='function') setBuildStage(true, engine+' workspace');
+  if(typeof setBuildStage==='function') setBuildStage(true, engine+' · '+(repo||'repo'));
+  const body={text,engine,cli:engine,session_id:sessionId,thread_id:sessionId,repo,new:!sessionId};
   try{
-    const r=await fetch('/v1/phoneai/work/stream',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})});
+    const r=await fetch('/v1/phoneai/work/stream',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(!r.ok || !r.body){
-      const j=await fetch('/v1/phoneai/work',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,engine,thread_id:threadId})}).then(x=>x.json());
+      const j=await fetch('/v1/phoneai/work',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(x=>x.json());
       log.lastChild.remove();
-      const n=add('bot', j.reply||j.error||'no reply', j.engine||engine);
-      if(j.image_url){ const img=document.createElement('img'); img.src=j.image_url; n.querySelector('.b').appendChild(img); }
+      if(j.session_id) sessionId=j.session_id;
+      add('bot', j.reply||j.error||'no reply', j.engine||engine);
       return;
     }
     const reader=r.body.getReader(); const dec=new TextDecoder();
-    let buf='', reply='', eng=engine, last=log.lastChild, imageUrl='';
+    let buf='', reply='', eng=engine, last=log.lastChild;
     last.querySelector('.b').textContent='';
     while(true){
       const {done,value}=await reader.read(); if(done) break;
@@ -831,14 +840,13 @@ document.getElementById('f').onsubmit=async ev=>{
         const data=(block.match(/^data:\s*([\s\S]+)$/m)||[])[1]||'';
         if(ev==='token'){ reply+=data; last.querySelector('.b').textContent=reply; log.scrollTop=log.scrollHeight; }
         if(ev==='done'){
-          try{ const j=JSON.parse(data); eng=j.engine||eng; if(j.image_url) imageUrl=j.image_url; if(!reply) reply=j.reply||j.error||''; }catch(_){}
+          try{ const j=JSON.parse(data); eng=j.engine||eng; if(j.session_id) sessionId=j.session_id; if(!reply) reply=j.reply||j.error||''; }catch(_){}
         }
       }
     }
     last.querySelector('.eng').textContent=eng;
     last.querySelector('.b').textContent=reply||'no reply';
     if(typeof setBuildStage==='function') setBuildStage(false);
-    if(imageUrl){ const img=document.createElement('img'); img.src=imageUrl; last.querySelector('.b').appendChild(img); }
   }catch(e){
     log.lastChild.remove();
     add('bot','Cannot reach POCKET host. Keep the PC awake on this Wi-Fi.','err');
@@ -991,17 +999,19 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#000000"/>
-<title>Portal · PhoneAI · 3.13.3</title>
+<title>Portal · PhoneAI · 3.16.8</title>
 <style>
-:root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
+:root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86;--ctrl:118px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;height:100dvh;height:100svh;margin:0;background:#000;color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif;overflow:hidden}
 html{position:fixed;inset:0}
 body{position:fixed;inset:0;padding:0;touch-action:manipulation}
-.stage{position:fixed;inset:0;width:100%;height:100%;height:100dvh;min-height:100svh;background:#000;overflow:hidden;touch-action:none;z-index:1}
+/* Stage is the letterbox glass. Controls sit BELOW it so the whole PC is visible 1:1. */
+.stage{position:fixed;left:0;right:0;top:0;bottom:calc(var(--ctrl) + env(safe-area-inset-bottom));background:#000;overflow:hidden;touch-action:none;z-index:1}
+body:not(.hud-off) .stage{top:calc(132px + env(safe-area-inset-top));bottom:calc(var(--ctrl) + 56px + env(safe-area-inset-bottom))}
 .stage img{background:#000}
 .view{position:absolute;inset:0;transform-origin:0 0}
-.view img{position:absolute;left:0;top:0;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
+.view img{position:absolute;left:0;top:0;max-width:none;max-height:none;width:auto;height:auto;object-fit:fill;object-position:center;touch-action:none;user-select:none;-webkit-user-drag:none;image-rendering:auto}
 .dot{position:absolute;width:22px;height:22px;border-radius:50%;border:2px solid #00ff86;pointer-events:none;transform:translate(-50%,-50%);display:none;z-index:4;box-shadow:0 0 0 5px rgba(0,255,134,.16)}
 .dot.hold{width:28px;height:28px;background:rgba(0,255,134,.28);box-shadow:0 0 0 8px rgba(0,255,134,.18)}
 .mode-badge{position:absolute;top:calc(12px + env(safe-area-inset-top));left:14px;z-index:13;display:none;align-items:center;gap:8px;background:rgba(5,6,10,.82);border:1px solid var(--g);color:var(--g);border-radius:999px;padding:8px 12px;font-weight:800;font-size:12px;letter-spacing:.04em;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.35)}
@@ -1018,7 +1028,8 @@ body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns=
 .tabs{top:calc(48px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .apps{top:calc(88px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .bar{bottom:0;display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-.ctrl{bottom:calc(56px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:auto auto;gap:8px;padding:8px 10px;border-top:1px solid var(--line);z-index:20;touch-action:manipulation;pointer-events:auto}
+.ctrl{bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:auto auto;gap:8px;padding:8px 10px;border-top:1px solid var(--line);z-index:20;touch-action:manipulation;pointer-events:auto}
+body:not(.hud-off) .ctrl{bottom:calc(56px + env(safe-area-inset-bottom))}
 .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
 .seg button.on{background:var(--g);color:#042}
@@ -1049,13 +1060,15 @@ body.hud-off .bar{opacity:0;pointer-events:none;visibility:hidden}
 body.hud-off .hint{opacity:.55}
 body.hud-off .joy{opacity:.9;pointer-events:auto}
 body.hud-off .ctrl{opacity:1;pointer-events:auto;visibility:visible;background:rgba(5,6,10,.72)}
-.typebox{position:fixed;left:10px;right:10px;bottom:calc(148px + env(safe-area-inset-bottom));z-index:15;display:flex;gap:8px;align-items:center}
+.typebox{position:fixed;left:10px;right:10px;bottom:calc(var(--ctrl) + 8px + env(safe-area-inset-bottom));z-index:15;display:none;gap:8px;align-items:center}
+.typebox.on{display:flex}
 .typebox input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(12,12,14,.88);color:#fff;padding:10px 12px;font:inherit;backdrop-filter:blur(10px)}
 .typebox button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px;min-height:44px}
 .dot{display:block}
 body.mobile .hint{left:10px;right:10px;transform:none}
 @media (orientation:landscape){
-  html,body,.stage{width:100%;height:100dvh;height:100svh;overflow:hidden}
+  html,body{width:100%;height:100dvh;height:100svh;overflow:hidden}
+  :root{--ctrl:96px}
   .ctrl button{min-height:40px;font-size:12px}
   .joy{width:72px;height:72px}
 }
@@ -1067,6 +1080,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button type="button" id="focusPill">Focus</button>
   <button type="button" id="desk2Btn">Desk 2</button>
   <button type="button" id="hudbtn">HUD</button>
+  <button type="button" id="typeBtn">Type</button>
 </div>
 <div class="top">
   <a href="/phoneai/app">Home</a>
@@ -1090,7 +1104,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <div class="dot" id="dot"></div>
   <div class="mode-badge" id="modeBadge"><i></i><span id="modeBadgeText">MOVE</span></div>
   <div class="joy" id="joy"><i id="knob"></i></div>
-  <div class="hint" id="hint">Entire PC is shown. Focus = mobile view of the active app. Off = full desktop.</div>
+  <div class="hint" id="hint">1:1 laptop in this pane. Entire PC is shown. Focus = active app.</div>
 </div>
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
@@ -1107,7 +1121,8 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button>Enter</button>
 </form>
 <form class="typebox" id="typeform">
-  <input id="keys" placeholder="Tap a field, then type here" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text"/>
+  <input id="keys" placeholder="Type here — keyboard only when you tap Type" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="enter" inputmode="text" readonly tabindex="-1"/>
+  <button type="button" id="typeHide">Done</button>
   <button>Send</button>
 </form>
 <script>
@@ -1115,7 +1130,8 @@ let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=fa
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
-let live=null, liveOk=false, blobUrl='', net={label:'lan', max_w:1600, q:74, fps:16};
+let live=null, liveOk=false, blobUrl='', net={label:'LAN', max_w:960, q:58, fps:12};
+let netPinned=false;
 const img=document.getElementById('frame');
 const view=document.getElementById('view');
 const stage=document.getElementById('stage');
@@ -1124,9 +1140,8 @@ const hint=document.getElementById('hint');
 const keys=document.getElementById('keys');
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function glass(){
-  const w=window.innerWidth;
-  const h=Math.max(window.innerHeight||0, document.documentElement.clientHeight||0, (window.visualViewport&&window.visualViewport.height)||0);
-  return {width:w, height:h, left:0, top:0};
+  const r=stage.getBoundingClientRect();
+  return {width:r.width, height:r.height, left:r.left, top:r.top};
 }
 let hudTimer=0;
 function setHud(on){
@@ -1147,14 +1162,14 @@ function netProfile(){
   const rtt=Number(c.rtt||0);
   const save=!!c.saveData;
   const cellular=(c.type==='cellular') || /2g|3g|4g|5g/.test(type);
-  if(save || type==='2g' || type==='slow-2g') return {label:'2G', max_w:720, q:48, fps:5};
-  if(type==='3g') return {label:'3G', max_w:800, q:52, fps:6};
+  if(save || type==='2g' || type==='slow-2g') return {label:'2G', max_w:640, q:48, fps:6};
+  if(type==='3g') return {label:'3G', max_w:720, q:50, fps:7};
   if(cellular && (type==='4g' || type==='5g' || downlink>=8)){
-    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:960, q:62, fps:18};
-    return {label:'LTE', max_w:800, q:56, fps:12};
+    if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:880, q:56, fps:10};
+    return {label:'LTE', max_w:800, q:54, fps:9};
   }
-  if(cellular) return {label:'CELL', max_w:800, q:52, fps:12};
-  return {label:'LAN', max_w:1024, q:64, fps:16};
+  if(cellular) return {label:'CELL', max_w:720, q:52, fps:8};
+  return {label:'LAN', max_w:960, q:58, fps:12};
 }
 let fpsShow=0, fpsN=0, fpsT=0, lastFrameAt=0;
 function noteFrame(){
@@ -1163,49 +1178,59 @@ function noteFrame(){
   if(lastFrameAt-fpsT>=1000){ fpsShow=fpsN; fpsN=0; fpsT=lastFrameAt; }
 }
 function applyNet(){
-  net=netProfile();
+  const n=netProfile();
+  if(!netPinned){ net=n; netPinned=true; }
+  else {
+    net.label=n.label;
+    if(n.label==='2G' || n.label==='3G'){ net.max_w=n.max_w; net.q=n.q; net.fps=n.fps; }
+  }
   const el=document.getElementById('net');
   if(el) el.textContent=net.label+(liveOk?' · LIVE':'')+' · '+(fpsShow||net.fps)+'fps';
   if(liveOk && live && live.readyState===1){
     try{ live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps, target:target, hwnd:activeHwnd||0})); }catch(_){}
   }
 }
-let lastNat=0;
+let lastLay='';
 function layout(){
-  const g=glass();
-  stage.style.left=g.left+'px';
-  stage.style.top=g.top+'px';
-  stage.style.width=g.width+'px';
-  stage.style.height=g.height+'px';
+  /* Fit is 1:1 — letterbox (or crop) the PC aspect into the stage. Do not restyle the stage. */
   const s=stage.getBoundingClientRect();
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
-  lastNat=(iw*10000)+ih;
   const ar=iw/Math.max(1,ih);
   let w=s.width, h=w/ar;
-  if(h>s.height){ h=s.height; w=h*ar; }
-  w=Math.min(w,s.width); h=Math.min(h,s.height);
-  img.style.left=((s.width-w)/2)+'px';
-  img.style.top=((s.height-h)/2)+'px';
+  if(fitMode==='cover'){
+    if(h<s.height){ h=s.height; w=h*ar; }
+  } else {
+    if(h>s.height){ h=s.height; w=h*ar; }
+  }
+  w=Math.round(w); h=Math.round(h);
+  const left=Math.round((s.width-w)/2), top=Math.round((s.height-h)/2);
+  const key=w+','+h+','+left+','+top+','+fitMode;
+  if(key===lastLay) return;
+  lastLay=key;
+  img.style.left=left+'px';
+  img.style.top=top+'px';
   img.style.width=w+'px';
   img.style.height=h+'px';
 }
-function maybeLayout(){
-  const k=((img.naturalWidth||0)*10000)+(img.naturalHeight||0);
-  if(k!==lastNat) layout();
-}
+function maybeLayout(){ layout(); }
 function applyView(){
   if(zoom<=1.02){ zoom=1; panX=0; panY=0; }
   const s=stage.getBoundingClientRect();
   panX=clamp(panX, s.width*(1-zoom), 0);
   panY=clamp(panY, s.height*(1-zoom), 0);
   view.style.transform='translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+  lastLay='';
   layout();
 }
-window.addEventListener('resize', ()=>{ autoFit(); applyView(); });
-window.addEventListener('orientationchange', ()=>{ autoFit(); setTimeout(applyView, 120); });
+let layTimer=0;
+function scheduleLayout(){
+  clearTimeout(layTimer);
+  layTimer=setTimeout(()=>{ autoFit(); applyView(); }, 160);
+}
+window.addEventListener('resize', scheduleLayout);
+window.addEventListener('orientationchange', ()=>{ lastLay=''; setTimeout(()=>{ autoFit(); applyView(); }, 220); });
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', applyView);
-  window.visualViewport.addEventListener('scroll', applyView);
+  window.visualViewport.addEventListener('resize', scheduleLayout);
 }
 function autoFit(){
   if(phoneFocus){
@@ -1218,7 +1243,7 @@ function autoFit(){
   if(!fitLocked) fitMode='contain';
   const fit=document.querySelector('#fitseg [data-f="'+fitMode+'"]');
   if(fit) [...document.getElementById('fitseg').children].forEach(x=>x.classList.toggle('on',x===fit));
-  if(hint) hint.textContent='Laptop screen, full desktop, real aspect. Crop only if you want to zoom a region.';
+  if(hint) hint.textContent='1:1 laptop in this pane. Crop zooms a region. Controls sit under the screen.';
 }
 function setPhoneFocus(on){
   phoneFocus=!!on;
@@ -1304,26 +1329,31 @@ function openLive(){
   try{ live=new WebSocket(proto+'://'+location.host+'/v1/phoneai/portal/ws'); }
   catch(_){ live=null; setTimeout(openLive, liveBackoff); return; }
   live.binaryType='blob';
-  live.onopen=()=>{ liveOk=true; liveBackoff=400; applyNet(); hint.textContent='Live desk — '+net.label+' · persistent '+net.fps+'fps'; };
+  live.onopen=()=>{ liveOk=true; liveBackoff=400; applyNet(); hint.textContent='Live desk — 1:1 laptop in this pane · '+net.label+' · '+net.fps+'fps'; };
   live.onclose=()=>{ liveOk=false; applyNet(); liveBackoff=Math.min(liveBackoff*1.6, 4000); setTimeout(openLive, liveBackoff); };
   live.onerror=()=>{};
   live.onmessage=ev=>{
     if(typeof ev.data==='string') return;
-    const blob=ev.data;
-    noteFrame();
-    const paint=bmp=>{
-      const url=URL.createObjectURL(blob);
-      const prev=blobUrl;
-      img.src=url;
-      maybeLayout();
-      if(prev && prev!==url) URL.revokeObjectURL(prev);
-      blobUrl=url;
-      if(bmp && bmp.close) try{ bmp.close(); }catch(_){}
-    };
-    if(typeof createImageBitmap==='function'){
-      createImageBitmap(blob).then(bmp=>{ requestAnimationFrame(()=>paint(bmp)); }).catch(()=>paint(null));
-    } else paint(null);
+    latestBlob=ev.data;
+    if(!painting) requestAnimationFrame(flushFrame);
   };
+}
+let latestBlob=null, painting=false;
+function flushFrame(){
+  const blob=latestBlob; latestBlob=null;
+  if(!blob){ painting=false; return; }
+  painting=true;
+  const url=URL.createObjectURL(blob);
+  const prev=blobUrl;
+  img.onload=()=>{
+    noteFrame();
+    layout();
+    if(prev && prev!==url) URL.revokeObjectURL(prev);
+    blobUrl=url;
+    painting=false;
+    if(latestBlob) requestAnimationFrame(flushFrame);
+  };
+  img.src=url;
 }
 function b64urlToBuf(s){
   s=String(s||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -1487,15 +1517,13 @@ document.getElementById('apps').onclick=e=>{
   setTimeout(loadWins, 800);
 };
 function tick(){
-  const want=Math.max(50, Math.floor(1000/Math.max(8, net.fps||12)));
-  if(document.hidden){ setTimeout(tick, 500); return; }
-  const fresh=lastFrameAt && (Date.now()-lastFrameAt)<want*1.8;
-  if(liveOk && fresh){ setTimeout(tick, 120); return; }
-  if(busy){ setTimeout(tick, 50); return; }
+  if(document.hidden){ setTimeout(tick, 800); return; }
+  if(liveOk && lastFrameAt && (Date.now()-lastFrameAt)<2500){ setTimeout(tick, 700); return; }
+  if(busy){ setTimeout(tick, 200); return; }
   busy=true;
   const im=new Image();
-  im.onload=()=>{ img.src=im.src; maybeLayout(); noteFrame(); busy=false; setTimeout(tick, want); };
-  im.onerror=()=>{ busy=false; setTimeout(tick, 280); };
+  im.onload=()=>{ img.src=im.src; layout(); noteFrame(); busy=false; setTimeout(tick, 400); };
+  im.onerror=()=>{ busy=false; setTimeout(tick, 600); };
   im.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&hwnd='+(activeHwnd||0)+'&max_w='+net.max_w+'&q='+net.q+'&t='+Date.now();
 }
 document.addEventListener('visibilitychange', ()=>{
@@ -1648,7 +1676,7 @@ function onUp(ev){
       hint.textContent='Expanding that window to the whole screen';
     } else {
       lastTap=now; aim(p, 'Tap'); send('hover', p.nx, p.ny); send('tap', p.nx, p.ny);
-      try{ keys.focus(); }catch(_){}
+      try{ keys.blur(); }catch(_){}
     }
   } else if(gest==='drag' || gest==='hold'){
     send('up', p.nx, p.ny);
@@ -1743,6 +1771,22 @@ document.getElementById('hudbtn').onclick=()=>{
   setHud(off);
 };
 document.getElementById('focusPill').onclick=()=>setPhoneFocus(!phoneFocus);
+function setTypePad(on){
+  const box=document.getElementById('typeform');
+  const tb=document.getElementById('typeBtn');
+  if(box) box.classList.toggle('on', !!on);
+  if(tb) tb.classList.toggle('on', !!on);
+  keys.readOnly=!on;
+  keys.tabIndex=on?0:-1;
+  if(on){ try{ keys.focus(); }catch(_){} }
+  else { try{ keys.blur(); }catch(_){} lastTyped=''; keys.value=''; }
+  hint.textContent=on?'Keyboard on — tap Done when finished':'Tap Type only when you need the keyboard.';
+}
+document.getElementById('typeBtn').onclick=()=>{
+  const on=!document.getElementById('typeform').classList.contains('on');
+  setTypePad(on);
+};
+document.getElementById('typeHide').onclick=ev=>{ ev.preventDefault(); setTypePad(false); };
 setHud(false); autoFit(); applyView();
 
 keys.addEventListener('input', ()=>{
@@ -1764,7 +1808,7 @@ keys.addEventListener('keydown', ev=>{
     send('key', lastNx, lastNy, {vk:map[ev.key]});
   }
 });
-function submitType(ev){ ev.preventDefault(); send('key', lastNx, lastNy, {vk:13}); lastTyped=''; keys.value=''; }
+function submitType(ev){ ev.preventDefault(); send('key', lastNx, lastNy, {vk:13}); lastTyped=''; keys.value=''; setTypePad(false); }
 document.getElementById('kb').onsubmit=submitType;
 document.getElementById('typeform').onsubmit=submitType;
 (function(){
@@ -1925,7 +1969,7 @@ function tick(){
 tick();
 document.getElementById('peek').onclick=()=>{ streamOn=false; document.getElementById('stream').classList.remove('on'); };
 const st=document.getElementById('stream');
-st.addEventListener('touchstart', ev=>{ ev.preventDefault(); const t=ev.touches[0]; const r=img.getBoundingClientRect(); gnx=(t.clientX-r.left)/Math.max(1,r.width); gny=(t.clientY-r.top)/Math.max(1,r.height); gdot.style.display='block'; gdot.style.left=(t.clientX-st.getBoundingClientRect().left)+'px'; gdot.style.top=(t.clientY-st.getBoundingClientRect().top)+'px'; gsend('hover'); gsend('tap'); try{gkeys.focus();}catch(_){}; }, {passive:false});
+st.addEventListener('touchstart', ev=>{ ev.preventDefault(); const t=ev.touches[0]; const r=img.getBoundingClientRect(); gnx=(t.clientX-r.left)/Math.max(1,r.width); gny=(t.clientY-r.top)/Math.max(1,r.height); gdot.style.display='block'; gdot.style.left=(t.clientX-st.getBoundingClientRect().left)+'px'; gdot.style.top=(t.clientY-st.getBoundingClientRect().top)+'px'; gsend('hover'); gsend('tap'); try{gkeys.blur();}catch(_){}; }, {passive:false});
 gkeys.addEventListener('input', ()=>{ const v=gkeys.value; let i=0; while(i<v.length&&i<gTyped.length&&v[i]===gTyped[i]) i++; const back=gTyped.length-i, add=v.slice(i); gTyped=v; if(back) gsend('key',{vk:8,n:back}); if(add) gsend('key',{text:add}); });
 document.getElementById('gtf').onsubmit=ev=>{ ev.preventDefault(); gsend('key',{vk:13}); gTyped=''; gkeys.value=''; };
 async function run(text, extra){
@@ -2065,7 +2109,7 @@ def kernel_manifest() -> dict:
             "POCKET Live (Gemini + atlas)",
             "Grok chat · camera · maps · notes · code desk · Antigravity",
             "Always-on runtime — agents bring the host up",
-            "Coder — long-term Grok agent for Pocket + PhoneAI + forge",
+            "Code desk — Grok CLI · Codex CLI · Meta Muse · Gemini CLI in your GitHubs",
             "MCP apps inside the kernel (Pocket · Nexus · Loom · GitHub · Cloudflare · files)",
             "MCP · Agent Mail · Novae",
         ],

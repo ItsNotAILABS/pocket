@@ -783,76 +783,50 @@ def ask_engine(text: str, *, engine: str = "auto", thread_id: str = "", wrap_cod
     return _local_chat(text, thought, where)
 
 
-def work(text: str, *, engine: str = "auto", thread_id: str = "") -> Dict[str, Any]:
-    try:
-        from pocket.coder_persona import ensure as ensure_coder
+def work(
+    text: str,
+    *,
+    engine: str = "grok",
+    thread_id: str = "",
+    cwd: str = "",
+    repo: str = "",
+    session_id: str = "",
+    new: bool = False,
+) -> Dict[str, Any]:
+    """Code desk only: wired CLI + GitHub/local repo. No personas / RAH / agent attach."""
+    from pocket.phoneai_code_desk import run as desk_run
 
-        ensure_coder()
-    except Exception:
-        pass
-    low = (text or "").lower()
-    parallel_ask = any(
-        w in low
-        for w in ("in parallel", "parallel agents", "fan out", "fan-out", "split the work", "several agents")
+    return desk_run(
+        text,
+        cli=engine or "grok",
+        session_id=session_id or thread_id,
+        repo=repo,
+        cwd=cwd,
+        new=bool(new),
     )
-    mentions: list = []
-    try:
-        from pocket.subagent_dispatch import parse_mentions
-
-        mentions = parse_mentions(text or "")
-    except Exception:
-        mentions = []
-    if (engine or "").lower() in ("rah", "swarm", "parallel") or parallel_ask or len(mentions) >= 2:
-        parts = []
-        if mentions:
-            try:
-                from pocket.subagent_dispatch import dispatch
-
-                d = dispatch(text, from_agent="phoneai", agents=mentions)
-                parts.append(str(d)[:4000])
-            except Exception as e:
-                parts.append(f"dispatch: {e}")
-        try:
-            from pocket.rah import maybe_auto_rah
-
-            auto = maybe_auto_rah(text, mode="work", execute=True)
-            if auto and auto.get("markdown"):
-                parts.append(str(auto.get("markdown")))
-        except Exception as e:
-            parts.append(f"rah: {e}")
-        r = {
-            "ok": True,
-            "engine": "parallel",
-            "reply": "\n\n".join(p for p in parts if p) or "Parallel agents ran.",
-            "parallel": True,
-            "agents": mentions,
-        }
-    else:
-        r = ask_engine(text, engine=engine, thread_id=thread_id, wrap_coder=True)
-    r["companion"] = "PhoneAI Twin"
-    r["persona"] = "coder"
-    r["workspace"] = r.get("cwd") or str(WS)
-    try:
-        note = f"# {r.get('engine')}\n\n{text}\n\n{r.get('reply') or r.get('error') or ''}\n"
-        dest = Path(str(r.get("cwd") or WS)) / "work"
-        dest.mkdir(parents=True, exist_ok=True)
-        fp = dest / f"{int(time.time())}.md"
-        fp.write_text(note, encoding="utf-8")
-        r["space"] = {"explorer": str(fp)}
-    except Exception as e:
-        r["space"] = {"ok": False, "error": str(e)[:160]}
-    return r
 
 
-def work_stream_chunks(text: str, *, engine: str = "auto", thread_id: str = ""):
+def work_stream_chunks(
+    text: str,
+    *,
+    engine: str = "grok",
+    thread_id: str = "",
+    cwd: str = "",
+    repo: str = "",
+    session_id: str = "",
+    new: bool = False,
+):
     """Yield (event, payload) then a final done dict. Used by SSE."""
-    yield ("status", "running")
-    r = work(text, engine=engine, thread_id=thread_id)
-    reply = str(r.get("reply") or r.get("error") or "")
-    step = 120
-    for i in range(0, len(reply), step):
-        yield ("token", reply[i : i + step])
-    yield ("done", r)
+    from pocket.phoneai_code_desk import run_stream
+
+    yield from run_stream(
+        text,
+        cli=engine or "grok",
+        session_id=session_id or thread_id,
+        repo=repo,
+        cwd=cwd,
+        new=bool(new),
+    )
 
 
 def how_html() -> str:

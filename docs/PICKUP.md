@@ -1,20 +1,19 @@
-# Pickup — POCKET parked 2026-09-04
+# Pickup — POCKET parked 2026-09-04 (PhoneAI screen + code desk)
 
-**Stop here.** Resume from this file. Do not rediscover the day.
+**Stop here.** Switch to KILN (`E:\KILN` grok/work). Resume Pocket from this file later.
 
 ## How to pick Pocket back up
 
 1. Read this file + `~/.pocket/PICKUP.md` + `~/.pocket/work_ledger.json`
 2. Host: `python -m pocket serve --host 0.0.0.0 --port 8787` in `OneDrive/pocket-os`
 3. Public: https://pocket.medinatechlabs.net/ (PhoneAI landing; kernel needs Face ID)
-4. Tests: `python -m pytest tests/test_registry.py tests/test_phoneai_mcp_apps.py tests/test_host_control_policy.py tests/test_phoneai_os_and_endure.py -q`
+4. Tests: `python -m pytest tests/test_phoneai_portal.py tests/test_phoneai_code_desk.py tests/test_host_control_policy.py -q`
 
-## Last Pocket commits (pushed)
+## PhoneAI now
 
-| SHA | What |
-|-----|------|
-| `fddff28` | 3.16.7 PhoneAI public seat, MCP apps, registry, kernel/OS, vision stills |
-| `0a9a697` | `.kiln/project.json` — ships in KILN |
+- Portal `/phoneai/portal`: 1:1 laptop pane, controls under the screen, WS-only live stream
+- **Keyboard does not open on screen tap.** Tap **Type** (pill) when you need it; Done hides it
+- Code desk `/phoneai/work`: Grok / Codex / Meta / Gemini CLIs + GitHubs, New session is `cd-…` not an agent
 
 ## Done (do not redo)
 
@@ -25,18 +24,22 @@
 - Vision stills `/brand/vision/`
 - Screen park off capture; Copilot not auto-open
 - Mailbox **split to own repo** `ItsNotAILABS/pocket-mailbox` (:8792)
+- Code desk unmixed from personas/agents
+- Portal 1:1 + no auto-keyboard
 
 ## Next on Pocket (when you return)
 
 - SMTP optional send in mailbox repo
 - PhoneAI Mail tile → mailbox API
+- Meta Muse Code CLI on PATH if you want that desk lane live
 - Push remaining `GROK_INBOX.md` only if you want it public (leave local)
 
 ## Other works (switch to these now)
 
 | Work | Path / URL | Pickup |
 |------|------------|--------|
-| **KILN** | `E:\KILN` app (no git) + `E:\repos\KILN` → [ItsNotAILABS/KILN](https://github.com/ItsNotAILABS/KILN) `7bc4d8c` | Pocket is in `projects/registry.json`. Seed `itsnotailabs/pocket` in `E:\KILN/src/lib/kiln/seed.ts`. |
+| **KILN workspace** | `E:\KILN` (`grok/work`) + Codex `E:\workspaces\kiln-codex` (`codex/work`) → [ItsNotAILABS/kiln-workspace](https://github.com/ItsNotAILABS/kiln-workspace) `cb6b184` | Live site https://kiln-git.grok.me/. Domain later: `kiln.medinatechlabs.net` (`docs/DOMAIN.md`). Read `E:\KILN\WORKSPACE.md`. |
+| **KILN Foundry L1** | `E:\repos\KILN` → [ItsNotAILABS/KILN](https://github.com/ItsNotAILABS/KILN) | Registry includes kiln-workspace, pocket, mailbox, sovereign-engine. |
 | **Sovereign Engine** | `E:\repos\sovereign-engine` → [FreddyCreates/sovereign-engine](https://github.com/FreddyCreates/sovereign-engine) `b35efa9` | Frontend `/api/v1/infra` + `/api/v1/finance`. AGENTS.md: no fake MRR. |
 | **PhoneAI** | Pocket `/phoneai/app` + [ItsNotAILABS/PhoneAI](https://github.com/ItsNotAILABS/PhoneAI) | Kernel/OS live on host; Expo twin is separate repo. |
 | **Mailbox** | `OneDrive/pocket-mailbox` | `python -m pocket_mailbox` |

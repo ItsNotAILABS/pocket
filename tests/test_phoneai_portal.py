@@ -108,6 +108,10 @@ def test_portal_html_phone_zoom_and_controls():
     assert "setScreenMode" in html
     assert "drag-mode" in html
     assert 'id="typeform"' in html
+    assert 'id="typeBtn"' in html
+    assert "setTypePad" in html
+    assert "keys.blur()" in html
+    assert "send('tap', p.nx, p.ny)" in html
     assert "send('hover'" in html
     assert "4500" not in html
 

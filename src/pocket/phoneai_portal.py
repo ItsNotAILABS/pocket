@@ -1322,9 +1322,10 @@ def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72, 
 def run_portal_ws(sock, headers=None, client_address=None) -> None:
     """One connection: binary JPEGs out, JSON touch in. No HTTP round-trip per move."""
     sock.settimeout(0.02)
-    cfg = {"max_w": 1024, "q": 64, "target": "desktop", "fps": 16.0, "hwnd": 0}
+    cfg = {"max_w": 960, "q": 58, "target": "desktop", "fps": 12.0, "hwnd": 0}
     last = 0.0
     last_ping = 0.0
+    last_seq = -1
     stash: list = [b""]
     hello = json.dumps(
         {
@@ -1344,7 +1345,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
     _kick_grab("desktop", 1024, 64)
     while True:
         now = time.time()
-        interval = 1.0 / max(8.0, min(float(cfg["fps"]), 20.0))
+        interval = 1.0 / max(6.0, min(float(cfg["fps"]), 14.0))
         if now - last_ping >= 4.0:
             try:
                 _ws_send(sock, b"ping", 9)
@@ -1367,18 +1368,23 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
             if peeked:
                 try:
                     meta = peeked[1] if isinstance(peeked[1], dict) else {}
-                    env = {
-                        "kind": "frame",
-                        "schema": "pocket.stream.v1",
-                        "seq": meta.get("seq"),
-                        "geom": {k: meta.get(k) for k in ("x", "y", "w", "h", "hwnd") if k in meta},
-                        "matrix": meta.get("matrix"),
-                        "via": meta.get("via"),
-                        "bytes": len(peeked[0] or b""),
-                    }
-                    _ws_send(sock, json.dumps(env).encode("utf-8"), 1)
-                    _ws_send(sock, peeked[0], 2)
-                    last = now
+                    seq = int(meta.get("seq") or 0)
+                    if seq and seq == last_seq:
+                        last = now
+                    else:
+                        last_seq = seq or last_seq
+                        env = {
+                            "kind": "frame",
+                            "schema": "pocket.stream.v1",
+                            "seq": meta.get("seq"),
+                            "geom": {k: meta.get(k) for k in ("x", "y", "w", "h", "hwnd") if k in meta},
+                            "matrix": meta.get("matrix"),
+                            "via": meta.get("via"),
+                            "bytes": len(peeked[0] or b""),
+                        }
+                        _ws_send(sock, json.dumps(env).encode("utf-8"), 1)
+                        _ws_send(sock, peeked[0], 2)
+                        last = now
                 except Exception:
                     break
         try:
@@ -1430,7 +1436,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
             if msg.get("q") or msg.get("quality"):
                 cfg["q"] = max(40, min(int(msg.get("q") or msg.get("quality")), 90))
             if msg.get("fps"):
-                cfg["fps"] = max(8.0, min(float(msg["fps"]), 20.0))
+                cfg["fps"] = max(6.0, min(float(msg["fps"]), 14.0))
             continue
         if kind in ("ping", "hello"):
             continue
