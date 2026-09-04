@@ -80,7 +80,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "action": {"type": "string", "enum": ["status", "repos", "clone", "pr"]},
+                    "action": {"type": "string", "enum": ["status", "repos", "clone", "pr", "inspect"]},
                     "repo": {"type": "string"},
                     "title": {"type": "string"},
                 },
@@ -196,6 +196,8 @@ def run_tool(name: str, args: Dict[str, Any], *, cwd: str = "") -> str:
             if action in ("pr", "create_pr"):
                 r = create_pr(str(args.get("title") or "Spark update"), cwd=cwd)
                 return _json(bool(r.get("ok")), **r)
+            if action in ("inspect", "readme", "tree", "file", "view"):
+                return _json(True, **inspect_github(str(args.get("repo") or args.get("path") or "")))
             return _json(False, error=f"unknown github action {action}")
         if name == "vcomp":
             from pocket.virtual_computer import act, open_computer, shell as vc_shell, status as vc_status
@@ -248,13 +250,125 @@ def _parse_text_tool(text: str) -> Optional[Dict[str, Any]]:
 
 SYS = (
     "You are Spark on POCKET, a Native Agent OS on the operator's Windows PC. "
-    "You CAN write files. You MUST use tools — do not tell the user you cannot access the filesystem.\n"
-    "Tools: read_file, write_file, list_dir, shell (git/gh/pytest), github, vcomp (virtual computer).\n"
-    "If the API has no native tool_calls, emit ONE JSON object in a fenced block:\n"
-    '{"tool":"write_file","path":"relative-or-absolute","content":"..."}\n'
-    "Then stop and wait for TOOL_RESULT. After the work is done, reply in plain language with the paths you wrote.\n"
-    "Stay inside the given cwd unless the user names another allowed repo."
+    "You CAN write files and you CAN read GitHub through host tools (gh). "
+    "NEVER say you cannot browse GitHub, cannot open a URL, or cannot write files. "
+    "If a GitHub URL is in the prompt, the host may already have fetched README + file tree — use that. "
+    "If not, call github with action=inspect and repo=owner/name.\n"
+    "Tools: read_file, write_file, list_dir, shell (git/gh), github (status/repos/clone/pr/inspect), vcomp.\n"
+    "If native tool_calls are missing, emit ONE JSON object in a fenced block, then wait for TOOL_RESULT.\n"
+    '{"tool":"github","action":"inspect","repo":"owner/name"}\n'
+    "After tools run, answer with a concrete lane: files to touch, what to write, commands to run."
 )
+
+
+_GH_URL = re.compile(r"github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", re.I)
+_GH_SHORT = re.compile(r"\b([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)\b")
+
+
+def _local_repo_dir(repo: str) -> Optional[Path]:
+    name = (repo or "").split("/")[-1]
+    aliases = {
+        "pocket": Path.home() / "OneDrive" / "pocket-os",
+        "pocket-os": Path.home() / "OneDrive" / "pocket-os",
+        "phoneai": Path.home() / "OneDrive" / "PhoneAI",
+        "pocket-mailbox": Path.home() / "OneDrive" / "pocket-mailbox",
+        "kiln-workspace": Path(r"E:\KILN"),
+        "kiln": Path(r"E:\repos") / "KILN",
+        "sovereign-engine": Path(r"E:\repos") / "sovereign-engine",
+    }
+    cands = [aliases.get(name.lower())]
+    cands += [
+        Path.home() / "OneDrive" / name,
+        Path(r"E:\repos") / name,
+        Path.home() / ".pocket" / "workspaces" / name,
+    ]
+    for p in cands:
+        if p and p.is_dir() and ((p / ".git").exists() or (p / "README.md").is_file()):
+            return p
+    return None
+
+
+def inspect_github(spec: str) -> Dict[str, Any]:
+    """README + file tree: local clone first, then signed-in gh. Never 'I cannot browse'."""
+    import base64
+
+    raw = (spec or "").strip()
+    m = _GH_URL.search(raw)
+    if m:
+        repo = f"{m.group(1)}/{m.group(2).removesuffix('.git')}"
+    elif "/" in raw and " " not in raw.strip():
+        repo = raw.replace("https://", "").replace("github.com/", "").strip("/").removesuffix(".git")
+    else:
+        m2 = _GH_SHORT.search(raw)
+        repo = f"{m2.group(1)}/{m2.group(2)}" if m2 else ""
+    if not repo or repo.count("/") != 1:
+        return {"ok": False, "error": "need owner/name", "repo": repo}
+
+    local = _local_repo_dir(repo)
+    if local:
+        readme = ""
+        for n in ("README.md", "README.MD", "readme.md"):
+            fp = local / n
+            if fp.is_file():
+                readme = fp.read_text(encoding="utf-8", errors="replace")[:8000]
+                break
+        skip = {".git", "node_modules", "__pycache__", ".venv", "dist", ".pytest_cache"}
+        paths: List[str] = []
+        for dirpath, dirnames, filenames in os.walk(local):
+            dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
+            rel = Path(dirpath).relative_to(local)
+            for fn in filenames:
+                item = fn if str(rel) == "." else str(rel / fn).replace("\\", "/")
+                paths.append(item)
+                if len(paths) >= 80:
+                    break
+            if len(paths) >= 80:
+                break
+        return {
+            "ok": True,
+            "repo": repo,
+            "local": str(local),
+            "readme": readme,
+            "tree": paths,
+            "tree_count": len(paths),
+            "via": "local",
+        }
+
+    from pocket.github_hub import _gh
+
+    code, readme_b64, err = _gh("api", f"repos/{repo}/readme", "--jq", ".content", timeout=60)
+    readme = ""
+    if code == 0 and (readme_b64 or "").strip():
+        try:
+            readme = base64.b64decode(readme_b64.replace("\n", "")).decode("utf-8", errors="replace")
+        except Exception:
+            readme = readme_b64[:4000]
+    code2, tree_raw, err2 = _gh("api", f"repos/{repo}/git/trees/HEAD?recursive=1", timeout=60)
+    paths = []
+    if code2 == 0:
+        try:
+            tree = json.loads(tree_raw or "{}")
+            for t in (tree.get("tree") or [])[:120]:
+                if t.get("type") == "blob":
+                    paths.append(str(t.get("path") or ""))
+        except Exception:
+            paths = []
+    return {
+        "ok": bool(readme or paths),
+        "repo": repo,
+        "readme": (readme or "")[:8000],
+        "tree": paths[:80],
+        "tree_count": len(paths),
+        "via": "gh",
+        "error": "" if (readme or paths) else (err or err2 or "gh failed")[:400],
+    }
+
+
+def _github_in_prompt(prompt: str) -> str:
+    m = _GH_URL.search(prompt or "")
+    if m:
+        return f"{m.group(1)}/{m.group(2).removesuffix('.git')}"
+    return ""
 
 
 def work(prompt: str, *, cwd: str = "", max_turns: int = MAX_TURNS) -> Dict[str, Any]:
@@ -263,9 +377,24 @@ def work(prompt: str, *, cwd: str = "", max_turns: int = MAX_TURNS) -> Dict[str,
         return {"ok": False, "engine": "spark", "error": "say something"}
     cwd = cwd or str(Path.home() / ".pocket" / "phoneai_ws")
     Path(cwd).mkdir(parents=True, exist_ok=True)
+    user = prompt[:8000]
+    gh_repo = _github_in_prompt(prompt)
+    inspected = None
+    if gh_repo:
+        inspected = inspect_github(gh_repo)
+        if inspected.get("ok"):
+            user = (
+                prompt[:4000]
+                + "\n\n--- HOST FETCHED THIS REPO VIA gh (you already have it; do not say you cannot browse) ---\n"
+                + f"repo: {inspected.get('repo')}\n"
+                + "README:\n"
+                + str(inspected.get("readme") or "")[:5000]
+                + "\n\nFILE TREE:\n"
+                + "\n".join(inspected.get("tree") or [])
+            )
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": SYS + f"\nWorking directory: {cwd}"},
-        {"role": "user", "content": prompt[:8000]},
+        {"role": "user", "content": user},
     ]
     actions: List[Dict[str, Any]] = []
     last_text = ""
@@ -278,7 +407,7 @@ def work(prompt: str, *, cwd: str = "", max_turns: int = MAX_TURNS) -> Dict[str,
             timeout=90,
         )
         if not r.get("ok") and not r.get("tool_calls") and not r.get("reply"):
-            return {**r, "engine": "spark", "cwd": cwd, "actions": actions}
+            return {**r, "engine": "spark", "cwd": cwd, "actions": actions, "github": inspected}
         tcs = r.get("tool_calls") or []
         text = str(r.get("reply") or "")
         last_text = text
@@ -332,6 +461,7 @@ def work(prompt: str, *, cwd: str = "", max_turns: int = MAX_TURNS) -> Dict[str,
             "actions": actions,
             "via": r.get("via"),
             "model": r.get("model"),
+            "github": inspected,
         }
     return {
         "ok": True,
@@ -339,4 +469,5 @@ def work(prompt: str, *, cwd: str = "", max_turns: int = MAX_TURNS) -> Dict[str,
         "reply": last_text or "Spark hit the tool-turn limit.",
         "cwd": cwd,
         "actions": actions,
+        "github": inspected,
     }

@@ -19,6 +19,20 @@ def test_path_outside_roots_blocked(tmp_path, monkeypatch):
     assert "not in allowed roots" in out
 
 
+def test_inspect_github_prefers_local(tmp_path, monkeypatch):
+    (tmp_path / "README.md").write_text("# Demo repo\nLane: tests.\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text("print(1)\n", encoding="utf-8")
+    monkeypatch.setattr("pocket.spark_work._local_repo_dir", lambda repo: tmp_path)
+    from pocket.spark_work import inspect_github
+
+    r = inspect_github("https://github.com/acme/demo")
+    assert r["ok"] is True
+    assert r["via"] == "local"
+    assert "Demo repo" in r["readme"]
+    assert any("main.py" in p for p in r["tree"])
+
+
 def test_work_uses_text_tool_protocol(tmp_path, monkeypatch):
     monkeypatch.setattr("pocket.spark_work._roots", lambda: [tmp_path])
     calls = {"n": 0}
