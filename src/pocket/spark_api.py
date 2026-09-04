@@ -118,22 +118,28 @@ def chat(
     model: str = "",
     max_tokens: int = 2048,
     timeout: float = 90,
+    messages: Optional[List[Dict[str, Any]]] = None,
+    tools: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """One OpenAI-compatible chat turn. Public URL first, tailnet fallback."""
     c = _load()
     key = c.get("api_key") or ""
     if not key:
         return {"ok": False, "engine": "spark", "error": "Spark API key not configured (~/.pocket/spark.json)"}
-    messages: List[Dict[str, str]] = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": (prompt or "")[:12000]})
-    payload = {
+    if messages is None:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": (prompt or "")[:12000]})
+    payload: Dict[str, Any] = {
         "model": (model or c.get("model") or DEFAULT_MODEL),
         "messages": messages,
         "max_tokens": max(64, min(int(max_tokens or 2048), 8192)),
         "enable_thinking": False,
     }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
     bases = [c.get("base_url") or DEFAULT_PUBLIC]
     tail = c.get("tailnet") or DEFAULT_TAILNET
     if tail and tail not in bases:
@@ -155,12 +161,14 @@ def chat(
             reply = str(raw or "").strip()
             if not reply:
                 reply = str((msg or {}).get("reasoning_content") or "").strip()
+            tcs = (msg or {}).get("tool_calls") or []
             return {
-                "ok": bool(reply),
+                "ok": bool(reply or tcs),
                 "engine": "spark",
                 "via": last.get("via"),
                 "model": data.get("model") or payload["model"],
-                "reply": (reply or "Spark returned no text")[-12000:],
+                "reply": (reply or ("" if tcs else "Spark returned no text"))[-12000:],
+                "tool_calls": tcs,
                 "usage": data.get("usage") or {},
                 "id": data.get("id"),
             }

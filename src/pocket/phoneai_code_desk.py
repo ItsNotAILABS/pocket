@@ -448,14 +448,9 @@ def _run_cli(cli: str, text: str, cwd: str) -> Dict[str, Any]:
     timeout = float(os.environ.get("POCKET_CODE_DESK_TIMEOUT") or "180")
 
     if cli == "spark":
-        from pocket.spark_api import chat as spark_chat
+        from pocket.spark_work import work as spark_work
 
-        r = spark_chat(
-            prompt,
-            system=f"You are Spark coding on {cwd}. Edit this repo. Be specific.",
-            max_tokens=2048,
-            timeout=min(timeout, 120),
-        )
+        r = spark_work(prompt, cwd=cwd)
         r["cwd"] = cwd
         return r
 

@@ -4790,10 +4790,11 @@ class Handler(BaseHTTPRequestHandler):
                 ),
             )
         if path in ("/v1/spark/chat", "/api/spark/chat"):
-            from pocket.spark_api import chat as spark_chat
+            from pocket.spark_work import work as spark_work
 
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
-            return self._json(200, spark_chat(text, max_tokens=int(body.get("max_tokens") or 2048)))
+            cwd = str(body.get("cwd") or body.get("repo") or "")
+            return self._json(200, spark_work(text, cwd=cwd))
         if path in ("/v1/crew/spawn", "/api/crew/spawn"):
             from pocket.crew import spawn as crew_spawn
 

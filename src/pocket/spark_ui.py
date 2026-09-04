@@ -34,7 +34,7 @@ button{border:0;border-radius:12px;background:var(--g);color:#fff;font-weight:80
 </div>
 <div class="log" id="log"></div>
 <form class="form" id="f">
-  <textarea id="t" placeholder="Talk to Spark (qwen3.8-27b)…" rows="1"></textarea>
+  <textarea id="t" placeholder="Spark writes files on this PC. Try: write hello.md in the pocket repo…" rows="1"></textarea>
   <button>Send</button>
 </form>
 <script>
@@ -44,7 +44,7 @@ function add(who, text){
 }
 fetch('/v1/spark',{credentials:'include'}).then(r=>r.json()).then(j=>{
   document.getElementById('st').textContent=(j.configured?'Ready · ':'NOT CONFIGURED · ')+(j.model||'')+' · '+(j.base_url||'');
-  add('bot', j.configured?'Spark is on this PC. Send a message.':'Key missing in ~/.pocket/spark.json');
+  add('bot', j.configured?'Spark can write local files, git/GitHub, and the virtual computer. Ask it to create a file.':'Key missing in ~/.pocket/spark.json');
 }).catch(()=>add('bot','Host not reachable'));
 document.getElementById('f').onsubmit=async ev=>{
   ev.preventDefault();
@@ -52,7 +52,8 @@ document.getElementById('f').onsubmit=async ev=>{
   t.value=''; add('me', text); add('bot','…');
   try{
     const j=await fetch('/v1/spark/chat',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})}).then(r=>r.json());
-    log.lastChild.textContent=j.reply||j.error||JSON.stringify(j);
+    const acts=(j.actions||[]).map(a=>a.tool+(a.path?(' '+a.path):'')).filter(Boolean);
+    log.lastChild.textContent=(j.reply||j.error||JSON.stringify(j))+(acts.length?'\n\n[tools: '+acts.join(', ')+']':'');
   }catch(e){ log.lastChild.textContent='Spark request failed'; }
 };
 </script>

@@ -113,11 +113,9 @@ def run_muse_spark_job(
         st = spark_status()
         if st.get("configured"):
             _progress(jid, f"Spark · {st.get('model')} via {st.get('base_url')}…")
-            r = spark_chat(
-                text,
-                system="You are Spark on POCKET. Direct, useful answers. Name files and next steps.",
-                max_tokens=2048,
-            )
+            from pocket.spark_work import work as spark_work
+
+            r = spark_work(text, cwd=cwd or str(__import__("pathlib").Path.home() / ".pocket" / "phoneai_ws"))
             if r.get("reply"):
                 body = (
                     f"# Spark\n\n_{r.get('model')} · {r.get('via')}_\n\n"
