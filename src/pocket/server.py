@@ -1600,6 +1600,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.spark_api import status as spark_status
 
             return self._json(200, spark_status())
+        if path in ("/spark", "/phoneai/spark"):
+            from pocket.spark_ui import spark_html
+
+            return self._html(spark_html())
         if path in ("/v1/eyes", "/api/eyes"):
             from pocket.agent_eyes import catalog as eyes_cat, see as eyes_see
             from pocket.host_control import allow as host_ok
@@ -4785,6 +4789,11 @@ class Handler(BaseHTTPRequestHandler):
                     long_term=body.get("long_term"),
                 ),
             )
+        if path in ("/v1/spark/chat", "/api/spark/chat"):
+            from pocket.spark_api import chat as spark_chat
+
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            return self._json(200, spark_chat(text, max_tokens=int(body.get("max_tokens") or 2048)))
         if path in ("/v1/crew/spawn", "/api/crew/spawn"):
             from pocket.crew import spawn as crew_spawn
 

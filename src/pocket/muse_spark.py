@@ -118,13 +118,18 @@ def run_muse_spark_job(
                 system="You are Spark on POCKET. Direct, useful answers. Name files and next steps.",
                 max_tokens=2048,
             )
-            if r.get("ok") and r.get("reply"):
+            if r.get("reply"):
                 body = (
                     f"# Spark\n\n_{r.get('model')} · {r.get('via')}_\n\n"
                     f"{r.get('reply')}\n"
                 )
-                return body, "", "muse_spark"
-            _progress(jid, f"Spark HTTP missed ({r.get('error') or r.get('http')}) — local lanes")
+                return body, "" if r.get("ok") else str(r.get("error") or ""), "muse_spark"
+            return (
+                f"# Spark\n\nCould not get a reply.\n\n`{r.get('error') or r.get('http') or 'empty'}`\n"
+                f"Check http://127.0.0.1:8787/spark\n",
+                str(r.get("error") or "empty"),
+                "muse_spark",
+            )
     except Exception as e:
         _progress(jid, f"Spark skip: {e}"[:160])
 

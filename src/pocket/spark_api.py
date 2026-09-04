@@ -132,6 +132,7 @@ def chat(
         "model": (model or c.get("model") or DEFAULT_MODEL),
         "messages": messages,
         "max_tokens": max(64, min(int(max_tokens or 2048), 8192)),
+        "enable_thinking": False,
     }
     bases = [c.get("base_url") or DEFAULT_PUBLIC]
     tail = c.get("tailnet") or DEFAULT_TAILNET
@@ -142,15 +143,24 @@ def chat(
         last = _post(base, "/chat/completions", payload, key, timeout)
         if last.get("ok"):
             data = last.get("data") or {}
-            choice = ((data.get("choices") or [{}])[0])
+            choice = ((data.get("choices") or [{}])[0]) if isinstance(data.get("choices"), list) else {}
             msg = (choice.get("message") or {}) if isinstance(choice, dict) else {}
-            reply = str(msg.get("content") or choice.get("text") or "").strip()
+            raw = msg.get("content") if isinstance(msg, dict) else None
+            if raw is None:
+                raw = choice.get("text") if isinstance(choice, dict) else ""
+            if isinstance(raw, list):
+                raw = "".join(
+                    str(p.get("text") or p.get("content") or "") if isinstance(p, dict) else str(p) for p in raw
+                )
+            reply = str(raw or "").strip()
+            if not reply:
+                reply = str((msg or {}).get("reasoning_content") or "").strip()
             return {
                 "ok": bool(reply),
                 "engine": "spark",
                 "via": last.get("via"),
                 "model": data.get("model") or payload["model"],
-                "reply": reply[-12000:] or "empty spark reply",
+                "reply": (reply or "Spark returned no text")[-12000:],
                 "usage": data.get("usage") or {},
                 "id": data.get("id"),
             }
@@ -165,4 +175,4 @@ def chat(
 
 
 def ping() -> Dict[str, Any]:
-    return chat("Reply with the single word: pong", max_tokens=16, timeout=40)
+    return chat("Reply with the single word: pong", max_tokens=64, timeout=60)

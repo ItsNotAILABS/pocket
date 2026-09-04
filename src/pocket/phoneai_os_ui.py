@@ -136,6 +136,7 @@ body.desk .dock{display:none!important;pointer-events:none}
   <div class="grid">
     <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Code desk</span></a>
     <a class="app" href="/crew"><div class="icon">⧉</div><span>Crew</span></a>
+    <a class="app" href="/spark"><div class="icon">✦</div><span>Spark</span></a>
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
     <a class="app" href="/phoneai/computer"><div class="icon">🖥</div><span>Computer</span></a>
@@ -743,7 +744,7 @@ select.pick{flex:1;min-width:140px;padding:8px;border-radius:10px;background:#0c
 let engine='grok';
 let sessionId='';
 let repo='';
-const LABELS={grok:'Grok CLI',codex:'Codex CLI',meta:'Meta',gemini:'Gemini CLI'};
+const LABELS={grok:'Grok CLI',codex:'Codex CLI',meta:'Meta',gemini:'Gemini CLI',spark:'Spark'};
 const log=document.getElementById('log');
 function add(who, text, eng){
   const d=document.createElement('div');
