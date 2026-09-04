@@ -720,7 +720,12 @@ def run_job(job: Dict) -> Tuple[str, str, str]:
         return _run_vision_agent(prompt, cwd, job_id=jid)
     if mode in ("work", "working", "live_work", "work_mode", "persistent"):
         return _run_work_mode(prompt, cwd, job_id=jid, session_id=sid)
-    if mode in ("muse_spark", "muse", "spark", "muse-spark", "musespark"):
+    if mode in ("spark", "reagent-spark", "qwen-spark"):
+        from pocket.spark_work import work as spark_work
+
+        r = spark_work(prompt, cwd=cwd or str(Path.home() / ".pocket" / "phoneai_ws"))
+        return str(r.get("reply") or r.get("error") or ""), "" if r.get("ok") else str(r.get("error") or ""), "spark"
+    if mode in ("muse_spark", "muse", "muse-spark", "musespark"):
         from pocket.muse_spark import run_muse_spark_job
 
         return run_muse_spark_job(prompt, cwd=cwd, job=job)

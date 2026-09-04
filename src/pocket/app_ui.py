@@ -1505,6 +1505,7 @@ body.device-computer .rail{display:flex!important}
       <button type="button" onclick="pickAgent('claude')" title="Claude Agent SDK loop (Read/Edit/Bash) · streams to desk"><b>Claude</b><small>Agent SDK · tools</small></button>
       <button type="button" onclick="pickAgent('assist')" title="Digital assistant — real-life help"><b>Assistant</b><small>Life · research · ops</small></button>
       <button type="button" onclick="pickAgent('studio')" title="Product Studio agent — record · viral · ship"><b>Studio</b><small>Record → ship demos</small></button>
+      <button type="button" onclick="pickAgent('spark')" title="Spark — Reagent qwen3.8-27b · writes files · GitHub · vcomputer"><b>Spark</b><small>qwen3.8 · real work on this PC</small></button>
       <button type="button" onclick="pickAgent('muse_spark')" title="Muse Spark — Meta multimodal reasoning · parallel lanes"><b>Muse Spark</b><small>Multimodal · research lanes</small></button>
       <button type="button" onclick="pickAgent('auro')" title="Auro14B local LMR + meaning"><b>Auro</b><small>Local LMR · meaning</small></button>
       <button type="button" onclick="pickAgent('voice')" title="Aria — real voice product · lists · life ops · screen · speak-back"><b>Aria · Voice</b><small>Talk · act · speak back</small></button>
@@ -1592,7 +1593,9 @@ body.device-computer .rail{display:flex!important}
           <button type="button" data-mode="claude">Claude</button>
           <button type="button" data-mode="assist">Assist</button>
           <button type="button" data-mode="studio">Studio</button>
-          <button type="button" data-mode="muse_spark">Muse</button>
+          <button type="button" data-mode="spark">Spark</button>
+          <button type="button" data-mode="spark">Spark</button>
+      <button type="button" data-mode="muse_spark">Muse</button>
           <button type="button" data-mode="voice">Aria</button>
           <button type="button" data-mode="build">Build</button>
           <button type="button" data-mode="plan">Plan</button>
@@ -2755,7 +2758,8 @@ let AGENT_CATALOG=[
     {id:'codex', name:'Codex', blurb:'Write and fix code · harnessed subagents', color:'#22c55e', first_class:true, harness:true},
     {id:'grok', name:'Grok', blurb:'Code, research · harnessed subagents', color:'#06b6d4', first_class:true, harness:true},
     {id:'claude', name:'Claude', blurb:'Agent SDK loop · tools · harnessed', color:'#f59e0b', first_class:true, harness:true},
-    {id:'muse_spark', name:'Muse Spark', blurb:'Meta multimodal · parallel lanes · voice engine OK', color:'#a855f7', first_class:true, harness:true},
+    {id:'spark', name:'Spark', blurb:'Reagent qwen3.8-27b · writes files · GitHub · vcomputer', color:'#a855f7', first_class:true, harness:true},
+    {id:'muse_spark', name:'Muse Spark', blurb:'Meta multimodal · parallel lanes', color:'#c084fc', first_class:true, harness:true},
     {id:'assist', name:'Digital assistant', blurb:'Real-life help · routes engines · Work Studio', color:'#2dd4bf', first_class:true, harness:true},
     {id:'auro', name:'Auro14B', blurb:'Local LMR + meaning model', color:'#fbbf24', first_class:true},
     {id:'voice', name:'Voice ↔ Voice', blurb:'Specialized agent — talk and hear back', color:'#0b84fe', first_class:true},
@@ -5114,6 +5118,7 @@ function showEmpty(){
       <button type="button" data-mode="claude">Claude</button>
       <button type="button" data-mode="assist">Assist</button>
       <button type="button" data-mode="studio">Studio</button>
+      <button type="button" data-mode="spark">Spark</button>
       <button type="button" data-mode="muse_spark">Muse</button>
       <button type="button" data-mode="voice">Aria</button>
       <button type="button" data-mode="build">Build</button>
@@ -5240,9 +5245,9 @@ function emptyHint(mode){
     v2v:'Aria voice session — specialized duplex agent only.',
     voice_agent:'Aria voice session — specialized duplex agent only.',
     voice2voice:'Aria voice session — specialized duplex agent only.',
-    muse_spark:'Muse Spark — multimodal reasoning with parallel research lanes. Say open meta for meta.ai. Activate Voice engine to talk.',
-    muse:'Muse Spark — same as Muse Spark.',
-    spark:'Muse Spark — same as Muse Spark.',
+    spark:'Spark — Reagent qwen3.8-27b on this PC. Writes files, GitHub (gh), virtual computer. Ask it to create a file or inspect a repo.',
+    muse_spark:'Muse Spark — Meta multimodal lanes. Group Spark is the Spark button.',
+    muse:'Muse Spark — Meta lanes.',
     assist:'Digital assistant — research, plans, drafts, buy/reserve, screen. Or open Work Studio tab for the full life surface.',
     assistant:'Digital assistant — same as assist.',
     auro:'Auro14B — local meaning model + native LMR. Prefix native for full checkpoint. Open /auro/ for browser model.',
@@ -7969,7 +7974,7 @@ boot().then(async()=>{
         mesie:'mesie',nexus:'nexus',auro:'auro',auro14b:'auro',ro14b:'auro',
         grok:'grok',codex:'codex',claude:'claude',build:'build',wiki:'wiki',
         dual:'dual',swarm:'swarm',assist:'assist',assistant:'assist',
-        muse:'muse_spark',muse_spark:'muse_spark',spark:'muse_spark',
+        muse:'muse_spark',muse_spark:'muse_spark',spark:'spark',
         work:'work',working:'work',voice:'voice',plan:'plan',
         genetic:'genetic',genetic_flow:'genetic',internal:'genetic',internal_models:'genetic',
         mail:'assist'
@@ -7980,7 +7985,7 @@ boot().then(async()=>{
     // Work Studio → desk handoff: start agent + fill prompt
     const h=window.__pocketHandoff;
     if(h && authed){
-      const handMap={assist:'assist',assistant:'assist',digital:'assist',muse:'muse_spark',spark:'muse_spark'};
+      const handMap={assist:'assist',assistant:'assist',digital:'assist',muse:'muse_spark',spark:'spark'};
       const mode=handMap[(h.mode||'').toLowerCase()]||h.mode||'assist';
       if(mode) await pickAgent(mode);
       if(h.voice && activeId){
