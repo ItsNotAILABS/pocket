@@ -34,6 +34,30 @@ def systems() -> List[Dict[str, Any]]:
             "for": "Remote seat · Aria · assist",
         },
         {
+            "id": "phoneai",
+            "name": "PhoneAI Kernel",
+            "where": "/phoneai · /phoneai/app",
+            "api": ["/v1/phoneai/kernel", "/v1/phoneai/mcp", "/v1/auth/passkey"],
+            "how_to": "docs/how-to/PHONEAI.md",
+            "for": "Public PhoneAI site · signup + Face ID · live kernel on the paired phone",
+        },
+        {
+            "id": "phoneai_mcp",
+            "name": "PhoneAI MCP apps",
+            "where": "/phoneai/mcp",
+            "api": ["/v1/phoneai/mcp", "/v1/phoneai/mcp/invoke"],
+            "how_to": "docs/how-to/PHONEAI_MCP.md",
+            "for": "Each MCP server is an app inside PhoneAI",
+        },
+        {
+            "id": "registry",
+            "name": "Full registry",
+            "where": "/registry · /phoneai/registry",
+            "api": ["/v1/registry"],
+            "how_to": "docs/how-to/REGISTRY.md",
+            "for": "Every PhoneAI app, MCP server, system, how-to, paper, and named technology",
+        },
+        {
             "id": "agent_mail",
             "name": "Agent Mail",
             "where": "/mail",
@@ -108,10 +132,10 @@ def systems() -> List[Dict[str, Any]]:
         {
             "id": "mcp",
             "name": "MCP Colony",
-            "where": "python -m pocket.mcp_server",
-            "api": ["/v1/mcp", "/v1/skills/run"],
+            "where": "/phoneai/mcp · python -m pocket.mcp_server",
+            "api": ["/v1/mcp", "/v1/phoneai/mcp", "/v1/skills/run"],
             "how_to": "docs/how-to/MCP.md",
-            "for": "10 MCPs · pocket core + github + nexus + loom + CF + fs",
+            "for": "10 MCPs as PhoneAI apps · pocket core + github + nexus + loom + CF + fs",
         },
         {
             "id": "install",
@@ -228,6 +252,9 @@ def how_tos() -> List[Dict[str, str]]:
         {"id": "rah", "title": "RAH harnesses", "path": "docs/how-to/RAH.md"},
         {"id": "work", "title": "Work Studio", "path": "docs/how-to/WORK_STUDIO.md"},
         {"id": "phone", "title": "Phone pair", "path": "docs/how-to/PHONE.md"},
+        {"id": "phoneai", "title": "PhoneAI kernel + public site", "path": "docs/how-to/PHONEAI.md"},
+        {"id": "phoneai_mcp", "title": "MCP apps inside PhoneAI", "path": "docs/how-to/PHONEAI_MCP.md"},
+        {"id": "registry", "title": "Full registry", "path": "docs/how-to/REGISTRY.md"},
         {"id": "api", "title": "API recipes", "path": "docs/how-to/API_RECIPES.md"},
     ]
 

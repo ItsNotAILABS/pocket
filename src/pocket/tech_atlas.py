@@ -21,7 +21,10 @@ TREES: List[Dict[str, str]] = [
 APPS: List[Dict[str, str]] = [
     {"id": "desk", "name": "Desk", "url": "/desk", "role": "Coding + agents"},
     {"id": "phone", "name": "POCKET Phone", "url": "/phone", "role": "Mobile web seat"},
-    {"id": "phoneai", "name": "PhoneAI Kernel", "url": "/phoneai", "role": "Native phone OS surface"},
+    {"id": "phoneai", "name": "PhoneAI Kernel", "url": "/phoneai/app", "role": "Native phone OS surface"},
+    {"id": "phoneai-mcp", "name": "MCP apps", "url": "/phoneai/mcp", "role": "Embedded MCP servers as phone apps"},
+    {"id": "registry", "name": "Registry", "url": "/registry", "role": "Every app, MCP, doc, and paper"},
+    {"id": "docs", "name": "Docs + papers", "url": "/docs", "role": "How-to and white papers"},
     {"id": "imagine", "name": "Imagine Studio", "url": "/imagine", "role": "Stills / remakes"},
     {"id": "voice", "name": "Voice Studio", "url": "/studio/voice", "role": "Aria STT/TTS"},
     {"id": "work", "name": "Work Studio", "url": "/work", "role": "Life assistant"},

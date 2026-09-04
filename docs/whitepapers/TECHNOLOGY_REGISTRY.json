@@ -18,6 +18,9 @@
     {"id":"ECMR","name":"Evidence-Coupled Model Router","status":"proposed","description":"Model routing incorporates evidence class and reproducibility requirements in addition to capability/cost/latency."},
     {"id":"RHT","name":"Reciprocal HZ Translator","status":"proposed","description":"Uses MESIE physical-channel metrics as input to device/network transport choice while preserving logical HZ semantics."},
     {"id":"MLC","name":"Model Lineage Capsule","status":"proposed","description":"Signed model descriptor binding checkpoint, tokenizer, runtime profile, evaluation receipts and serving policy."},
-    {"id":"SPE","name":"Spectral Proof Envelope","status":"proposed","description":"Hash-bound spectral input/configuration/output/evaluation artifact for reproducible scientific claims."}
+    {"id":"SPE","name":"Spectral Proof Envelope","status":"proposed","description":"Hash-bound spectral input/configuration/output/evaluation artifact for reproducible scientific claims."},
+    {"id":"PAS","name":"PhoneAI Public Seat","status":"implemented-core","description":"Named tunnel is PhoneAI. Live kernel/Portal/MCP HTML require LAN or signup + Face ID. Random link hits stay on the lock page.","artifacts":["src/pocket/auth.py","src/pocket/phoneai_landing.py","docs/research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER.md"]},
+    {"id":"PMA","name":"PhoneAI MCP Apps","status":"implemented-core","description":"Embedded MCP servers appear as apps inside PhoneAI. Phone invoke is a read/status subset; owner desk keeps full tools.","artifacts":["src/pocket/phoneai_mcp.py","src/pocket/mcp_bundle.py","docs/research/PHONEAI_MCP_APPS_PAPER.md"]},
+    {"id":"PFR","name":"POCKET Full Registry","status":"implemented-core","description":"Single live registry of PhoneAI apps, MCP servers, platform systems, how-tos, research papers, white papers, and named technologies.","artifacts":["src/pocket/registry.py","docs/whitepapers/POCKET_FULL_REGISTRY.json"]}
   ]
 }

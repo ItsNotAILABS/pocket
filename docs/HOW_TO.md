@@ -17,6 +17,9 @@ Practical recipes. Full map: [INDEX.md](INDEX.md) · Live: `GET /v1/catalog` · 
 | Fan out full sub-harnesses | [how-to/RAH.md](how-to/RAH.md) |
 | Life assistant / loops → desk | [how-to/WORK_STUDIO.md](how-to/WORK_STUDIO.md) |
 | Pair phone | [how-to/PHONE.md](how-to/PHONE.md) |
+| **PhoneAI public site + Face ID** | [how-to/PHONEAI.md](how-to/PHONEAI.md) |
+| **MCP apps on the phone** | [how-to/PHONEAI_MCP.md](how-to/PHONEAI_MCP.md) |
+| **Full registry (apps + papers)** | [how-to/REGISTRY.md](how-to/REGISTRY.md) |
 | Copy-paste API recipes | [how-to/API_RECIPES.md](how-to/API_RECIPES.md) |
 | **All MCP tools + 20 uses for agents** | [AGENTS_MCP_TOOLS.md](AGENTS_MCP_TOOLS.md) · `GET /v1/agents/tools` |
 

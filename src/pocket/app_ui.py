@@ -1735,6 +1735,7 @@ body.device-computer .rail{display:flex!important}
       <select id="scTarget" onchange="setScreenTarget(this.value)" style="width:100%;font-size:12px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--fg)">
         <option value="desktop">All monitors (desktop)</option>
         <option value="primary">Primary monitor only</option>
+        <option value="monitor:1">Desktop 2 · secondary / virtual</option>
       </select>
       <div class="sc-acts" style="margin-top:6px">
         <button type="button" onclick="refreshScreenTargets()">Refresh apps</button>
@@ -3000,10 +3001,16 @@ async function pickAgent(mode){
       await selectSess(s.id);
       toast(agentMeta(mode).name+' · resumed');
       if(sideIsDrawer()) closeDrawers();
+      if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
+        try{ await armComputerVision(); }catch(_){}
+      }
       return;
     }
     await newSess(mode);
     if(sideIsDrawer()) closeDrawers();
+    if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
+      try{ await armComputerVision(); }catch(_){}
+    }
   }catch(e){
     toast('Could not open '+(mode||'agent')+': '+(e.message||e),'err');
   }
@@ -3317,21 +3324,35 @@ function _paintScreenMode(){
     badge.style.color=_screenMode==='control'?'#fca5a5':(_screenMode==='view'?'#67e8f9':'#a1a1aa');
   }
 }
+async function armComputerVision(){
+  toggleScreenCol(true);
+  const j=await api('/v1/screen/vision',{method:'POST',body:JSON.stringify({})});
+  _screenMode=(j.share&&j.share.mode)||'view';
+  _screenVcomp=true;
+  _paintScreenMode();
+  refreshScreenTargets();
+  refreshScreenCol(true);
+  toast(j.note||'Vision on the work desktop — POCKET sits on the other display','ok');
+  return j;
+}
 async function setScreenMode(mode){
   try{
-    // When enabling share, heal/reset stale window targets (broken reservation hwnd etc.)
-    const body={mode:mode,vcomp:_screenVcomp};
     if(mode==='view'||mode==='control'){
-      body.reset_target=true;
-      body.target=body.target||'desktop';
+      const parked=await armComputerVision();
+      if(mode==='control'){
+        const j=await api('/v1/screen',{method:'POST',body:JSON.stringify({mode:'control',vcomp:true})});
+        _screenMode=j.mode||'control';
+        _screenVcomp=!!j.vcomp;
+        _paintScreenMode();
+        toast('Agents may control the work desktop — POCKET stays on the other display');
+      }
+      return parked;
     }
-    const j=await api('/v1/screen',{method:'POST',body:JSON.stringify(body)});
+    const j=await api('/v1/screen',{method:'POST',body:JSON.stringify({mode:mode,vcomp:_screenVcomp})});
     _screenMode=j.mode||mode;
     _screenVcomp=!!j.vcomp;
     _paintScreenMode();
-    if(j.healed&&j.healed.healed) toast('Screen target healed → desktop');
-    toast(_screenMode==='off'?'Screen share off':(_screenMode==='control'?'Agents may control mouse/keyboard':'Agents can see your screen'));
-    if(_screenMode!=='off') refreshScreenCol(true);
+    toast('Screen share off');
   }catch(e){ toast(e.message||'screen mode failed','err'); }
 }
 async function toggleVcompShare(){

@@ -1,0 +1,1813 @@
+{
+  "ok": true,
+  "schema": "pocket.full_registry.v1",
+  "product": "POCKET",
+  "version": "3.16.6",
+  "lab": "ItsNotAI Labs",
+  "company": "Medina Tech Labs",
+  "doctrine": "One registry for everything on this host: PhoneAI kernel apps, MCP servers as phone apps, platform systems, how-tos, research papers, white papers, and named technologies.",
+  "urls": {
+    "json": "/v1/registry",
+    "phone": "/phoneai/registry",
+    "docs": "/docs/view/whitepapers/POCKET_FULL_REGISTRY",
+    "mcp": "/phoneai/mcp",
+    "kernel": "/phoneai/app"
+  },
+  "counts": {
+    "phoneai_apps": 28,
+    "mcp_apps": 10,
+    "systems": 21,
+    "how_tos": 14,
+    "papers": 41,
+    "whitepapers": 7,
+    "docs": 60,
+    "technologies": 19,
+    "surfaces": 15,
+    "agents": 149,
+    "skills": 166,
+    "entries": 200
+  },
+  "phoneai_apps": [
+    {
+      "id": "chat",
+      "name": "Chat",
+      "url": "/phoneai/app#chat",
+      "icon": "💬",
+      "group": "life"
+    },
+    {
+      "id": "camera",
+      "name": "Camera",
+      "url": "/phoneai/app#camera",
+      "icon": "📷",
+      "group": "life"
+    },
+    {
+      "id": "photos",
+      "name": "Photos",
+      "url": "/phoneai/app#photos",
+      "icon": "🖼",
+      "group": "life"
+    },
+    {
+      "id": "maps",
+      "name": "Maps",
+      "url": "/phoneai/app#maps",
+      "icon": "🗺",
+      "group": "life"
+    },
+    {
+      "id": "notes",
+      "name": "Notes",
+      "url": "/phoneai/app#notes",
+      "icon": "📝",
+      "group": "life"
+    },
+    {
+      "id": "remind",
+      "name": "Remind",
+      "url": "/phoneai/app#remind",
+      "icon": "⏰",
+      "group": "life"
+    },
+    {
+      "id": "list",
+      "name": "List",
+      "url": "/phoneai/app#list",
+      "icon": "☑",
+      "group": "life"
+    },
+    {
+      "id": "voice",
+      "name": "Voice",
+      "url": "/studio/voice",
+      "icon": "🎙",
+      "group": "studio"
+    },
+    {
+      "id": "imagine",
+      "name": "Imagine",
+      "url": "/imagine",
+      "icon": "✨",
+      "group": "studio"
+    },
+    {
+      "id": "work",
+      "name": "Code desk",
+      "url": "/phoneai/work",
+      "icon": "✦",
+      "group": "work"
+    },
+    {
+      "id": "anti",
+      "name": "Anti",
+      "url": "/phoneai/anti",
+      "icon": "🪐",
+      "group": "stream"
+    },
+    {
+      "id": "portal",
+      "name": "Portal",
+      "url": "/phoneai/portal",
+      "icon": "🖥",
+      "group": "stream"
+    },
+    {
+      "id": "computer",
+      "name": "Computer",
+      "url": "/phoneai/computer",
+      "icon": "💻",
+      "group": "stream"
+    },
+    {
+      "id": "glasses",
+      "name": "Glasses",
+      "url": "/phoneai/glasses",
+      "icon": "👓",
+      "group": "wear"
+    },
+    {
+      "id": "airpods",
+      "name": "AirPods",
+      "url": "/phoneai/airpods",
+      "icon": "🎧",
+      "group": "wear"
+    },
+    {
+      "id": "web",
+      "name": "Web live",
+      "url": "/phoneai/web",
+      "icon": "🌐",
+      "group": "stream"
+    },
+    {
+      "id": "mcp",
+      "name": "MCP",
+      "url": "/phoneai/app#mcp",
+      "icon": "⬡",
+      "group": "mcp"
+    },
+    {
+      "id": "mcp-apps",
+      "name": "MCP apps",
+      "url": "/phoneai/mcp",
+      "icon": "⌂",
+      "group": "mcp"
+    },
+    {
+      "id": "registry",
+      "name": "Registry",
+      "url": "/phoneai/registry",
+      "icon": "▣",
+      "group": "docs"
+    },
+    {
+      "id": "docs",
+      "name": "Docs",
+      "url": "/docs",
+      "icon": "📄",
+      "group": "docs"
+    },
+    {
+      "id": "runtime",
+      "name": "Runtime",
+      "url": "/phoneai/runtime",
+      "icon": "⏻",
+      "group": "host"
+    },
+    {
+      "id": "agents",
+      "name": "Agents",
+      "url": "/agents",
+      "icon": "🙂",
+      "group": "agents"
+    },
+    {
+      "id": "tv",
+      "name": "TV node",
+      "url": "/phoneai/tv",
+      "icon": "📺",
+      "group": "home"
+    },
+    {
+      "id": "doorbell",
+      "name": "Doorbell",
+      "url": "/phoneai/doorbell",
+      "icon": "🔔",
+      "group": "home"
+    },
+    {
+      "id": "cam",
+      "name": "PC cam",
+      "url": "/phoneai/cam",
+      "icon": "💻",
+      "group": "home"
+    },
+    {
+      "id": "claims",
+      "name": "Claims",
+      "url": "/claims",
+      "icon": "®",
+      "group": "legal"
+    },
+    {
+      "id": "pair",
+      "name": "Pair",
+      "url": "/phoneai/pair",
+      "icon": "🔗",
+      "group": "auth"
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "url": "/phoneai/app#settings",
+      "icon": "⚙",
+      "group": "host"
+    }
+  ],
+  "mcp_apps": [
+    {
+      "id": "pocket",
+      "name": "POCKET Core",
+      "kind": "internal",
+      "blurb": "Coherent host: habitat · screen · work · fusion voice · phone pair · drafts · CLI",
+      "transport": "python",
+      "icon": "⌂",
+      "url": "/phoneai/mcp#pocket",
+      "tools": [
+        "platform_map",
+        "platform_health",
+        "find_feature",
+        "sovereign_stack",
+        "computing_clouds",
+        "remote_browser_status",
+        "remote_browser_open",
+        "remote_browser_sense",
+        "remote_browser_benchmark",
+        "iot_status",
+        "iot_list",
+        "iot_register",
+        "iot_phone",
+        "iot_hz_status",
+        "habitat_status",
+        "habitat_pulse",
+        "habitat_assign",
+        "screen_status",
+        "screen_set",
+        "screen_sense",
+        "screen_act",
+        "vcomp_open",
+        "vcomp_sense",
+        "vcomp_act",
+        "vcomp_shell",
+        "eyes_see",
+        "eyes_touch",
+        "eyes_catalog",
+        "screen_embody",
+        "screen_see",
+        "screen_touch",
+        "screen_type",
+        "screen_click",
+        "screen_cursor",
+        "team_open",
+        "team_list",
+        "team_note",
+        "team_invite",
+        "team_tick",
+        "team_bind",
+        "team_status",
+        "endure_run",
+        "endure_status",
+        "endure_enqueue",
+        "runtime_status",
+        "runtime_ensure",
+        "runtime_install",
+        "work_start",
+        "work_tick",
+        "work_package",
+        "work_handoff",
+        "work_status",
+        "fusion_voice",
+        "fusion_schema",
+        "aria_turn",
+        "phone_surface",
+        "pair_mint",
+        "pair_status",
+        "draft_create",
+        "draft_promote",
+        "cli_run",
+        "cli_list",
+        "life_catalog",
+        "life_status",
+        "life_classify",
+        "food_order",
+        "flight_search",
+        "shop_search",
+        "web_browse",
+        "reservation",
+        "web_search",
+        "web_fetch",
+        "integrations_list",
+        "integrations_execute",
+        "integrations_readiness",
+        "loomgraph_run",
+        "loomgraph_catalog",
+        "loomgraph_status",
+        "assist_route",
+        "list_skills"
+      ],
+      "safe_tools": [
+        "platform_map",
+        "platform_health",
+        "find_feature",
+        "sovereign_stack",
+        "computing_clouds",
+        "remote_browser_status",
+        "iot_status",
+        "iot_list",
+        "iot_hz_status",
+        "habitat_status",
+        "screen_status",
+        "eyes_catalog",
+        "team_list",
+        "team_status",
+        "endure_status",
+        "runtime_status",
+        "work_status",
+        "fusion_schema",
+        "pair_status",
+        "cli_list",
+        "life_catalog",
+        "life_status",
+        "integrations_list",
+        "loomgraph_catalog",
+        "loomgraph_status",
+        "list_skills",
+        "wsl_status",
+        "auro_status",
+        "muse_status",
+        "tools_for_prompt",
+        "capsule_status",
+        "capsule_list",
+        "studio_map",
+        "studio_status",
+        "studio_playbooks",
+        "mail_status",
+        "mail_accounts",
+        "mail_inbox",
+        "web_ui_status",
+        "webmcp_list"
+      ],
+      "tool_count": 382
+    },
+    {
+      "id": "nexus",
+      "name": "NEXUS MERIDIAN",
+      "kind": "internal",
+      "blurb": "Nine workers · MCP federation · intelligence tools",
+      "transport": "stdio",
+      "icon": "✦",
+      "url": "/phoneai/mcp#nexus",
+      "tools": [
+        "list_repos",
+        "status",
+        "security_audit",
+        "list_mcp_servers"
+      ],
+      "safe_tools": [],
+      "tool_count": 4
+    },
+    {
+      "id": "loom",
+      "name": "LOOM",
+      "kind": "internal",
+      "blurb": "Agents dispatch · vault · runspace · knowledge · plans",
+      "transport": "catalog",
+      "icon": "◎",
+      "url": "/phoneai/mcp#loom",
+      "tools": [
+        "agents_dispatch",
+        "vault_search",
+        "plan_create",
+        "skills_run",
+        "workspace_view"
+      ],
+      "safe_tools": [],
+      "tool_count": 5
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "kind": "external",
+      "blurb": "Repos · PRs · issues · via gh CLI (signed-in host)",
+      "transport": "cli",
+      "icon": "⌥",
+      "url": "/phoneai/mcp#github",
+      "tools": [
+        "repo_list",
+        "pr_list",
+        "issue_list",
+        "pr_create",
+        "clone",
+        "api"
+      ],
+      "safe_tools": [
+        "repo_list",
+        "pr_list",
+        "issue_list"
+      ],
+      "tool_count": 6
+    },
+    {
+      "id": "cloudflare-docs",
+      "name": "Cloudflare Docs",
+      "kind": "external",
+      "blurb": "Workers · Pages · platform docs for agents",
+      "transport": "http",
+      "icon": "☁",
+      "url": "/phoneai/mcp#cloudflare-docs",
+      "tools": [
+        "search",
+        "read"
+      ],
+      "safe_tools": [
+        "search",
+        "read"
+      ],
+      "tool_count": 2
+    },
+    {
+      "id": "cloudflare",
+      "name": "Cloudflare",
+      "kind": "external",
+      "blurb": "Account / product MCP surface",
+      "transport": "http",
+      "icon": "☁",
+      "url": "/phoneai/mcp#cloudflare",
+      "tools": [],
+      "safe_tools": [],
+      "tool_count": 0
+    },
+    {
+      "id": "cloudflare-bindings",
+      "name": "Cloudflare Bindings",
+      "kind": "external",
+      "blurb": "KV · D1 · R2 · bindings for Workers",
+      "transport": "http",
+      "icon": "☁",
+      "url": "/phoneai/mcp#cloudflare-bindings",
+      "tools": [],
+      "safe_tools": [],
+      "tool_count": 0
+    },
+    {
+      "id": "cloudflare-builds",
+      "name": "Cloudflare Builds",
+      "kind": "external",
+      "blurb": "CI / Pages builds",
+      "transport": "http",
+      "icon": "☁",
+      "url": "/phoneai/mcp#cloudflare-builds",
+      "tools": [],
+      "safe_tools": [],
+      "tool_count": 0
+    },
+    {
+      "id": "cloudflare-observability",
+      "name": "Cloudflare Observability",
+      "kind": "external",
+      "blurb": "Logs · metrics for agents",
+      "transport": "http",
+      "icon": "☁",
+      "url": "/phoneai/mcp#cloudflare-observability",
+      "tools": [],
+      "safe_tools": [],
+      "tool_count": 0
+    },
+    {
+      "id": "filesystem",
+      "name": "Filesystem (agent workspace)",
+      "kind": "external",
+      "blurb": "Read/write under allowed workspaces only — agent CLI style",
+      "transport": "python",
+      "icon": "📁",
+      "url": "/phoneai/mcp#filesystem",
+      "tools": [
+        "fs_read",
+        "fs_write",
+        "fs_list",
+        "fs_stat"
+      ],
+      "safe_tools": [
+        "fs_read",
+        "fs_list",
+        "fs_stat"
+      ],
+      "tool_count": 4
+    }
+  ],
+  "systems": [
+    {
+      "id": "desk",
+      "name": "Desk",
+      "where": "/desk",
+      "api": [
+        "/v1/sessions",
+        "/v1/jobs"
+      ],
+      "how_to": "docs/how-to/DESK.md",
+      "for": "Coding agents · sessions · live rail"
+    },
+    {
+      "id": "phone",
+      "name": "Phone",
+      "where": "/phone",
+      "api": [
+        "/v1/phone",
+        "/v1/pair"
+      ],
+      "how_to": "docs/how-to/PHONE.md",
+      "for": "Remote seat · Aria · assist"
+    },
+    {
+      "id": "phoneai",
+      "name": "PhoneAI Kernel",
+      "where": "/phoneai · /phoneai/app",
+      "api": [
+        "/v1/phoneai/kernel",
+        "/v1/phoneai/mcp",
+        "/v1/auth/passkey"
+      ],
+      "how_to": "docs/how-to/PHONEAI.md",
+      "for": "Public PhoneAI site · signup + Face ID · live kernel on the paired phone"
+    },
+    {
+      "id": "phoneai_mcp",
+      "name": "PhoneAI MCP apps",
+      "where": "/phoneai/mcp",
+      "api": [
+        "/v1/phoneai/mcp",
+        "/v1/phoneai/mcp/invoke"
+      ],
+      "how_to": "docs/how-to/PHONEAI_MCP.md",
+      "for": "Each MCP server is an app inside PhoneAI"
+    },
+    {
+      "id": "registry",
+      "name": "Full registry",
+      "where": "/registry · /phoneai/registry",
+      "api": [
+        "/v1/registry"
+      ],
+      "how_to": "docs/how-to/REGISTRY.md",
+      "for": "Every PhoneAI app, MCP server, system, how-to, paper, and named technology"
+    },
+    {
+      "id": "agent_mail",
+      "name": "Agent Mail",
+      "where": "/mail",
+      "api": [
+        "/v1/agent-mail",
+        "/v1/agent-mail/accounts",
+        "/v1/agent-mail/inbox",
+        "/v1/agent-mail/send"
+      ],
+      "skills": [
+        "mail_status",
+        "mail_accounts",
+        "mail_account_create",
+        "mail_inbox",
+        "mail_send",
+        "mail_read"
+      ],
+      "mcp": [
+        "mail_status",
+        "mail_inbox",
+        "mail_send",
+        "mail_accounts"
+      ],
+      "how_to": "docs/how-to/AGENT_MAIL.md",
+      "domain": "agents.pocket.local",
+      "for": "Our own agent email accounts + inboxes"
+    },
+    {
+      "id": "pocket_mail",
+      "name": "POCKET MAIL",
+      "where": "/mail",
+      "api": [
+        "/v1/mail",
+        "/v1/mail/draft",
+        "/v1/mail/send"
+      ],
+      "skills": [
+        "mail_draft",
+        "mail_status"
+      ],
+      "how_to": "docs/how-to/AGENT_MAIL.md",
+      "for": "Official SMTP + templates (external send)"
+    },
+    {
+      "id": "genetic_flow",
+      "name": "Internal models · Genetic flow",
+      "where": "mode=genetic",
+      "api": [
+        "/v1/internal-models",
+        "/v1/genetic/run",
+        "/v1/genetic/status",
+        "/v1/internal-models/express"
+      ],
+      "skills": [
+        "internal_models",
+        "genetic_flow",
+        "genetic_status",
+        "express_model"
+      ],
+      "modes": [
+        "genetic",
+        "genetic_flow",
+        "internal",
+        "internal_models"
+      ],
+      "how_to": "docs/how-to/GENETIC_FLOW.md",
+      "for": "Modules (ghost·world·auro·guppy·heuristic·identity) evolve which run"
+    },
+    {
+      "id": "web_ui",
+      "name": "Website UI Engine",
+      "where": "MCP web_ui_* · Python engines",
+      "api": [
+        "/v1/web-ui",
+        "/v1/web-ui/open",
+        "/v1/web-ui/sense",
+        "/v1/web-ui/browse",
+        "/v1/python-engine",
+        "/v1/python-engines"
+      ],
+      "skills": [
+        "web_ui_open",
+        "web_ui_sense",
+        "web_ui_act",
+        "web_ui_browse",
+        "web_ui_fetch",
+        "python_engine",
+        "python_engines_list"
+      ],
+      "mcp": [
+        "web_ui_open",
+        "web_ui_browse",
+        "python_engine",
+        "python_engines_list"
+      ],
+      "how_to": "docs/how-to/WEB_UI_ENGINES.md",
+      "for": "Models drive websites via Python — no user MCP tabs"
+    },
+    {
+      "id": "mcp",
+      "name": "MCP Colony",
+      "where": "/phoneai/mcp · python -m pocket.mcp_server",
+      "api": [
+        "/v1/mcp",
+        "/v1/phoneai/mcp",
+        "/v1/skills/run"
+      ],
+      "how_to": "docs/how-to/MCP.md",
+      "for": "10 MCPs as PhoneAI apps · pocket core + github + nexus + loom + CF + fs"
+    },
+    {
+      "id": "install",
+      "name": "Install slices",
+      "where": "/install",
+      "api": [
+        "/v1/install/slices"
+      ],
+      "how_to": "docs/how-to/INSTALL.md",
+      "for": "One-line SDK · skills · knowledge · plug-n-play agent"
+    },
+    {
+      "id": "keep",
+      "name": "KEEP · ISOLATE · RECALL",
+      "where": "API + docs",
+      "api": [
+        "/v1/keep",
+        "/v1/isolate",
+        "/v1/recall"
+      ],
+      "how_to": "docs/KEEP_ISOLATE_RECALL_MAIL.md",
+      "for": "Agents until chat ends · isolated browsers · recall codes"
+    },
+    {
+      "id": "rah",
+      "name": "RAH",
+      "where": "mode=rah · skill rah_run",
+      "api": [
+        "/v1/rah/run",
+        "/v1/rah/plan",
+        "/v1/rah/status"
+      ],
+      "skills": [
+        "rah_run",
+        "rah_plan",
+        "rah_status"
+      ],
+      "how_to": "docs/how-to/RAH.md",
+      "for": "Recursive Agent Harnesses — full sub-harness fan-out"
+    },
+    {
+      "id": "loomgraph",
+      "name": "LOOMGRAPH",
+      "where": "/loomgraph",
+      "api": [
+        "/v1/loomgraph/run",
+        "/v1/loomgraph"
+      ],
+      "how_to": "docs/LOOMGRAPH.md",
+      "for": "See the graph · run the loop"
+    },
+    {
+      "id": "work_studio",
+      "name": "Work Studio",
+      "where": "/work",
+      "api": [
+        "/v1/work-studio",
+        "/v1/work-studio/assist"
+      ],
+      "how_to": "docs/how-to/WORK_STUDIO.md",
+      "for": "Digital life assistant · loops → desk handoff"
+    },
+    {
+      "id": "habitat",
+      "name": "Habitat",
+      "where": "desk rail",
+      "api": [
+        "/v1/habitat"
+      ],
+      "skills": [
+        "habitat_status",
+        "habitat_pulse"
+      ],
+      "for": "Agents live on hybrid GUI floor"
+    },
+    {
+      "id": "screen",
+      "name": "Screen · OCULUS · VComp",
+      "where": "desk columns",
+      "api": [
+        "/v1/screen",
+        "/v1/vision"
+      ],
+      "skills": [
+        "screen_sense",
+        "remote_browser_open"
+      ],
+      "for": "View/Control + fusion sense + remote browser"
+    },
+    {
+      "id": "voice",
+      "name": "Aria · Voice",
+      "where": "/studio/voice · mode=voice",
+      "api": [
+        "/v1/voice"
+      ],
+      "how_to": "docs/VOICE_STUDIO.md",
+      "for": "Talk · act · speak back"
+    },
+    {
+      "id": "economy",
+      "name": "Economy",
+      "where": "API · skills",
+      "api": [
+        "/v1/economy"
+      ],
+      "skills": [
+        "economy_map",
+        "economy_twins"
+      ],
+      "for": "Wallets · twin wallets · Parallax bridge"
+    },
+    {
+      "id": "capsule",
+      "name": "WASM Capsules",
+      "where": "skills capsule_*",
+      "api": [
+        "/v1/capsules"
+      ],
+      "skills": [
+        "capsule_allocate",
+        "capsule_execute",
+        "capsule_reasons"
+      ],
+      "for": "Isolated untrusted work · WebGPU"
+    },
+    {
+      "id": "pixel",
+      "name": "Pixel memory",
+      "where": "desk Workspace rail",
+      "api": [
+        "/v1/vmem",
+        "/v1/vmem/put"
+      ],
+      "how_to": "docs/CODING_SWARM_PIXEL.md",
+      "for": "Store · look · recreate · pass artifacts"
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "desk",
+      "name": "Desk",
+      "url": "/desk",
+      "role": "Coding + agents"
+    },
+    {
+      "id": "phone",
+      "name": "POCKET Phone",
+      "url": "/phone",
+      "role": "Mobile web seat"
+    },
+    {
+      "id": "phoneai",
+      "name": "PhoneAI Kernel",
+      "url": "/phoneai/app",
+      "role": "Native phone OS surface"
+    },
+    {
+      "id": "phoneai-mcp",
+      "name": "MCP apps",
+      "url": "/phoneai/mcp",
+      "role": "Embedded MCP servers as phone apps"
+    },
+    {
+      "id": "registry",
+      "name": "Registry",
+      "url": "/registry",
+      "role": "Every app, MCP, doc, and paper"
+    },
+    {
+      "id": "docs",
+      "name": "Docs + papers",
+      "url": "/docs",
+      "role": "How-to and white papers"
+    },
+    {
+      "id": "imagine",
+      "name": "Imagine Studio",
+      "url": "/imagine",
+      "role": "Stills / remakes"
+    },
+    {
+      "id": "voice",
+      "name": "Voice Studio",
+      "url": "/studio/voice",
+      "role": "Aria STT/TTS"
+    },
+    {
+      "id": "work",
+      "name": "Work Studio",
+      "url": "/work",
+      "role": "Life assistant"
+    },
+    {
+      "id": "mail",
+      "name": "Agent Mail",
+      "url": "/mail",
+      "role": "Agent inboxes"
+    },
+    {
+      "id": "lab",
+      "name": "Lab",
+      "url": "/lab",
+      "role": "Readiness map"
+    },
+    {
+      "id": "ecosystem",
+      "name": "Ecosystem",
+      "url": "/ecosystem",
+      "role": "Repo family"
+    },
+    {
+      "id": "login",
+      "name": "Sign in",
+      "url": "/login",
+      "role": "GitHub + seats"
+    },
+    {
+      "id": "developers",
+      "name": "Developers",
+      "url": "/developers",
+      "role": "API keys"
+    },
+    {
+      "id": "forge",
+      "name": "Forge",
+      "url": "/forge",
+      "role": "Sovereign git"
+    }
+  ],
+  "how_tos": [
+    {
+      "id": "how-to.AGENT_MAIL",
+      "name": "How-to: Agent Mail",
+      "path": "docs/how-to/AGENT_MAIL.md",
+      "url": "/docs/view/how-to/AGENT_MAIL"
+    },
+    {
+      "id": "how-to.API_RECIPES",
+      "name": "How-to: API recipes",
+      "path": "docs/how-to/API_RECIPES.md",
+      "url": "/docs/view/how-to/API_RECIPES"
+    },
+    {
+      "id": "how-to.DESK",
+      "name": "How-to: Desk",
+      "path": "docs/how-to/DESK.md",
+      "url": "/docs/view/how-to/DESK"
+    },
+    {
+      "id": "how-to.GENETIC_FLOW",
+      "name": "How-to: Internal models · Genetic flow",
+      "path": "docs/how-to/GENETIC_FLOW.md",
+      "url": "/docs/view/how-to/GENETIC_FLOW"
+    },
+    {
+      "id": "how-to.INSTALL",
+      "name": "How-to: Whole installation",
+      "path": "docs/how-to/INSTALL.md",
+      "url": "/docs/view/how-to/INSTALL"
+    },
+    {
+      "id": "how-to.MCP",
+      "name": "How-to: MCP for models (Grok / Claude / Cursor)",
+      "path": "docs/how-to/MCP.md",
+      "url": "/docs/view/how-to/MCP"
+    },
+    {
+      "id": "how-to.MULTI_PLAN",
+      "name": "How-to: Multi-plan · live sovereign terminal",
+      "path": "docs/how-to/MULTI_PLAN.md",
+      "url": "/docs/view/how-to/MULTI_PLAN"
+    },
+    {
+      "id": "how-to.PHONE",
+      "name": "How-to: Phone",
+      "path": "docs/how-to/PHONE.md",
+      "url": "/docs/view/how-to/PHONE"
+    },
+    {
+      "id": "how-to.PHONEAI",
+      "name": "How-to: PhoneAI (public site + kernel)",
+      "path": "docs/how-to/PHONEAI.md",
+      "url": "/docs/view/how-to/PHONEAI"
+    },
+    {
+      "id": "how-to.PHONEAI_MCP",
+      "name": "How-to: MCP apps inside PhoneAI",
+      "path": "docs/how-to/PHONEAI_MCP.md",
+      "url": "/docs/view/how-to/PHONEAI_MCP"
+    },
+    {
+      "id": "how-to.RAH",
+      "name": "How-to: RAH (Recursive Agent Harnesses)",
+      "path": "docs/how-to/RAH.md",
+      "url": "/docs/view/how-to/RAH"
+    },
+    {
+      "id": "how-to.REGISTRY",
+      "name": "How-to: Full registry",
+      "path": "docs/how-to/REGISTRY.md",
+      "url": "/docs/view/how-to/REGISTRY"
+    },
+    {
+      "id": "how-to.WEB_UI_ENGINES",
+      "name": "How-to: Website UI + Python engines",
+      "path": "docs/how-to/WEB_UI_ENGINES.md",
+      "url": "/docs/view/how-to/WEB_UI_ENGINES"
+    },
+    {
+      "id": "how-to.WORK_STUDIO",
+      "name": "How-to: Work Studio",
+      "path": "docs/how-to/WORK_STUDIO.md",
+      "url": "/docs/view/how-to/WORK_STUDIO"
+    }
+  ],
+  "papers": [
+    {
+      "id": "research.FUSION_SENSE_INTERFACE_PARADIGM",
+      "name": "Architectural Synthesis: Defining the Fusion-Sense Interface Paradigm",
+      "path": "docs/research/FUSION_SENSE_INTERFACE_PARADIGM.md",
+      "url": "/docs/view/research/FUSION_SENSE_INTERFACE_PARADIGM"
+    },
+    {
+      "id": "research.invention_claims.v1",
+      "name": "invention_claims.v1",
+      "path": "docs/research/invention_claims.v1.json",
+      "url": "/docs/view/research/invention_claims.v1"
+    },
+    {
+      "id": "research.INVENTION_CLAIMS_2026.002",
+      "name": "Invention disclosure and claims — supplement",
+      "path": "docs/research/INVENTION_CLAIMS_2026.002.md",
+      "url": "/docs/view/research/INVENTION_CLAIMS_2026.002"
+    },
+    {
+      "id": "research.INVENTION_CLAIMS_2026",
+      "name": "Invention disclosure and claims",
+      "path": "docs/research/INVENTION_CLAIMS_2026.md",
+      "url": "/docs/view/research/INVENTION_CLAIMS_2026"
+    },
+    {
+      "id": "research.LOOMGRAPH_WORKING_PAPER",
+      "name": "LOOMGRAPH: Loop-Orchestrated Multi-agent Graph Runtime for Host-Native AI Workspaces",
+      "path": "docs/research/LOOMGRAPH_WORKING_PAPER.md",
+      "url": "/docs/view/research/LOOMGRAPH_WORKING_PAPER"
+    },
+    {
+      "id": "research.PHONEAI_KERNEL_PUBLIC_SEAT_PAPER",
+      "name": "PhoneAI as a Public Seat: Named Tunnel, Signup, Face ID, and a Locked Live Kernel",
+      "path": "docs/research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER.md",
+      "url": "/docs/view/research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER"
+    },
+    {
+      "id": "research.PHONEAI_MCP_APPS_PAPER",
+      "name": "MCP Apps Inside PhoneAI: Embedded Servers as a Phone Folder",
+      "path": "docs/research/PHONEAI_MCP_APPS_PAPER.md",
+      "url": "/docs/view/research/PHONEAI_MCP_APPS_PAPER"
+    },
+    {
+      "id": "research.POCKET_20_USERS_COST",
+      "name": "Cost analysis: 20 users on POCKET (analysis only)",
+      "path": "docs/research/POCKET_20_USERS_COST.md",
+      "url": "/docs/view/research/POCKET_20_USERS_COST"
+    },
+    {
+      "id": "research.POCKET_AGENT_WASM_SANDBOX",
+      "name": "POCKET agents + WebAssembly sandbox + voice",
+      "path": "docs/research/POCKET_AGENT_WASM_SANDBOX.md",
+      "url": "/docs/view/research/POCKET_AGENT_WASM_SANDBOX"
+    },
+    {
+      "id": "research.POCKET_ALIVE_AUTONOMOUS",
+      "name": "How POCKET Stays Alive — Scalable Host Co-Pilot",
+      "path": "docs/research/POCKET_ALIVE_AUTONOMOUS.md",
+      "url": "/docs/view/research/POCKET_ALIVE_AUTONOMOUS"
+    },
+    {
+      "id": "research.POCKET_BROWSER_MODE_PAPER",
+      "name": "Browser Mode: Real-World Desk Control with Codex/Grok",
+      "path": "docs/research/POCKET_BROWSER_MODE_PAPER.md",
+      "url": "/docs/view/research/POCKET_BROWSER_MODE_PAPER"
+    },
+    {
+      "id": "research.POCKET_DESKTOP_AUTONOMY_PAPER",
+      "name": "Desktop Autonomy on the Operator Host: Multi-Step Python Workers and Scheduled Fetch",
+      "path": "docs/research/POCKET_DESKTOP_AUTONOMY_PAPER.md",
+      "url": "/docs/view/research/POCKET_DESKTOP_AUTONOMY_PAPER"
+    },
+    {
+      "id": "research.POCKET_ENGINES_BEYOND_CODE_PAPER",
+      "name": "Engines Beyond Code: What Codex, Grok, Claude, and GUPPY Do on a Working Computer",
+      "path": "docs/research/POCKET_ENGINES_BEYOND_CODE_PAPER.md",
+      "url": "/docs/view/research/POCKET_ENGINES_BEYOND_CODE_PAPER"
+    },
+    {
+      "id": "research.POCKET_GUPPY_DESK_AGENT_PAPER",
+      "name": "GUPPY: A Local Commercial Desk Agent for Operator Hosts",
+      "path": "docs/research/POCKET_GUPPY_DESK_AGENT_PAPER.md",
+      "url": "/docs/view/research/POCKET_GUPPY_DESK_AGENT_PAPER"
+    },
+    {
+      "id": "research.POCKET_HOST_COPILOT_VISION_PAPER",
+      "name": "Host Co-Pilot Vision: From Browser Desk to Desktop Shell",
+      "path": "docs/research/POCKET_HOST_COPILOT_VISION_PAPER.md",
+      "url": "/docs/view/research/POCKET_HOST_COPILOT_VISION_PAPER"
+    },
+    {
+      "id": "research.POCKET_IMAGINE_STUDIO_VIRAL_DEMOS_FUSION_REMAKE",
+      "name": "Imagine Studio, Viral Software Demos, and Fusion Remake",
+      "path": "docs/research/POCKET_IMAGINE_STUDIO_VIRAL_DEMOS_FUSION_REMAKE.md",
+      "url": "/docs/view/research/POCKET_IMAGINE_STUDIO_VIRAL_DEMOS_FUSION_REMAKE"
+    },
+    {
+      "id": "research.POCKET_INTEGRATIONS_EXECUTE_PAPER",
+      "name": "Executable Integrations on POCKET: Desktop-First Connectors, Browser Fallbacks, and Intentional Life Ops",
+      "path": "docs/research/POCKET_INTEGRATIONS_EXECUTE_PAPER.md",
+      "url": "/docs/view/research/POCKET_INTEGRATIONS_EXECUTE_PAPER"
+    },
+    {
+      "id": "research.POCKET_LAB_SYSTEMS_CLAIMS_PAPER",
+      "name": "Systems Claims Register: POCKET, Engines, and the Lab Stack",
+      "path": "docs/research/POCKET_LAB_SYSTEMS_CLAIMS_PAPER.md",
+      "url": "/docs/view/research/POCKET_LAB_SYSTEMS_CLAIMS_PAPER"
+    },
+    {
+      "id": "research.POCKET_LATIN_WORKERS",
+      "name": "Latin Python Workers & Alphas",
+      "path": "docs/research/POCKET_LATIN_WORKERS.md",
+      "url": "/docs/view/research/POCKET_LATIN_WORKERS"
+    },
+    {
+      "id": "research.POCKET_LIVE_DESK_PRODUCTION",
+      "name": "Live Desk Production Guide — Who Does What",
+      "path": "docs/research/POCKET_LIVE_DESK_PRODUCTION.md",
+      "url": "/docs/view/research/POCKET_LIVE_DESK_PRODUCTION"
+    },
+    {
+      "id": "research.POCKET_NAMED_AGENTS_REGISTER",
+      "name": "Named Agents Register — POCKET Platform",
+      "path": "docs/research/POCKET_NAMED_AGENTS_REGISTER.md",
+      "url": "/docs/view/research/POCKET_NAMED_AGENTS_REGISTER"
+    },
+    {
+      "id": "research.POCKET_ORCHESTRATOR_VISION",
+      "name": "Orchestrator, Workers, Screen Control & Real-Time Vision",
+      "path": "docs/research/POCKET_ORCHESTRATOR_VISION.md",
+      "url": "/docs/view/research/POCKET_ORCHESTRATOR_VISION"
+    },
+    {
+      "id": "research.POCKET_PHONEAI_NETWORK_WEBMCP_PAPER",
+      "name": "POCKET × PhoneAI: A Local Agent Network with WebMCP Control, Twin Workspaces, and Live Conversation Continuity",
+      "path": "docs/research/POCKET_PHONEAI_NETWORK_WEBMCP_PAPER.md",
+      "url": "/docs/view/research/POCKET_PHONEAI_NETWORK_WEBMCP_PAPER"
+    },
+    {
+      "id": "research.POCKET_PIXEL_TRANSLATOR",
+      "name": "POCKET Pixel Translator — Text When Useful, Pure Visual When Better",
+      "path": "docs/research/POCKET_PIXEL_TRANSLATOR.md",
+      "url": "/docs/view/research/POCKET_PIXEL_TRANSLATOR"
+    },
+    {
+      "id": "research.POCKET_PIXEL_TRANSLATOR_FULL_PAPER",
+      "name": "Pixel-to-Meaning on the Operator Host: Multimodal Screen Understanding for Host Co-Pilots",
+      "path": "docs/research/POCKET_PIXEL_TRANSLATOR_FULL_PAPER.md",
+      "url": "/docs/view/research/POCKET_PIXEL_TRANSLATOR_FULL_PAPER"
+    },
+    {
+      "id": "research.POCKET_PLATFORM_API_FIRST",
+      "name": "Platform API First — How Everything Must Run",
+      "path": "docs/research/POCKET_PLATFORM_API_FIRST.md",
+      "url": "/docs/view/research/POCKET_PLATFORM_API_FIRST"
+    },
+    {
+      "id": "research.POCKET_PLATFORM_PAPER",
+      "name": "POCKET as a Local Multi-Agent Platform",
+      "path": "docs/research/POCKET_PLATFORM_PAPER.md",
+      "url": "/docs/view/research/POCKET_PLATFORM_PAPER"
+    },
+    {
+      "id": "research.POCKET_REAL_SKILLS",
+      "name": "Real Discrete Skills (Not Fake Bundled Scripts)",
+      "path": "docs/research/POCKET_REAL_SKILLS.md",
+      "url": "/docs/view/research/POCKET_REAL_SKILLS"
+    },
+    {
+      "id": "research.POCKET_RESEARCH_PAPER",
+      "name": "POCKET OS: Mobile Operator Substrate for Agent-Native Coding",
+      "path": "docs/research/POCKET_RESEARCH_PAPER.md",
+      "url": "/docs/view/research/POCKET_RESEARCH_PAPER"
+    },
+    {
+      "id": "research.POCKET_SHIP_STORY_PAPER",
+      "name": "POCKET Ship Story — From Dead Mailbox to Secured Multi-Agent Platform",
+      "path": "docs/research/POCKET_SHIP_STORY_PAPER.md",
+      "url": "/docs/view/research/POCKET_SHIP_STORY_PAPER"
+    },
+    {
+      "id": "research.POCKET_SKILLS_AND_DAEMON",
+      "name": "Skills, Live Link & Latin Worker Daemon",
+      "path": "docs/research/POCKET_SKILLS_AND_DAEMON.md",
+      "url": "/docs/view/research/POCKET_SKILLS_AND_DAEMON"
+    },
+    {
+      "id": "research.POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL",
+      "name": "POCKET Subagent Mesh Protocol & CloudColony Wrap — Research Report",
+      "path": "docs/research/POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL.md",
+      "url": "/docs/view/research/POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL"
+    },
+    {
+      "id": "research.POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL_NOTES",
+      "name": "POCKET Subagent Mesh — Beta Operator Notes",
+      "path": "docs/research/POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL_NOTES.md",
+      "url": "/docs/view/research/POCKET_SUBAGENT_MESH_CLOUDCOLONY_PROTOCOL_NOTES"
+    },
+    {
+      "id": "research.POCKET_TOKENOMICS_PAPER",
+      "name": "POCKET Embedded Tokenomics (POCK)",
+      "path": "docs/research/POCKET_TOKENOMICS_PAPER.md",
+      "url": "/docs/view/research/POCKET_TOKENOMICS_PAPER"
+    },
+    {
+      "id": "research.POCKET_UNIFIED_VISION_API",
+      "name": "Unified Vision + Studio + Workers API",
+      "path": "docs/research/POCKET_UNIFIED_VISION_API.md",
+      "url": "/docs/view/research/POCKET_UNIFIED_VISION_API"
+    },
+    {
+      "id": "research.POCKET_USAGE_COST_PAPER",
+      "name": "Usage & Cost of Open Multi-Agent Sessions",
+      "path": "docs/research/POCKET_USAGE_COST_PAPER.md",
+      "url": "/docs/view/research/POCKET_USAGE_COST_PAPER"
+    },
+    {
+      "id": "research.POCKET_VIDEO_STUDIO",
+      "name": "POCKET Video Studio — From SPECULUM Raws to Viral Marketing Demos",
+      "path": "docs/research/POCKET_VIDEO_STUDIO.md",
+      "url": "/docs/view/research/POCKET_VIDEO_STUDIO"
+    },
+    {
+      "id": "research.POCKET_VISION_WORKERS_FIRST_CLASS",
+      "name": "First-Class Vision & Dynamic Workers (Not Scripts)",
+      "path": "docs/research/POCKET_VISION_WORKERS_FIRST_CLASS.md",
+      "url": "/docs/view/research/POCKET_VISION_WORKERS_FIRST_CLASS"
+    },
+    {
+      "id": "research.RFE_v1_Architectural_Synthesis",
+      "name": "Research Journal: Architectural Synthesis of Recursive Fusion Engines (RFE-v1)",
+      "path": "docs/research/RFE_v1_Architectural_Synthesis.md",
+      "url": "/docs/view/research/RFE_v1_Architectural_Synthesis"
+    },
+    {
+      "id": "research.THE_DEATH_OF_THE_GUI_API_DIVIDE",
+      "name": "The Death of the GUI-API Divide: Architecting the Era of Autonomous Interface Synthesis",
+      "path": "docs/research/THE_DEATH_OF_THE_GUI_API_DIVIDE.md",
+      "url": "/docs/view/research/THE_DEATH_OF_THE_GUI_API_DIVIDE"
+    },
+    {
+      "id": "research.TRADEMARK_AND_PATENT_MEMO_2026",
+      "name": "Trademark and patent clearance memo",
+      "path": "docs/research/TRADEMARK_AND_PATENT_MEMO_2026.md",
+      "url": "/docs/view/research/TRADEMARK_AND_PATENT_MEMO_2026"
+    }
+  ],
+  "whitepapers": [
+    {
+      "id": "whitepapers.AURO_MESIE_POCKET_CONVERGENCE",
+      "name": "AURO / MESIE / POCKET Convergence",
+      "path": "docs/whitepapers/AURO_MESIE_POCKET_CONVERGENCE.md",
+      "url": "/docs/view/whitepapers/AURO_MESIE_POCKET_CONVERGENCE"
+    },
+    {
+      "id": "whitepapers.HZ_CHANNEL_FABRIC",
+      "name": "HZ Channel Fabric",
+      "path": "docs/whitepapers/HZ_CHANNEL_FABRIC.md",
+      "url": "/docs/view/whitepapers/HZ_CHANNEL_FABRIC"
+    },
+    {
+      "id": "whitepapers.PHONEAI_MCP_APPS",
+      "name": "White paper — MCP apps inside PhoneAI",
+      "path": "docs/whitepapers/PHONEAI_MCP_APPS.md",
+      "url": "/docs/view/whitepapers/PHONEAI_MCP_APPS"
+    },
+    {
+      "id": "whitepapers.PHONEAI_PUBLIC_TUNNEL",
+      "name": "White paper — PhoneAI on the public tunnel",
+      "path": "docs/whitepapers/PHONEAI_PUBLIC_TUNNEL.md",
+      "url": "/docs/view/whitepapers/PHONEAI_PUBLIC_TUNNEL"
+    },
+    {
+      "id": "whitepapers.POCKET_DOCTRINE_COMMUNICATION_LAWS",
+      "name": "POCKET Doctrine and Communication Laws",
+      "path": "docs/whitepapers/POCKET_DOCTRINE_COMMUNICATION_LAWS.md",
+      "url": "/docs/view/whitepapers/POCKET_DOCTRINE_COMMUNICATION_LAWS"
+    },
+    {
+      "id": "whitepapers.POCKET_FULL_REGISTRY",
+      "name": "POCKET Full Registry",
+      "path": "docs/whitepapers/POCKET_FULL_REGISTRY.md",
+      "url": "/docs/view/whitepapers/POCKET_FULL_REGISTRY"
+    },
+    {
+      "id": "whitepapers.TECHNOLOGY_REGISTRY",
+      "name": "TECHNOLOGY_REGISTRY",
+      "path": "docs/whitepapers/TECHNOLOGY_REGISTRY.json",
+      "url": "/docs/view/whitepapers/TECHNOLOGY_REGISTRY"
+    }
+  ],
+  "docs": [
+    {
+      "id": "AGENT_VOICE",
+      "name": "Voice for agents inside POCKET",
+      "path": "docs/AGENT_VOICE.md",
+      "url": "/docs/view/AGENT_VOICE"
+    },
+    {
+      "id": "AGENTIC_HARNESS",
+      "name": "Universal Agentic Harness (POCKET 3.1)",
+      "path": "docs/AGENTIC_HARNESS.md",
+      "url": "/docs/view/AGENTIC_HARNESS"
+    },
+    {
+      "id": "AGENTS_MCP_TOOLS",
+      "name": "POCKET — Agents · Internal MCP · Tools & Uses",
+      "path": "docs/AGENTS_MCP_TOOLS.md",
+      "url": "/docs/view/AGENTS_MCP_TOOLS"
+    },
+    {
+      "id": "AI_API",
+      "name": "POCKET AI API — sellable headless agents",
+      "path": "docs/AI_API.md",
+      "url": "/docs/view/AI_API"
+    },
+    {
+      "id": "AI_WORKSPACE",
+      "name": "AI Workspace — token-saving infrastructure for coding agents",
+      "path": "docs/AI_WORKSPACE.md",
+      "url": "/docs/view/AI_WORKSPACE"
+    },
+    {
+      "id": "API_QUICKSTART",
+      "name": "POCKET API — quick start (Grok / Codex / Claude)",
+      "path": "docs/API_QUICKSTART.md",
+      "url": "/docs/view/API_QUICKSTART"
+    },
+    {
+      "id": "AURO_MEANING_IN_POCKET",
+      "name": "Auro meaning path inside POCKET",
+      "path": "docs/AURO_MEANING_IN_POCKET.md",
+      "url": "/docs/view/AURO_MEANING_IN_POCKET"
+    },
+    {
+      "id": "CLAUDE_AGENT_SDK",
+      "name": "Claude Agent SDK in POCKET",
+      "path": "docs/CLAUDE_AGENT_SDK.md",
+      "url": "/docs/view/CLAUDE_AGENT_SDK"
+    },
+    {
+      "id": "CLOUDFLARE_NAMED_TUNNEL",
+      "name": "POCKET — real Cloudflare Named Tunnel (far away / phone)",
+      "path": "docs/CLOUDFLARE_NAMED_TUNNEL.md",
+      "url": "/docs/view/CLOUDFLARE_NAMED_TUNNEL"
+    },
+    {
+      "id": "CODING_SWARM_PIXEL",
+      "name": "Coding Swarm + Pixel Memory (POCKET 2.3)",
+      "path": "docs/CODING_SWARM_PIXEL.md",
+      "url": "/docs/view/CODING_SWARM_PIXEL"
+    },
+    {
+      "id": "CONVERSATIONAL_FUSION",
+      "name": "Conversational Fusion (voice metadata → POCKET Deep Fusion)",
+      "path": "docs/CONVERSATIONAL_FUSION.md",
+      "url": "/docs/view/CONVERSATIONAL_FUSION"
+    },
+    {
+      "id": "COWORK_AND_FORGE",
+      "name": "Cowork + Sovereign Forge",
+      "path": "docs/COWORK_AND_FORGE.md",
+      "url": "/docs/view/COWORK_AND_FORGE"
+    },
+    {
+      "id": "CURIOSITIES",
+      "name": "Curiosities — features you didn't order",
+      "path": "docs/CURIOSITIES.md",
+      "url": "/docs/view/CURIOSITIES"
+    },
+    {
+      "id": "DEMO_60S",
+      "name": "Desk demo — 60 seconds",
+      "path": "docs/DEMO_60S.md",
+      "url": "/docs/view/DEMO_60S"
+    },
+    {
+      "id": "design.ENTERPRISE_PIPELINE",
+      "name": "POCKET Official Enterprise Pipeline + Design-System Polish",
+      "path": "docs/design/ENTERPRISE_PIPELINE.md",
+      "url": "/docs/view/design/ENTERPRISE_PIPELINE"
+    },
+    {
+      "id": "doctrine.BEINGS",
+      "name": "POCKET — Doctrine of AIs and Organisms",
+      "path": "docs/doctrine/BEINGS.md",
+      "url": "/docs/view/doctrine/BEINGS"
+    },
+    {
+      "id": "DOCTRINE",
+      "name": "POCKET Doctrine",
+      "path": "docs/DOCTRINE.md",
+      "url": "/docs/view/DOCTRINE"
+    },
+    {
+      "id": "DUAL_LOOP_AND_SWARM",
+      "name": "Dual loop, Work Studio, always-on swarm, world model",
+      "path": "docs/DUAL_LOOP_AND_SWARM.md",
+      "url": "/docs/view/DUAL_LOOP_AND_SWARM"
+    },
+    {
+      "id": "EMBODIMENT_OFFLOAD",
+      "name": "Real-world embodiment & offload (AI self-features)",
+      "path": "docs/EMBODIMENT_OFFLOAD.md",
+      "url": "/docs/view/EMBODIMENT_OFFLOAD"
+    },
+    {
+      "id": "EMERGENT_PARITY",
+      "name": "POCKET vs Emergent — parity and beyond",
+      "path": "docs/EMERGENT_PARITY.md",
+      "url": "/docs/view/EMERGENT_PARITY"
+    },
+    {
+      "id": "EXTERNAL_AI_HOST_TOOLS",
+      "name": "External AIs → POCKET host powers",
+      "path": "docs/EXTERNAL_AI_HOST_TOOLS.md",
+      "url": "/docs/view/EXTERNAL_AI_HOST_TOOLS"
+    },
+    {
+      "id": "FIRST_CLASS",
+      "name": "POCKET first-class product bar",
+      "path": "docs/FIRST_CLASS.md",
+      "url": "/docs/view/FIRST_CLASS"
+    },
+    {
+      "id": "GENETIC_FLOW",
+      "name": "Internal models · genetic flow",
+      "path": "docs/GENETIC_FLOW.md",
+      "url": "/docs/view/GENETIC_FLOW"
+    },
+    {
+      "id": "HOW_GROK_WORKS",
+      "name": "How we got Grok to work in POCKET",
+      "path": "docs/HOW_GROK_WORKS.md",
+      "url": "/docs/view/HOW_GROK_WORKS"
+    },
+    {
+      "id": "HOW_TO",
+      "name": "POCKET how-to index",
+      "path": "docs/HOW_TO.md",
+      "url": "/docs/view/HOW_TO"
+    },
+    {
+      "id": "INDEX",
+      "name": "POCKET — Platform index",
+      "path": "docs/INDEX.md",
+      "url": "/docs/view/INDEX"
+    },
+    {
+      "id": "INFINITE_WIKI",
+      "name": "Infinite Wiki — hierarchical codebase engine",
+      "path": "docs/INFINITE_WIKI.md",
+      "url": "/docs/view/INFINITE_WIKI"
+    },
+    {
+      "id": "INFRA",
+      "name": "POCKET × PhoneAI infrastructure",
+      "path": "docs/INFRA.md",
+      "url": "/docs/view/INFRA"
+    },
+    {
+      "id": "KEEP_ISOLATE_RECALL_MAIL",
+      "name": "POCKET KEEP · ISOLATE · RECALL · MAIL",
+      "path": "docs/KEEP_ISOLATE_RECALL_MAIL.md",
+      "url": "/docs/view/KEEP_ISOLATE_RECALL_MAIL"
+    },
+    {
+      "id": "LEGAL",
+      "name": "POCKET — Terms, Privacy, Trust model",
+      "path": "docs/LEGAL.md",
+      "url": "/docs/view/LEGAL"
+    },
+    {
+      "id": "license.RESEARCHER",
+      "name": "Researcher License (public downloads)",
+      "path": "docs/license/RESEARCHER.md",
+      "url": "/docs/view/license/RESEARCHER"
+    },
+    {
+      "id": "LOOMGRAPH",
+      "name": "POCKET LOOMGRAPH",
+      "path": "docs/LOOMGRAPH.md",
+      "url": "/docs/view/LOOMGRAPH"
+    },
+    {
+      "id": "marketing.SHIP_NOW_ONE_PAGER",
+      "name": "SHIP NOW ONE PAGER",
+      "path": "docs/marketing/SHIP_NOW_ONE_PAGER.md",
+      "url": "/docs/view/marketing/SHIP_NOW_ONE_PAGER"
+    },
+    {
+      "id": "marketing.SUBAGENT_SHIP_REPORT",
+      "name": "Subagent Work Report — Ship Window",
+      "path": "docs/marketing/SUBAGENT_SHIP_REPORT.md",
+      "url": "/docs/view/marketing/SUBAGENT_SHIP_REPORT"
+    },
+    {
+      "id": "MULTI_USER",
+      "name": "Multi-user seats (not “log into owner”)",
+      "path": "docs/MULTI_USER.md",
+      "url": "/docs/view/MULTI_USER"
+    },
+    {
+      "id": "PLATFORM_SURFACE",
+      "name": "POCKET platform surface (coherent)",
+      "path": "docs/PLATFORM_SURFACE.md",
+      "url": "/docs/view/PLATFORM_SURFACE"
+    },
+    {
+      "id": "PLATFORM_V8",
+      "name": "POCKET v0.8 — AI for the whole computer",
+      "path": "docs/PLATFORM_V8.md",
+      "url": "/docs/view/PLATFORM_V8"
+    },
+    {
+      "id": "POCKET_ACTION_LEDGER",
+      "name": "POCKET Action Ledger",
+      "path": "docs/POCKET_ACTION_LEDGER.md",
+      "url": "/docs/view/POCKET_ACTION_LEDGER"
+    },
+    {
+      "id": "POCKET_BETA_CLOUDFLARE_DOMAIN",
+      "name": "POCKET Beta Cloudflare Domain",
+      "path": "docs/POCKET_BETA_CLOUDFLARE_DOMAIN.md",
+      "url": "/docs/view/POCKET_BETA_CLOUDFLARE_DOMAIN"
+    },
+    {
+      "id": "POCKET_CLOUD_ACCOUNT",
+      "name": "POCKET Cloud Account",
+      "path": "docs/POCKET_CLOUD_ACCOUNT.md",
+      "url": "/docs/view/POCKET_CLOUD_ACCOUNT"
+    },
+    {
+      "id": "POCKET_DESKTOP_INSTALL",
+      "name": "POCKET Desktop Install and Release",
+      "path": "docs/POCKET_DESKTOP_INSTALL.md",
+      "url": "/docs/view/POCKET_DESKTOP_INSTALL"
+    },
+    {
+      "id": "POCKET_FAMILY_PROTOCOL",
+      "name": "POCKET Family Protocol v1",
+      "path": "docs/POCKET_FAMILY_PROTOCOL.md",
+      "url": "/docs/view/POCKET_FAMILY_PROTOCOL"
+    },
+    {
+      "id": "POCKET_MULTI_AI_OPERATIONS",
+      "name": "POCKET Multi-AI Operations Runbook",
+      "path": "docs/POCKET_MULTI_AI_OPERATIONS.md",
+      "url": "/docs/view/POCKET_MULTI_AI_OPERATIONS"
+    },
+    {
+      "id": "POCKET_PRODUCT_CHANNELS_V3",
+      "name": "POCKET Product Channels v3",
+      "path": "docs/POCKET_PRODUCT_CHANNELS_V3.md",
+      "url": "/docs/view/POCKET_PRODUCT_CHANNELS_V3"
+    },
+    {
+      "id": "POCKET_RELEASE_RUNBOOK",
+      "name": "POCKET v3 Release Runbook",
+      "path": "docs/POCKET_RELEASE_RUNBOOK.md",
+      "url": "/docs/view/POCKET_RELEASE_RUNBOOK"
+    },
+    {
+      "id": "POCKET_SCREEN_FAMILY_PROTOCOL",
+      "name": "POCKET screen family protocols",
+      "path": "docs/POCKET_SCREEN_FAMILY_PROTOCOL.md",
+      "url": "/docs/view/POCKET_SCREEN_FAMILY_PROTOCOL"
+    },
+    {
+      "id": "POCKET_SHIP",
+      "name": "POCKET — ship brief",
+      "path": "docs/POCKET_SHIP.md",
+      "url": "/docs/view/POCKET_SHIP"
+    },
+    {
+      "id": "POCKET_SUITE_CLOUD_HANDOFF",
+      "name": "POCKET Suite Cloud Handoff",
+      "path": "docs/POCKET_SUITE_CLOUD_HANDOFF.md",
+      "url": "/docs/view/POCKET_SUITE_CLOUD_HANDOFF"
+    },
+    {
+      "id": "PRODUCT_EDITIONS",
+      "name": "Two products (do not mix)",
+      "path": "docs/PRODUCT_EDITIONS.md",
+      "url": "/docs/view/PRODUCT_EDITIONS"
+    },
+    {
+      "id": "PRODUCTION",
+      "name": "POCKET Production — A→Z for real users",
+      "path": "docs/PRODUCTION.md",
+      "url": "/docs/view/PRODUCTION"
+    },
+    {
+      "id": "PROMOTE",
+      "name": "Promote: internal → public",
+      "path": "docs/PROMOTE.md",
+      "url": "/docs/view/PROMOTE"
+    },
+    {
+      "id": "SECURITY",
+      "name": "POCKET security (public tunnel)",
+      "path": "docs/SECURITY.md",
+      "url": "/docs/view/SECURITY"
+    },
+    {
+      "id": "SHIP_FOR_USERS",
+      "name": "POCKET — ship for users (product mode)",
+      "path": "docs/SHIP_FOR_USERS.md",
+      "url": "/docs/view/SHIP_FOR_USERS"
+    },
+    {
+      "id": "SOVEREIGN_STACK",
+      "name": "Sovereign stack doctrine",
+      "path": "docs/SOVEREIGN_STACK.md",
+      "url": "/docs/view/SOVEREIGN_STACK"
+    },
+    {
+      "id": "STUDIOS",
+      "name": "How Studios integrate with the Desk",
+      "path": "docs/STUDIOS.md",
+      "url": "/docs/view/STUDIOS"
+    },
+    {
+      "id": "SUBAGENT_MESH",
+      "name": "POCKET Subagent Mesh (E: Virtual Disk)",
+      "path": "docs/SUBAGENT_MESH.md",
+      "url": "/docs/view/SUBAGENT_MESH"
+    },
+    {
+      "id": "VOICE_REALITY_AND_MODEL_MESH",
+      "name": "POCKET Voice Reality + Model Mesh",
+      "path": "docs/VOICE_REALITY_AND_MODEL_MESH.md",
+      "url": "/docs/view/VOICE_REALITY_AND_MODEL_MESH"
+    },
+    {
+      "id": "VOICE_STUDIO",
+      "name": "Voice-to-Voice Agent Studio",
+      "path": "docs/VOICE_STUDIO.md",
+      "url": "/docs/view/VOICE_STUDIO"
+    },
+    {
+      "id": "WHICH_POCKET",
+      "name": "Two products. Not two modes.",
+      "path": "docs/WHICH_POCKET.md",
+      "url": "/docs/view/WHICH_POCKET"
+    },
+    {
+      "id": "wsl.WSL_NATIVE",
+      "name": "Native WSL Agent — first-class Linux hands",
+      "path": "docs/wsl/WSL_NATIVE.md",
+      "url": "/docs/view/wsl/WSL_NATIVE"
+    }
+  ],
+  "technologies": [
+    {
+      "id": "MRCF",
+      "name": "Medina Resonant Channel Fabric",
+      "status": "implemented-core",
+      "description": "Logical HZ semantic/cadence channels with risk, retention and participant semantics over multiple transports.",
+      "artifacts": [
+        "src/pocket/channel_fabric.py",
+        "src/pocket/hz_mesh.py"
+      ]
+    },
+    {
+      "id": "DHS",
+      "name": "Dual-HZ Semantics",
+      "status": "implemented-core",
+      "description": "Separates POCKET logical coordination HZ from AURO/MESIE physical spectral Hz models.",
+      "artifacts": [
+        "src/pocket/hz_mesh.py",
+        "ItsNotAILABS/AURO:mesie/edge/hz_ladder.py"
+      ]
+    },
+    {
+      "id": "ECE",
+      "name": "Envelope-Coupled Execution",
+      "status": "implemented-core",
+      "description": "One causal envelope remains the truth object across voice, routing, execution and receipts.",
+      "artifacts": [
+        "src/pocket/voice_reality.py",
+        "cmd/pocket-envelope/main.go"
+      ]
+    },
+    {
+      "id": "CCL",
+      "name": "Causal Channel Lattice",
+      "status": "implemented-core",
+      "description": "Request and parent identifiers reconstruct distributed work as a causal graph.",
+      "artifacts": [
+        "src/pocket/channel_fabric.py"
+      ]
+    },
+    {
+      "id": "BIP",
+      "name": "Bounded Intelligence Port",
+      "status": "implemented-core",
+      "description": "Stable AURO/MESIE facade exposes compute without policy or external-side-effect authority.",
+      "artifacts": [
+        "src/pocket/auro_mesie.py",
+        "ItsNotAILABS/AURO:mesie/auro_sdk.py",
+        "ItsNotAILABS/AURO:mesie/auro_cli.py"
+      ]
+    },
+    {
+      "id": "MWR",
+      "name": "Model Witness Receipt",
+      "status": "implemented-foundation",
+      "description": "Evidence digest for bounded model/scientific compute without authorization semantics.",
+      "artifacts": [
+        "ItsNotAILABS/AURO:mesie/auro_sdk.py"
+      ]
+    },
+    {
+      "id": "RER",
+      "name": "Resonant Evidence Routing",
+      "status": "implemented-foundation",
+      "description": "Validation and benchmark outputs route to a dedicated proof lane.",
+      "artifacts": [
+        "src/pocket/channel_fabric.py",
+        "src/pocket/auro_mesie.py"
+      ]
+    },
+    {
+      "id": "CACR",
+      "name": "Consequence-Aware Channel Routing",
+      "status": "implemented-foundation",
+      "description": "Routing separates high-consequence deployment traffic from model/research traffic.",
+      "artifacts": [
+        "src/pocket/channel_fabric.py"
+      ]
+    },
+    {
+      "id": "TNHE",
+      "name": "Transport-Neutral HZ Envelope",
+      "status": "implemented-core",
+      "description": "Semantic HZ envelope survives transport changes across mesh disk, HTTP, MCP, WebSocket, in-process and device bridges.",
+      "artifacts": [
+        "src/pocket/channel_fabric.py"
+      ]
+    },
+    {
+      "id": "VRC",
+      "name": "Voice Reality Compiler",
+      "status": "implemented-core",
+      "description": "Speech compiles into a typed operation envelope and spoken lifecycle reflects execution truth.",
+      "artifacts": [
+        "src/pocket/voice_reality.py",
+        "ItsNotAILABS/pocket-voice-to-text:src/reality-envelope.js"
+      ]
+    },
+    {
+      "id": "RCS",
+      "name": "Resonant Channel Scheduler",
+      "status": "proposed",
+      "description": "Policy-driven channel/transport scheduler using semantics, cadence, urgency, locality, load, privacy and proof requirements."
+    },
+    {
+      "id": "SCC",
+      "name": "Spectral Context Compiler",
+      "status": "proposed",
+      "description": "Compiles bounded POCKET context packs into MESIE spectral/embedding representations with provenance."
+    },
+    {
+      "id": "ECMR",
+      "name": "Evidence-Coupled Model Router",
+      "status": "proposed",
+      "description": "Model routing incorporates evidence class and reproducibility requirements in addition to capability/cost/latency."
+    },
+    {
+      "id": "RHT",
+      "name": "Reciprocal HZ Translator",
+      "status": "proposed",
+      "description": "Uses MESIE physical-channel metrics as input to device/network transport choice while preserving logical HZ semantics."
+    },
+    {
+      "id": "MLC",
+      "name": "Model Lineage Capsule",
+      "status": "proposed",
+      "description": "Signed model descriptor binding checkpoint, tokenizer, runtime profile, evaluation receipts and serving policy."
+    },
+    {
+      "id": "SPE",
+      "name": "Spectral Proof Envelope",
+      "status": "proposed",
+      "description": "Hash-bound spectral input/configuration/output/evaluation artifact for reproducible scientific claims."
+    },
+    {
+      "id": "PAS",
+      "name": "PhoneAI Public Seat",
+      "status": "implemented-core",
+      "description": "Named tunnel is PhoneAI. Live kernel/Portal/MCP HTML require LAN or signup + Face ID. Random link hits stay on the lock page.",
+      "artifacts": [
+        "src/pocket/auth.py",
+        "src/pocket/phoneai_landing.py",
+        "docs/research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER.md"
+      ]
+    },
+    {
+      "id": "PMA",
+      "name": "PhoneAI MCP Apps",
+      "status": "implemented-core",
+      "description": "Embedded MCP servers appear as apps inside PhoneAI. Phone invoke is a read/status subset; owner desk keeps full tools.",
+      "artifacts": [
+        "src/pocket/phoneai_mcp.py",
+        "src/pocket/mcp_bundle.py",
+        "docs/research/PHONEAI_MCP_APPS_PAPER.md"
+      ]
+    },
+    {
+      "id": "PFR",
+      "name": "POCKET Full Registry",
+      "status": "implemented-core",
+      "description": "Single live registry of PhoneAI apps, MCP servers, platform systems, how-tos, research papers, white papers, and named technologies.",
+      "artifacts": [
+        "src/pocket/registry.py",
+        "docs/whitepapers/POCKET_FULL_REGISTRY.json"
+      ]
+    }
+  ],
+  "entry_count": 200
+}

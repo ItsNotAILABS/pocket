@@ -16,7 +16,9 @@ See [PRODUCT_EDITIONS.md](PRODUCT_EDITIONS.md) · [wsl/WSL_NATIVE.md](wsl/WSL_NA
 | Surface | Access |
 |---------|--------|
 | `/health` | Public (tunnel / uptime only) |
-| `/`, `/desk`, `/phone` shells | Public HTML; APIs need auth |
+| `/`, `/phoneai`, `/signup`, `/login`, `/phoneai/pair` | Public PhoneAI site + on-ramp |
+| `/phoneai/app`, `/phoneai/portal`, `/phoneai/mcp`, live kernel | **LAN or signup + Face ID / portal cookie** — not a raw link |
+| `/`, `/desk`, `/phone` shells | Desk HTML still in-app gated; PhoneAI live shells use `PHONEAI_LIVE_SHELLS` |
 | `/download` binaries | **Researcher License accept** required |
 | All sensitive `/v1/*` APIs | **Password / seat / API key** |
 | Deploy / shell / desktop / WSL / mint | **Founder only** |

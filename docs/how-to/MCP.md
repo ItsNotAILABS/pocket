@@ -49,6 +49,12 @@ invoke("pocket", "python_engines_list")
 invoke("pocket", "mail_accounts")
 ```
 
+## PhoneAI apps
+
+On the phone, the same servers are **apps**: `/phoneai/mcp` and the MCP tile on `/phoneai/app`. Phone invoke is the safe subset (`POST /v1/phoneai/mcp/invoke`). Full tools stay on stdio / owner desk.
+
+See [PHONEAI_MCP.md](PHONEAI_MCP.md) · paper [../research/PHONEAI_MCP_APPS_PAPER.md](../research/PHONEAI_MCP_APPS_PAPER.md).
+
 ## Doctrine
 
-Agents invoke tools **headlessly**. Users do **not** open browser tabs for MCP. Website work uses `web_ui_*` on the host Edge/Fusion path.
+Agents invoke tools **headlessly**. Users do **not** open browser tabs for MCP. On PhoneAI they open **MCP apps**. Website work uses `web_ui_*` on the host Edge/Fusion path.

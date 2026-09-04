@@ -377,7 +377,7 @@ def dispatch_skill(sid: str, *, prompt: str = "", params: Dict[str, Any] | None 
         from pocket.browser_mode import open_windows_copilot
 
         if sid == "copilot_open":
-            return open_windows_copilot()
+            return open_windows_copilot(explicit=True)
         if sid == "copilot_introduce":
             return introduce_to_copilot(prompt or "POCKET online")
         return paste_and_send_copilot(prompt or "Hello from POCKET orchestrator")

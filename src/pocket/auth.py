@@ -25,9 +25,10 @@ DEFAULT_USER = "pocket"
 
 # ---------------------------------------------------------------------------
 # Public surface policy
-# - ALWAYS public: marketing + health + login (never the live desk product)
-# - LOCAL public: full desk/phone shells only on loopback (this PC)
-# - Internet / Cloudflare clients never get desk HTML without auth
+# - ALWAYS public: PhoneAI landing + signup/login/pair + health (never the live kernel)
+# - Live PhoneAI shells (app/portal/computer/anti/…) need LAN, seat cookie, or Face ID
+# - LOCAL public: data helpers on loopback / home Wi-Fi only
+# - Internet / Cloudflare clients never get live app HTML by just hitting the link
 # Override: POCKET_PUBLIC_LOCK=0 restores old "desk shell is public" behavior
 # ---------------------------------------------------------------------------
 ALWAYS_PUBLIC_PATHS = frozenset({
@@ -48,6 +49,9 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/claims",
     "/v1/invention",
     "/v1/marks",
+    "/v1/registry",
+    "/v1/phoneai/registry",
+    "/registry",
     "/claims",
     "/marks",
     "/v1/setup",
@@ -55,12 +59,8 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/setup",
     "/onboard",
     "/phoneai/setup",
-    "/phoneai/app",
-    "/phoneai/os",
-    "/phoneai/home",
-    "/phoneai/runtime",
     "/phoneai/site",
-    "/runtime",
+    "/phoneai/www",
     "/v1/status",
     "/v1/ready",
     "/v1/auth/login",
@@ -89,40 +89,14 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/network",
     "/v1/network",
     "/phoneai",
-    "/agents",
-    "/agents/",
-    "/phoneai/agents",
     "/v1/agents/faces",
     "/phoneai/how",
     "/how-phoneai",
-    "/phoneai/work",
-    "/phoneai/anti",
-    "/phoneai/antigravity",
-    "/phoneai/portal",
     "/phoneai/pair",
-    "/phoneai/computer",
-    "/phoneai/pc",
-    "/portal",
-    "/phoneai/tv",
-    "/tv",
-    "/phoneai/doorbell",
-    "/doorbell",
-    "/phoneai/cam",
-    "/phoneai/camera-pc",
-    "/phoneai/glasses",
-    "/glasses",
-    "/phoneai/airpods",
-    "/airpods",
-    "/phoneai/wear",
-    "/phoneai/web",
-    "/live-web",
-    "/phoneai/twin",
-    "/twin",
     "/phoneai/manifest.json",
     "/phoneai/manifest",
     "/webmcp",
     "/web-mcp",
-    "/kernel",
     "/tech",
     "/v1/tech",
     "/v1/atlas",
@@ -134,8 +108,6 @@ ALWAYS_PUBLIC_PATHS = frozenset({
     "/v1/imagine/modes",
     "/v1/imagine/file",
 
-    "/v1/phoneai/kernel",
-    "/v1/kernel",
     "/join",
     "/signup",
     "/sign-up",
@@ -423,13 +395,65 @@ PUBLIC_PREFIXES = (
     "/v1/auth/oauth/",
     "/v1/auth/passkey/",
     "/ui/",
+    "/brand/",
     "/assets/",
     "/v1/agents/face/",
 )
 
+# Live PhoneAI product shells — public landing/pair/signup stay open; these do not.
+# Random visitors hitting the named tunnel get the Face ID / sign-up gate.
+PHONEAI_LIVE_SHELLS = frozenset({
+    "/phoneai/app",
+    "/phoneai/os",
+    "/phoneai/home",
+    "/phoneai/runtime",
+    "/runtime",
+    "/agents",
+    "/agents/",
+    "/phoneai/agents",
+    "/phoneai/work",
+    "/phoneai/anti",
+    "/phoneai/antigravity",
+    "/phoneai/portal",
+    "/phoneai/computer",
+    "/phoneai/pc",
+    "/portal",
+    "/phoneai/tv",
+    "/tv",
+    "/phoneai/doorbell",
+    "/doorbell",
+    "/phoneai/cam",
+    "/phoneai/camera-pc",
+    "/phoneai/glasses",
+    "/glasses",
+    "/phoneai/airpods",
+    "/airpods",
+    "/phoneai/wear",
+    "/phoneai/web",
+    "/live-web",
+    "/phoneai/twin",
+    "/twin",
+    "/kernel",
+    "/kernel/os",
+    "/phoneaios",
+    "/phoneai/mcp",
+    "/phoneai/mcp/",
+    "/phoneai/registry",
+    "/phoneai/registry/",
+})
+
 # Visual PhoneAI (stream + phone kernel JSON) after LAN / Face ID / seat / portal cookie.
 # Not shell, harness, eyes, runtime install, WebMCP use, or vault push.
 PORTAL_DEVICE_PATHS = frozenset({
+    "/v1/phoneai/kernel",
+    "/v1/kernel",
+    "/v1/phoneai/mcp",
+    "/v1/phoneai/mcp/invoke",
+    "/api/phoneai/mcp",
+    "/v1/mcp",
+    "/v1/mcp/catalog",
+    "/v1/mcp/tools",
+    "/v1/tools/mcp",
     "/v1/phoneai/portal",
     "/v1/phoneai/portal/frame",
     "/v1/phoneai/portal/touch",
@@ -558,6 +582,7 @@ APP_SHELL_PATHS = frozenset({
     "/phone",
     "/m",
     "/mobile",
+    *PHONEAI_LIVE_SHELLS,
     "/studio",
     "/imagine",
     "/imagine-studio",
@@ -856,6 +881,9 @@ def path_is_public(
     if p in ALWAYS_PUBLIC_PATHS or check in ALWAYS_PUBLIC_PATHS:
         return True
 
+    if p in PHONEAI_LIVE_SHELLS or check in PHONEAI_LIVE_SHELLS:
+        return _portal_device_ok(headers, client_address)
+
     if p in HOST_CONTROL_PATHS or check in HOST_CONTROL_PATHS:
         # This PC / home Wi-Fi only. Named tunnel never gets shell/eyes/install from the prefix.
         return is_home_lan_client(headers, client_address)
@@ -890,12 +918,12 @@ def is_app_shell(path: str) -> bool:
 
 
 def public_gate_html(*, reason: str = "owner-only") -> str:
-    """Public sign-in + sign-up for visitors (desk, phone, /login, /signup)."""
+    """Public sign-in + Face ID for PhoneAI. Random tunnel hits never get the live kernel."""
     return """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#07070b"/>
-<title>Sign in · POCKET</title>
+<title>Sign in · PhoneAI</title>
 <style>
   :root { --bg:#07070b; --card:#121218; --fg:#f4f4f5; --muted:#a1a1aa; --accent:#10a37f; --accent-ink:#042f24; --line:rgba(255,255,255,.1); }
   * { box-sizing:border-box; }
@@ -937,9 +965,9 @@ def public_gate_html(*, reason: str = "owner-only") -> str:
   details.code input { margin-top:8px; }
 </style></head><body>
 <div class="card">
-  <div class="brand"><i>P</i> POCKET</div>
+  <div class="brand"><i>P</i> PhoneAI</div>
   <h1 id="h">Sign in</h1>
-  <p id="blurb">GitHub, Google, Microsoft, X, or a username. New seats already have Grok, Codex, Claude, Gemini, Qwen, and POCKET Agent CLIs on this host.</p>
+  <p id="blurb">This link is the PhoneAI site — not the live kernel. Sign up, then Face ID this phone. After that the app opens. Random visitors stay on this page.</p>
   <div class="tabs" role="tablist">
     <button type="button" class="on" id="tabL" role="tab" aria-selected="true">Sign in</button>
     <button type="button" id="tabR" role="tab" aria-selected="false">Sign up</button>
@@ -983,19 +1011,29 @@ def public_gate_html(*, reason: str = "owner-only") -> str:
     <button type="button" class="primary" id="otpBtn" style="margin-top:8px">Redeem code</button>
   </details>
   <div class="err" id="e"></div>
-  <p class="hint">Public desk · phone · Imagine Studio. New here? Sign up with GitHub or a username. <a href="/join">Plans</a> · <a href="/">About</a></p>
+  <p class="hint">Public PhoneAI. Sign up, then Face ID. The live app is not on this URL until you do. <a href="/phoneai">About</a> · <a href="/join">Plans</a></p>
 </div>
 <script src="/auth/client.js"></script>
 <script>
 (function(){
-  function goDesk(){ location.replace('/desk?authed=1'); }
+  function dest(){
+    try{
+      var q = new URLSearchParams(location.search);
+      var n = q.get('next') || '';
+      if(n.charAt(0)==='/' && n.charAt(1)!=='/' && n.indexOf('://')<0 && n.indexOf('\\')<0) return n;
+    }catch(_){}
+    var p = (location.pathname||'').toLowerCase();
+    if(!p || p==='/' || p==='/login' || p==='/signup' || p==='/signin' || p==='/sign-in' || p==='/register' || p==='/join') return '/phoneai/app';
+    return p;
+  }
+  function goDesk(){ var d=dest(); location.replace(d + (d.indexOf('?')>=0 ? '&' : '?') + 'authed=1'); }
   async function maybeResume(){
     try{
       var tok = sessionStorage.getItem('pocket_token')||localStorage.getItem('pocket_token');
       if(!tok) return;
       if(!window.PocketAuth || !PocketAuth.me) return;
       var me = await PocketAuth.me();
-      if(me && me.ok){ location.replace('/desk?authed=1'); return; }
+      if(me && me.ok){ goDesk(); return; }
       PocketAuth.clearSession();
     }catch(_){}
   }

@@ -7,7 +7,7 @@
  * Navigation stays on the chosen desk origin; other https opens in system browser.
  * Doctrine: work runs on YOUR host (or your team's host) — not a vendor chat tab.
  */
-const { app, BrowserWindow, shell, ipcMain, Menu } = require("electron");
+const { app, BrowserWindow, shell, ipcMain, Menu, screen } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
@@ -65,6 +65,7 @@ if (!gotLock) {
   app.on("second-instance", () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
+      parkMainAway();
       mainWindow.show();
       mainWindow.focus();
     }
@@ -133,6 +134,65 @@ function writeConfig(cfg) {
 
 function root() {
   return process.env.POCKET_ROOT || path.resolve(__dirname, "..");
+}
+
+function otherWorkArea() {
+  try {
+    const all = screen.getAllDisplays();
+    if (!all.length) return null;
+    const primary = screen.getPrimaryDisplay();
+    const other = all.find((d) => d.id !== primary.id);
+    return other ? other.workArea : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Keep POCKET Desktop off the capture display when vision is on. */
+function parkMainAway() {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  const wa = otherWorkArea();
+  if (wa) {
+    const width = Math.min(1360, Math.max(960, wa.width - 48));
+    const height = Math.min(900, Math.max(640, wa.height - 48));
+    mainWindow.setBounds({
+      x: wa.x + 24,
+      y: wa.y + 24,
+      width,
+      height,
+    });
+  }
+  parkViaVirtualDesktop();
+  return !!wa;
+}
+
+function parkViaVirtualDesktop() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const buf = mainWindow.getNativeWindowHandle();
+    let hwnd = 0;
+    if (buf && buf.length >= 8) hwnd = Number(buf.readBigUInt64LE(0) & BigInt(0xffffffff));
+    else if (buf && buf.length >= 4) hwnd = buf.readUInt32LE(0);
+    if (!hwnd) return;
+    const body = JSON.stringify({ hwnd });
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port: localPort(),
+        path: "/v1/screen/vision",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+        timeout: 2500,
+      },
+      (res) => res.resume()
+    );
+    req.on("error", () => {});
+    req.write(body);
+    req.end();
+  } catch (_) {}
 }
 
 function py() {
@@ -508,6 +568,7 @@ app.whenReady().then(async () => {
   });
   mainWindow.once("ready-to-show", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      parkMainAway();
       mainWindow.show();
       mainWindow.focus();
     }
@@ -551,6 +612,7 @@ app.whenReady().then(async () => {
       baseUrl: `http://127.0.0.1:${PORT}`,
       onboarded: true,
     });
+    parkMainAway();
     return;
   }
 

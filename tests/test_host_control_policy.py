@@ -21,8 +21,10 @@ def test_new_control_paths_are_not_anonymous():
     ):
         assert path_is_public(p, headers=remote, client_address=addr) is False
     assert path_is_public("/v1/phoneai/tv/frame", headers=remote, client_address=addr) is False
-    assert path_is_public("/phoneai/portal") is True
-    assert path_is_public("/phoneai/tv") is True
+    assert path_is_public("/phoneai/portal", headers=remote, client_address=addr) is False
+    assert path_is_public("/phoneai/tv", headers=remote, client_address=addr) is False
+    assert path_is_public("/phoneai/portal", headers={}, client_address=("192.168.1.40", 9)) is True
+    assert path_is_public("/phoneai/tv", headers={}, client_address=("192.168.1.40", 9)) is True
     g = allow(headers=remote, client_address=addr, consequence="vcomp")
     assert g.get("ok") is False
     g = allow(headers=remote, client_address=addr, consequence="mail")
@@ -58,16 +60,38 @@ def test_prefixes_do_not_open_host_control():
 
 
 def test_static_shells_and_login_stay_public():
+    remote = {"CF-Connecting-IP": "8.8.8.8"}
+    addr = ("1.2.3.4", 443)
     assert path_is_public("/health") is True
     assert path_is_public("/login") is True
+    assert path_is_public("/signup") is True
     assert path_is_public("/phoneai") is True
-    assert path_is_public("/phoneai/portal") is True
     assert path_is_public("/phoneai/pair") is True
-    assert path_is_public("/phoneai/computer") is True
-    assert path_is_public("/phoneai/app") is True
     assert path_is_public("/v1/auth/passkey/begin") is True
     assert path_is_public("/v1/auth/device/begin") is True
     assert path_is_public("/v1/auth/device/list") is False
+    for p in (
+        "/phoneai/app",
+        "/phoneai/os",
+        "/phoneai/portal",
+        "/phoneai/computer",
+        "/phoneai/anti",
+        "/phoneai/glasses",
+        "/kernel",
+    ):
+        assert path_is_public(p, headers=remote, client_address=addr) is False
+        assert path_is_public(p, headers={}, client_address=("192.168.1.40", 9)) is True
+
+
+def test_signed_in_seat_can_open_phoneai_on_public_link():
+    from pocket.users import issue_token
+
+    tok = issue_token("alice")
+    headers = {"Authorization": "Bearer " + tok, "CF-Connecting-IP": "8.8.8.8"}
+    addr = ("8.8.8.8", 443)
+    assert path_is_public("/phoneai/app", headers=headers, client_address=addr) is True
+    assert path_is_public("/phoneai/computer", headers=headers, client_address=addr) is True
+    assert path_is_public("/phoneai/app", headers={"CF-Connecting-IP": "8.8.8.8"}, client_address=addr) is False
 
 
 def test_portal_frame_needs_lan_or_device():
@@ -97,6 +121,26 @@ def test_anonymous_host_control_denied():
     assert g.get("ok") is False
     vis = allow(headers={"CF-Connecting-IP": "1.2.3.4"}, client_address=("1.2.3.4", 443), consequence="portal")
     assert vis.get("ok") is False
+
+
+def test_public_gate_sends_signed_in_users_to_phoneai():
+    from pocket.auth import is_app_shell, public_gate_html
+
+    html = public_gate_html(reason="public-lock")
+    assert "PhoneAI" in html
+    assert "Face ID" in html
+    assert "/phoneai/app" in html
+    assert is_app_shell("/phoneai/app") is True
+    assert is_app_shell("/phoneai/portal") is True
+    assert is_app_shell("/phoneai/computer") is True
+
+
+def test_public_web_host_is_the_named_tunnel():
+    from pocket.which_pocket import is_public_web_host
+
+    assert is_public_web_host("pocket.medinatechlabs.net") is True
+    assert is_public_web_host("127.0.0.1:8787") is False
+    assert is_public_web_host("localhost", {"CF-Connecting-IP": "8.8.8.8"}) is True
 
 
 def test_portal_html_has_face_id():

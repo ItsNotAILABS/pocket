@@ -155,6 +155,8 @@ ul{{padding-left:1.2em}}
     <a href="/docs">Docs hub</a>
     <a href="/docs/view/INDEX">Index</a>
     <a href="/docs/view/HOW_TO">How-to</a>
+    <a href="/docs/view/how-to/PHONEAI">PhoneAI</a>
+    <a href="/phoneai/mcp">MCP apps</a>
     <a href="/mail">Mail</a>
     <a href="/desk">Desk</a>
     <a href="/install">Install</a>
@@ -253,6 +255,12 @@ code{{background:#0a0a0a;padding:1px 6px;border-radius:5px;font-size:12px}}
     <a href="/license">License</a>
     <a href="/docs/view/INDEX">Full index</a>
     <a href="/docs/view/HOW_TO">How-to index</a>
+    <a href="/phoneai">PhoneAI</a>
+    <a href="/phoneai/mcp">MCP apps</a>
+    <a href="/registry">Registry</a>
+    <a href="/v1/registry">Registry JSON</a>
+    <a href="/docs/view/research/PHONEAI_MCP_APPS_PAPER">MCP paper</a>
+    <a href="/docs/view/whitepapers/PHONEAI_PUBLIC_TUNNEL">Tunnel paper</a>
   </div>
 
   <h2 class="sec">Quick start</h2>

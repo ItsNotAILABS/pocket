@@ -154,15 +154,19 @@ def open_edge_url(
         return fb
 
 
-def open_windows_copilot(*, query: str = "", explicit: bool = True) -> Dict[str, Any]:
-    """Open the **Windows** Copilot app. Only when the operator asked (`explicit`)."""
+def open_windows_copilot(*, query: str = "", explicit: bool = False) -> Dict[str, Any]:
+    """Open the **Windows** Copilot app. Off unless the operator said `open copilot`.
+
+    Default `explicit=False` so keep-loops, lookups, and fake scripts cannot launch it.
+    Set POCKET_COPILOT_AUTO=1 only if you want Copilot on those paths.
+    """
     import os
     import subprocess
 
-    auto = (os.environ.get("POCKET_COPILOT_AUTO") or "").strip().lower()
-    if auto in ("0", "false", "no", "off"):
-        return {"ok": False, "skipped": True, "kind": "windows_copilot", "error": "Copilot auto-launch is off"}
-    if not explicit and auto not in ("1", "true", "yes", "on"):
+    auto = (os.environ.get("POCKET_COPILOT_AUTO") or "0").strip().lower()
+    auto_on = auto in ("1", "true", "yes", "on")
+    # Scripts/lookups: blocked unless AUTO=1. An explicit user click always works.
+    if not explicit and not auto_on:
         return {"ok": False, "skipped": True, "kind": "windows_copilot", "error": "Copilot opens only on explicit 'open copilot'"}
 
     results: List[Dict[str, Any]] = []
@@ -203,7 +207,12 @@ def open_windows_copilot(*, query: str = "", explicit: bool = True) -> Dict[str,
 
 
 def open_web_copilot(query: str = "") -> Dict[str, Any]:
-    """Web Copilot / Bing chat in Edge (signed-in profile)."""
+    """Web Copilot / Bing chat in Edge (signed-in profile). Off unless AUTO=1."""
+    import os as _os
+
+    auto = (_os.environ.get("POCKET_COPILOT_AUTO") or "0").strip().lower()
+    if auto not in ("1", "true", "yes", "on"):
+        return {"ok": False, "skipped": True, "kind": "web_copilot", "error": "Copilot auto-launch is off"}
     q = (query or "").strip()
     if q:
         url = "https://www.bing.com/chat?" + urllib.parse.urlencode({"q": q})
@@ -286,12 +295,12 @@ def execute_pocket_tag(body: str) -> Dict[str, Any]:
         rest = body.split(None, 2)[-1] if " " in body else ""
         return open_x_profile(rest)
     if low in ("open copilot", "open windows copilot", "copilot"):
-        return open_windows_copilot()
+        return open_windows_copilot(explicit=True)
     if low.startswith("open copilot "):
         rest = body[13:].strip()
         if rest.lower() in ("web", "bing", "online"):
             return open_web_copilot()
-        return open_windows_copilot(query=rest)
+        return open_windows_copilot(query=rest, explicit=True)
     if low.startswith("open copilot web"):
         q = body[16:].strip() if len(body) > 16 else ""
         return open_web_copilot(q)

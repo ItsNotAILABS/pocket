@@ -43,5 +43,6 @@ def test_host_control_not_public():
     assert path_is_public("/v1/eyes/touch") is False
     assert path_is_public("/v1/runtime/install") is False
     assert path_is_public("/v1/webmcp/use") is False
-    assert path_is_public("/phoneai/portal") is True
+    assert path_is_public("/phoneai/portal") is False
+    assert path_is_public("/phoneai") is True
     assert path_is_public("/health") is True

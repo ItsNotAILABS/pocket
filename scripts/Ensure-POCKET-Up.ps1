@@ -178,7 +178,24 @@ POCKET_PUBLIC_LOCK=1
 # Always try voice (fast no-op if already up)
 StartPocketVoice
 
+function Prune-ExtraServe {
+  $keep = @{}
+  foreach ($c in (PortListeners)) {
+    if ($c.OwningProcess) { $keep[[int]$c.OwningProcess] = $true }
+  }
+  Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.CommandLine -and $_.CommandLine -match '-m pocket serve'
+  } | ForEach-Object {
+    $procId = [int]$_.ProcessId
+    if ($keep.Count -gt 0 -and -not $keep.ContainsKey($procId)) {
+      Log "Killing extra pocket serve PID $procId (not the :8787 listener)"
+      Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
+
 if (HealthOk) {
+  Prune-ExtraServe
   Log "POCKET already up - http://127.0.0.1:8787/desk"
   if (VoiceHealthOk) { Log "Pocket Voice OK - http://127.0.0.1:8790" }
   exit 0
@@ -192,6 +209,7 @@ if ((PortListeners).Count -gt 0) {
 
 StartPocket
 if (Wait-Health 12) {
+  Prune-ExtraServe
   Log "POCKET is UP http://127.0.0.1:8787/desk (edition=$($env:POCKET_EDITION))"
   if (VoiceHealthOk) { Log "Pocket Voice OK - http://127.0.0.1:8790" }
   exit 0
@@ -202,6 +220,7 @@ Kill-Port8787
 Start-Sleep -Seconds 1
 StartPocket
 if (Wait-Health 14) {
+  Prune-ExtraServe
   Log "POCKET is UP after retry"
   if (VoiceHealthOk) { Log "Pocket Voice OK - http://127.0.0.1:8790" }
   exit 0

@@ -331,7 +331,7 @@ def open_app(app_id: str, *, args: str = "", path: str = "") -> Dict[str, Any]:
                     from pocket.browser_mode import open_windows_copilot
 
                     q = (args or "").strip()
-                    cop = open_windows_copilot(query=q)
+                    cop = open_windows_copilot(query=q, explicit=True)
                     if cop.get("ok"):
                         audit("app_open", app="copilot", path="", args=q[:100])
                         try:

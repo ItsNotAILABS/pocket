@@ -19,6 +19,12 @@ def test_kernel_and_os_are_distinct():
     assert "PhoneAI OS" in o
     assert "/phoneai/os" in k
     assert "Codex" in o
+    assert 'id="find"' in k
+    assert 'id="pulse"' in k
+    assert "MCP &amp; knowledge" in k or "MCP" in k
+    assert 'id="find"' in o
+    assert "/v1/registry" in o
+    assert "control plane" in o.lower() or "PhoneAI OS" in o
 
 
 def test_catalog_only_ready_engines(monkeypatch):

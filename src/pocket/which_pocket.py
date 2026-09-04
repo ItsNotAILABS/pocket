@@ -9,7 +9,7 @@ They do not share a port, a launcher, or a login screen.
 from __future__ import annotations
 
 import ipaddress
-from typing import Any, Dict
+from typing import Any, Dict, Mapping, Optional
 
 from pocket.edition import (
     is_founder,
@@ -49,6 +49,22 @@ def request_face(host_header: str) -> str:
 
 def is_operator_face(host_header: str) -> bool:
     return product_id() == "owner"
+
+
+def is_public_web_host(host_header: str, headers: Optional[Mapping[str, str]] = None) -> bool:
+    """Named Cloudflare tunnel / public DNS — not this PC or home LAN."""
+    name = host_name(host_header)
+    if name.endswith("medinatechlabs.net") or "trycloudflare.com" in name:
+        return True
+    headers = headers or {}
+    for key in (
+        "CF-Connecting-IP",
+        "cf-connecting-ip",
+        "Cf-Connecting-Ip",
+    ):
+        if str(headers.get(key) or "").strip():
+            return True
+    return False
 
 
 def is_loopback_host(host_header: str) -> bool:

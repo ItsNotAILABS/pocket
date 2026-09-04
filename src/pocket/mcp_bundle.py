@@ -875,6 +875,10 @@ def _invoke_pocket(tool: str, params: Dict[str, Any]) -> Dict[str, Any]:
             mode=params.get("mode") or "",
             monitor=params.get("monitor"),
             vcomp=params.get("vcomp"),
+            target=params.get("target") or "",
+            window_title=params.get("window_title") or params.get("title") or "",
+            window_hwnd=params.get("window_hwnd") or params.get("hwnd"),
+            label=params.get("label") or params.get("name") or "",
         )
     if t in ("screen_sense", "sense"):
         from pocket.screen_share import fusion_context

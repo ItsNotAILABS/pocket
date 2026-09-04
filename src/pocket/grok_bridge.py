@@ -34,6 +34,19 @@ def which_grok() -> str:
     return ""
 
 
+def grok_cli_env(grok: str = "") -> dict:
+    """Env for grok.exe. Keep API keys. Grow Rust stack (Windows ARM overflow)."""
+    env = dict(os.environ)
+    env.pop("GROK_SESSION_ID", None)
+    env.pop("GROK_AGENT", None)
+    env["CI"] = "1"
+    env["RUST_MIN_STACK"] = str(int(os.environ.get("RUST_MIN_STACK") or 16 * 1024 * 1024))
+    path = grok or which_grok()
+    if path:
+        env["PATH"] = str(Path(path).parent) + os.pathsep + env.get("PATH", "")
+    return env
+
+
 def build_research_plan(user_prompt: str = "", cwd: str = "") -> Dict:
     live = probe_all()
     usage = get_usage()
@@ -321,18 +334,13 @@ def run_grok_exec(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str, st
             "grok",
         )
 
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GROK_")}
-    env.pop("GROK_SESSION_ID", None)
-    env.pop("GROK_AGENT", None)
-    gbin = str(Path(grok).parent)
-    env["PATH"] = gbin + os.pathsep + env.get("PATH", "")
-    env["CI"] = "1"
+    env = grok_cli_env(grok)
 
     # Grok CLI takes the prompt as argv; keep under Windows limits, task-first already.
     cmd = [
         grok,
         "--single",
-        full_prompt[:12000],
+        full_prompt[:4000],
         "--cwd",
         agent_cwd,
         # Overnight / long ship sessions need headroom; default 48 (was 16 → "max turns reached")

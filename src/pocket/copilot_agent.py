@@ -111,7 +111,7 @@ def paste_and_send_copilot(text: str, *, already_open: bool = False) -> Dict[str
     if not already_open:
         from pocket.browser_mode import open_windows_copilot
 
-        open_windows_copilot()
+        open_windows_copilot(explicit=True)
         time.sleep(1.8)
     else:
         time.sleep(0.6)
@@ -218,7 +218,7 @@ def introduce_to_copilot(
     emit("copilot", "Opening Windows Copilot app…", agent="CONSILIARIUS", role="python")
     from pocket.browser_mode import open_windows_copilot
 
-    opened = open_windows_copilot()
+    opened = open_windows_copilot(explicit=True)
     send = paste_and_send_copilot(intro, already_open=True) if clip else {"ok": False}
 
     return {
@@ -255,7 +255,7 @@ def run_copilot_job(prompt: str, *, cwd: str = "", job: Optional[dict] = None) -
     if low in ("open", "open copilot"):
         from pocket.browser_mode import open_windows_copilot
 
-        r = open_windows_copilot()
+        r = open_windows_copilot(explicit=True)
         return f"## Copilot\n\n{r.get('message')}\n", "" if r.get("ok") else "open failed", "copilot"
     if low.startswith("open web"):
         from pocket.browser_mode import open_web_copilot

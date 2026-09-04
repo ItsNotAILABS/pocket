@@ -579,7 +579,10 @@ def geom(target: str = "desktop", hwnd: int = 0) -> Dict[str, Any]:
         mons = (list_monitors().get("monitors") or [])
         idx = 0
         try:
-            idx = int(hwnd or 0)
+            if ":" in t:
+                idx = int(t.split(":", 1)[1])
+            else:
+                idx = int(hwnd or 0)
         except Exception:
             idx = 0
         if t in ("tv", "hdmi") and len(mons) > 1:
@@ -618,42 +621,19 @@ def _capture_rect(x: int, y: int, w: int, h: int):
     return ImageGrab.grab(bbox=(int(x), int(y), int(x + w), int(y + h)))
 
 
-_SKIP_TITLES = ("portal · phoneai", "phoneai portal", "/phoneai/portal")
-
-
-def _blackout_self(img) -> None:
-    """Paint over the Portal viewer so the stream cannot contain itself."""
+def _blackout_self(img, origin: Optional[Dict[str, int]] = None) -> None:
+    """Paint over POCKET/Portal/Desk viewers so the stream cannot recurse."""
     try:
-        from PIL import ImageDraw
-        from pocket.screen_share import list_windows
+        from pocket.screen_share import blackout_viewers
 
-        draw = ImageDraw.Draw(img)
-        pw, ph = img.size
-        ps = primary_screen()
-        sx = pw / float(ps["w"] or pw)
-        sy = ph / float(ps["h"] or ph)
-        for w in list_windows(limit=40):
-            title = (w.get("title") or "").lower()
-            if not any(s in title for s in _SKIP_TITLES):
-                continue
-            hwnd = int(w.get("hwnd") or 0)
-            if hwnd <= 0:
-                continue
-            import ctypes
-            from ctypes import wintypes
-
-            rect = wintypes.RECT()
-            if not _user32().GetWindowRect(hwnd, ctypes.byref(rect)):
-                continue
-            x0 = int((rect.left - ps["x"]) * sx)
-            y0 = int((rect.top - ps["y"]) * sy)
-            x1 = int((rect.right - ps["x"]) * sx)
-            y1 = int((rect.bottom - ps["y"]) * sy)
-            area = max(0, x1 - x0) * max(0, y1 - y0)
-            # A maximized Portal tab would grey the whole laptop. Skip huge rects.
-            if area > 0.18 * pw * ph:
-                continue
-            draw.rectangle([x0, y0, x1, y1], fill=(8, 10, 18))
+        g = origin or primary_screen()
+        blackout_viewers(
+            img,
+            int(g.get("x") or 0),
+            int(g.get("y") or 0),
+            int(g.get("w") or img.size[0]),
+            int(g.get("h") or img.size[1]),
+        )
     except Exception:
         pass
 
@@ -668,6 +648,8 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
     with _grab_lock:
         if _last_jpeg.get("key") == key and now - float(_last_jpeg.get("t") or 0) < coalesce and _last_jpeg.get("data"):
             return _last_jpeg["data"], _last_jpeg["meta"]
+        if _grabbing.is_set() and _last_jpeg.get("data"):
+            return _last_jpeg["data"], _last_jpeg.get("meta") or {}
     g = {"ok": True, "target": "desktop"}
     try:
         g.update(primary_screen())
@@ -702,7 +684,7 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
                 img = None
     if img is None and tlow in ("desktop", "", "primary"):
         try:
-            img = _ex.submit(_capture_primary).result(timeout=0.8)
+            img = _ex.submit(_capture_primary).result(timeout=0.7)
         except (FutTimeout, Exception):
             img = None
     if img is None and tlow not in ("desktop", "", "primary"):
@@ -718,8 +700,9 @@ def grab_jpeg(*, target: str = "desktop", max_w: int = 1600, quality: int = 0, h
         meta = {**g, "via": "placeholder", "bytes": len(data)}
         return data, meta
     img = img.convert("RGB")
-    if tlow in ("desktop", "", "primary") and (now - float(_last_jpeg.get("blackout_t") or 0) > 2.5):
-        _blackout_self(img)
+    # Cheap, cached blackout — never enumerate windows on the grab hot path.
+    if now - float(_last_jpeg.get("blackout_t") or 0) > 0.9:
+        _blackout_self(img, g)
         _last_jpeg["blackout_t"] = now
     if img.width > max_w:
         ratio = max_w / float(img.width)
@@ -1339,8 +1322,9 @@ def peek_jpeg(*, target: str = "desktop", max_w: int = 1280, quality: int = 72, 
 def run_portal_ws(sock, headers=None, client_address=None) -> None:
     """One connection: binary JPEGs out, JSON touch in. No HTTP round-trip per move."""
     sock.settimeout(0.02)
-    cfg = {"max_w": 1600, "q": 74, "target": "desktop", "fps": 16.0, "hwnd": 0}
+    cfg = {"max_w": 1024, "q": 64, "target": "desktop", "fps": 16.0, "hwnd": 0}
     last = 0.0
+    last_ping = 0.0
     stash: list = [b""]
     hello = json.dumps(
         {
@@ -1357,17 +1341,29 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
         _ws_send(sock, hello, 1)
     except Exception:
         return
-    _kick_grab("desktop", 1280, 72)
+    _kick_grab("desktop", 1024, 64)
     while True:
         now = time.time()
-        interval = 1.0 / max(4.0, min(float(cfg["fps"]), 24.0))
+        interval = 1.0 / max(8.0, min(float(cfg["fps"]), 20.0))
+        if now - last_ping >= 4.0:
+            try:
+                _ws_send(sock, b"ping", 9)
+            except Exception:
+                break
+            last_ping = now
         if now - last >= interval:
             peeked = peek_jpeg(
                 target=str(cfg.get("target") or "desktop"),
-                max_w=int(cfg.get("max_w") or 1280),
-                quality=int(cfg.get("q") or 72),
+                max_w=int(cfg.get("max_w") or 1024),
+                quality=int(cfg.get("q") or 64),
                 hwnd=int(cfg.get("hwnd") or 0),
             )
+            if not peeked:
+                with _grab_lock:
+                    data = _last_jpeg.get("data") or b""
+                    meta = dict(_last_jpeg.get("meta") or {})
+                if data:
+                    peeked = (data, meta)
             if peeked:
                 try:
                     meta = peeked[1] if isinstance(peeked[1], dict) else {}
@@ -1434,7 +1430,7 @@ def run_portal_ws(sock, headers=None, client_address=None) -> None:
             if msg.get("q") or msg.get("quality"):
                 cfg["q"] = max(40, min(int(msg.get("q") or msg.get("quality")), 90))
             if msg.get("fps"):
-                cfg["fps"] = float(msg["fps"])
+                cfg["fps"] = max(8.0, min(float(msg["fps"]), 20.0))
             continue
         if kind in ("ping", "hello"):
             continue

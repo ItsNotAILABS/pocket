@@ -46,11 +46,10 @@ def _loop(interval: float) -> None:
         try:
             from PIL import ImageGrab
 
-            # Prefer full desktop so vision sees apps besides the POCKET window
             try:
-                img = ImageGrab.grab()
-            except Exception:
                 img = ImageGrab.grab(all_screens=False)
+            except Exception:
+                img = ImageGrab.grab()
             # scale for bandwidth
             max_w = 960
             if img.width > max_w:

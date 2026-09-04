@@ -59,7 +59,10 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
 .foot{{border-top:1px solid var(--line);padding:22px 0 40px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;color:var(--muted);font-size:12px}}
 .foot a{{color:var(--muted)}}
 .foot a:hover{{color:var(--ink)}}
-@media(max-width:800px){{.grid{{grid-template-columns:1fr}}.hero{{padding-top:28px}}h1{{font-size:40px}}}}
+.film{{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}}
+.film img{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;border:1px solid var(--line);background:#0a0a10}}
+.film figcaption{{font-size:12px;color:var(--muted);margin-top:6px}}
+@media(max-width:800px){{.grid,.film{{grid-template-columns:1fr}}.hero{{padding-top:28px}}h1{{font-size:40px}}}}
 </style>
 </head>
 <body>
@@ -69,7 +72,7 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
     <div class="nav-a">
       <a class="ghost" href="/setup">Setup</a>
       <a class="ghost" href="/signup">Sign up</a>
-      <a class="ghost" href="/desk">POCKET</a>
+      <a class="ghost" href="/login">Face ID</a>
       <a class="cta" href="/phoneai/app">Enter PhoneAI</a>
     </div>
   </nav>
@@ -77,11 +80,11 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
   <section class="hero">
     <p class="kicker">{LAB}</p>
     <h1>A phone kernel. On the machine you already own.</h1>
-    <p class="lead">PhoneAI is not a chat widget. It is a phone seat — chat, camera, Portal to your PC, Antigravity as its own desktop stream, glasses HUD, and agents that can see the screen and bring the host up themselves.</p>
+    <p class="lead">PhoneAI is not a chat widget. It is a phone seat — chat, camera, Portal to your PC, Antigravity as its own desktop stream, glasses HUD, and agents that can see the screen and bring the host up themselves. Hitting this public link does not open the live kernel. Sign up, then Face ID this phone.</p>
     <div class="row">
-      <a class="cta" href="/phoneai/app">Enter the phone</a>
-      <a class="ghost" href="/setup">Full installation</a>
-      <a class="ghost" href="/signup">Create a seat</a>
+      <a class="cta" href="/signup">Sign up</a>
+      <a class="ghost" href="/login">Face ID</a>
+      <a class="ghost" href="/phoneai/app">Enter the phone</a>
     </div>
     <div class="live" id="live"><b></b> Checking host…</div>
   </section>
@@ -96,18 +99,31 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
   </div>
 
   <section class="band">
+    <h2>The product on glass</h2>
+    <p class="sub">Kernel, Face ID gate, Portal stream, computer vision, OS, MCP apps — stills of the live seat.</p>
+    <div class="film">
+      <figure><img src="/brand/vision/kernel-home.jpg" alt="PhoneAI Kernel home"/><figcaption>Kernel</figcaption></figure>
+      <figure><img src="/brand/vision/face-id-gate.jpg" alt="Face ID gate"/><figcaption>Face ID</figcaption></figure>
+      <figure><img src="/brand/vision/portal-stream.jpg" alt="Portal PC stream"/><figcaption>Portal</figcaption></figure>
+      <figure><img src="/brand/vision/computer-vision.jpg" alt="Computer vision"/><figcaption>Vision</figcaption></figure>
+      <figure><img src="/brand/vision/os-control.jpg" alt="PhoneAI OS"/><figcaption>OS</figcaption></figure>
+      <figure><img src="/brand/vision/mcp-apps.jpg" alt="MCP apps"/><figcaption>MCP</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="band">
     <h2>How you actually use it</h2>
-    <p class="sub">This page is the intro. The app is the kernel. Tunnel the intro; bookmark the phone.</p>
+    <p class="sub">This page is public. The kernel, Portal, and computer stream stay locked until you sign up and Face ID.</p>
     <ol class="flow">
-      <li><strong>1 · Create a seat</strong><span>Username and password on this host. PhoneAI is a market seat, separate from the owner desk.</span></li>
-      <li><strong>2 · Keep the PC awake</strong><span>Install always-on so the host restarts if serve dies. Agents call <code>runtime_ensure</code>.</span></li>
+      <li><strong>1 · Create a seat</strong><span>Sign up on this host. PhoneAI is a market seat, separate from the owner desk.</span></li>
+      <li><strong>2 · Face ID this phone</strong><span>Pair once. After Face ID, this phone can open the app on the public URL. Random visitors cannot.</span></li>
       <li><strong>3 · Open the phone</strong><span>Enter PhoneAI. Chat, Portal, Anti, glasses, live web — all on this computer.</span></li>
     </ol>
     <div class="row" style="margin-top:22px">
-      <a class="cta" href="/phoneai/app">Enter PhoneAI</a>
-      <a class="ghost" href="/phoneai/portal">Portal</a>
-      <a class="ghost" href="/phoneai/anti">Antigravity</a>
-      <a class="ghost" href="/phoneai/glasses">Glasses HUD</a>
+      <a class="cta" href="/signup">Sign up</a>
+      <a class="ghost" href="/login">Face ID</a>
+      <a class="ghost" href="/phoneai/app">Enter PhoneAI</a>
+      <a class="ghost" href="/phoneai/pair">Pair</a>
     </div>
   </section>
 
@@ -118,6 +134,8 @@ ol.flow span{{color:var(--muted);font-size:13.5px}}
       · <a href="/setup">Setup</a>
       · <a href="/install">Install</a>
       · <a href="/signup">Sign up</a>
+      · <a href="/docs">Docs</a>
+      · <a href="/docs/view/how-to/PHONEAI_MCP">MCP apps</a>
       · <a href="/claims">Claims</a>
     </div>
   </footer>

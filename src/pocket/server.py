@@ -690,6 +690,35 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(raw)
             return
+        if path.startswith("/brand/"):
+            from pathlib import Path
+
+            rel = path[len("/brand/") :].lstrip("/")
+            if ".." in rel or rel.startswith("/"):
+                return self._json(400, {"error": "bad path"})
+            fp = Path(__file__).resolve().parents[2] / "docs" / "brand" / rel
+            if not fp.is_file():
+                return self._json(404, {"error": "not found"})
+            data = fp.read_bytes()
+            ctype = "application/octet-stream"
+            if rel.endswith(".jpg") or rel.endswith(".jpeg"):
+                ctype = "image/jpeg"
+            elif rel.endswith(".png"):
+                ctype = "image/png"
+            elif rel.endswith(".svg"):
+                ctype = "image/svg+xml"
+            elif rel.endswith(".mp4"):
+                ctype = "video/mp4"
+            elif rel.endswith(".md"):
+                ctype = "text/markdown; charset=utf-8"
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Cache-Control", "public, max-age=300")
+            self.send_header("Content-Length", str(len(data)))
+            self._sec_headers()
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if not self._require_auth(path):
             return
 
@@ -698,20 +727,22 @@ class Handler(BaseHTTPRequestHandler):
 
             return self._html(which_html(self.headers.get("Host", "")))
         if path in ("/", "/tour", "/product", "/present", "/landing", "/home"):
-            # Loopback = YOUR POCKET map. Public host = user-facing marketing.
+            # Public tunnel = PhoneAI site (signup + Face ID to enter the app).
+            # This PC / loopback = owner map.
             try:
-                from pocket.which_pocket import is_operator_face
+                from pocket.which_pocket import is_public_web_host, which_html
 
-                if is_operator_face(self.headers.get("Host", "")):
-                    from pocket.which_pocket import which_html
+                if is_public_web_host(self.headers.get("Host", ""), self.headers):
+                    from pocket.phoneai_landing import landing_html as phoneai_landing_html
 
-                    return self._html(which_html(self.headers.get("Host", "")))
+                    return self._html(phoneai_landing_html())
+                return self._html(which_html(self.headers.get("Host", "")))
             except Exception:
                 pass
             try:
-                from pocket.marketing_landing import landing_html
+                from pocket.phoneai_landing import landing_html as phoneai_landing_html
 
-                return self._html(landing_html())
+                return self._html(phoneai_landing_html())
             except Exception:
                 from pocket.product_tour import tour_html
 
@@ -875,6 +906,14 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.phoneai_os_ui import phoneai_portal_html
 
             return self._html(phoneai_portal_html())
+        if path in ("/phoneai/mcp", "/phoneai/mcp/"):
+            from pocket.phoneai_mcp import mcp_apps_html
+
+            return self._html(mcp_apps_html())
+        if path in ("/v1/phoneai/mcp", "/api/phoneai/mcp"):
+            from pocket.phoneai_mcp import phone_apps
+
+            return self._json(200, phone_apps())
         if path in ("/phoneai/runtime", "/runtime"):
             from pocket.phoneai_landing import runtime_html as phoneai_runtime_html
 
@@ -1298,6 +1337,18 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.platform_catalog import catalog
 
             return self._json(200, catalog())
+        if path in ("/v1/registry", "/v1/phoneai/registry", "/api/registry"):
+            from pocket.registry import snapshot
+
+            return self._json(200, snapshot())
+        if path in ("/registry", "/registry/"):
+            from pocket.registry import registry_html
+
+            return self._html(registry_html())
+        if path in ("/phoneai/registry", "/phoneai/registry/"):
+            from pocket.registry import registry_html
+
+            return self._html(registry_html())
         if path in (
             "/v1/agents/tools",
             "/v1/agent/tools",
@@ -4678,6 +4729,16 @@ class Handler(BaseHTTPRequestHandler):
                 decide_laptop_cam(bool(body.get("allow")), minutes=float(body.get("minutes") or 10)),
             )
 
+        if path in ("/v1/phoneai/mcp/invoke", "/api/phoneai/mcp/invoke"):
+            from pocket.phoneai_mcp import safe_invoke
+
+            params = body.get("params") if isinstance(body.get("params"), dict) else {
+                k: v for k, v in body.items() if k not in ("server", "tool", "params")
+            }
+            return self._json(
+                200,
+                safe_invoke(str(body.get("server") or "pocket"), str(body.get("tool") or ""), params),
+            )
         if path in ("/v1/phoneai/life", "/api/phoneai/life"):
             from pocket.phone_life import act as phone_life_act
             from pocket.ratelimit import hit
@@ -7712,6 +7773,22 @@ class Handler(BaseHTTPRequestHandler):
 
             h = heal_share_target(force_desktop=bool(body.get("force") or body.get("desktop") or True))
             return self._json(200, {"ok": True, **h, "status": screen_status()})
+        if path in ("/v1/screen/vision", "/v1/screen/park", "/v1/share/park"):
+            from pocket.screen_share import park_pocket_for_vision
+
+            extra = []
+            if body.get("hwnd") is not None:
+                try:
+                    extra.append(int(body.get("hwnd")))
+                except Exception:
+                    pass
+            if isinstance(body.get("hwnds"), list):
+                for h in body.get("hwnds") or []:
+                    try:
+                        extra.append(int(h))
+                    except Exception:
+                        pass
+            return self._json(200, park_pocket_for_vision(extra_hwnds=extra))
         if path in ("/v1/voice/tts", "/v1/tts"):
             from pocket.tts_engine import synthesize
 

@@ -24,19 +24,36 @@ PHONEAI_OS_HTML = r"""<!DOCTYPE html>
 html,body{margin:0;width:100%;height:100%;height:100dvh;min-height:100svh;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,sans-serif}
 body{max-width:430px;margin:0 auto;display:flex;flex-direction:column;min-height:100dvh;padding:0;
   background:radial-gradient(700px 380px at 90% -8%,rgba(0,255,134,.1),transparent 50%),#05060a}
-.status{display:flex;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 18px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.view{display:none;flex:1;flex-direction:column;min-height:0;padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+.status{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 16px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.status .pulse{display:inline-flex;align-items:center;gap:6px;letter-spacing:.08em}
+.status .pulse b{width:7px;height:7px;border-radius:50%;background:#555;display:inline-block}
+.status .pulse.on b{background:var(--g);box-shadow:0 0 8px var(--g)}
+.layers{display:flex;gap:8px;padding:10px 16px 0}
+.layers a,.layers button{flex:1;text-align:center;padding:9px;border-radius:14px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:800;font-size:13px;background:transparent}
+.layers a.on,.layers button.on{background:var(--g);color:#042;border-color:var(--g)}
+.find{margin:10px 16px 0;width:calc(100% - 32px);min-height:42px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:var(--fg);padding:10px 12px;font:inherit}
+.pills{display:flex;gap:6px;padding:8px 16px 0;overflow:auto}
+.pills i{flex:0 0 auto;font-style:normal;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:5px 9px;color:var(--muted)}
+.pills i.on{color:#042;background:var(--g);border-color:var(--g)}
+.sec{padding:14px 16px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.view{display:none;flex:1;flex-direction:column;min-height:0;padding-bottom:calc(92px + env(safe-area-inset-bottom));overflow:auto}
 .view.on{display:flex}
-.hero{padding:14px 18px 6px}
+.hero{padding:14px 18px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.hero h1{flex:1}
+.back{border:1px solid var(--line);background:var(--p);color:var(--fg);border-radius:999px;padding:8px 12px;font-size:12px}
 h1{margin:4px 0;font-size:26px;letter-spacing:-.04em}
-.lead{color:var(--muted);font-size:14px;line-height:1.4}
+.lead{color:var(--muted);font-size:14px;line-height:1.4;width:100%}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;padding:12px 16px 8px}
 .app{display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--fg);background:none;border:0;font:inherit;padding:0}
 .icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:22px;
-  border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02))}
-.app span{font-size:11px;color:var(--muted)}
+  border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.02));transition:transform .08s ease}
+.app:active .icon{transform:scale(.92)}
+.app span{font-size:11px;color:var(--muted);text-align:center}
+.app.hide{display:none}
 .dock{position:fixed;left:14px;right:14px;bottom:calc(6px + env(safe-area-inset-bottom));z-index:20;margin:0;padding:8px;border-radius:22px;display:flex;justify-content:space-around;
   background:rgba(18,18,24,.92);border:1px solid var(--line);backdrop-filter:blur(16px)}
+.dock .app span,.dock a span{font-size:10px}
+.dock .on .icon{border-color:var(--g);box-shadow:0 0 0 1px var(--g)}
 .quick{display:flex;gap:8px;padding:0 16px 10px;overflow:auto}
 .quick button{flex:0 0 auto;border:1px solid var(--line);background:var(--p);color:var(--fg);border-radius:999px;padding:8px 12px;font-size:12px}
 .log{flex:1;overflow:auto;padding:12px 14px}
@@ -66,7 +83,8 @@ body.desk .dock{display:none!important;pointer-events:none}
     height:100dvh;height:100svh;background:#000
   }
   body.desk .status,body.desk .hero,body.desk .quick,body.desk .more,body.desk .dock,body.desk .lead,
-  body.desk .grid,body.desk #v-chat{display:none!important}
+  body.desk .grid,body.desk .layers,body.desk .find,body.desk .pills,body.desk .sec,body.desk .engines,
+  body.desk #v-chat{display:none!important}
   body.desk #v-home.view.on,body.desk #v-home{display:contents!important}
   body.desk .ws-desk{
     display:flex!important;flex-direction:column;
@@ -81,17 +99,25 @@ body.desk .dock{display:none!important;pointer-events:none}
 </style>
 </head>
 <body>
-<div class="status"><span id="clk">PHONEAI</span><span id="host">GLIMMER</span></div>
+<div class="status"><span id="clk">PHONEAI</span><span class="pulse" id="pulse"><b></b> host</span><span id="host">POCKET</span></div>
 
 <section class="view on" id="v-home">
-  <div class="hero"><h1>PhoneAI Kernel</h1><p class="lead">Seat on this PC. Codex is first-class. Portal is the laptop. <a href="/phoneai/os" style="color:#58a6ff">Open PhoneAI OS</a>.</p></div>
+  <div class="hero"><h1>PhoneAI Kernel</h1><p class="lead">This phone is a seat on the PC. Chat, Portal, and MCP run here — not in a cloud tab.</p></div>
+  <div class="layers">
+    <a class="on" href="/phoneai/app">Kernel</a>
+    <a href="/phoneai/os">OS</a>
+  </div>
+  <div class="pills" id="pills"></div>
   <div class="engines" id="eng"></div>
+  <input class="find" id="find" type="search" placeholder="Find an app" autocomplete="off"/>
   <div class="quick">
     <button type="button" data-go="chat" data-pre="Remind me to ">Remind me</button>
     <button type="button" data-go="maps">Directions</button>
     <button type="button" data-go="chat" data-pre="Draft a text: ">Text</button>
+    <button type="button" data-go="mcp">MCP</button>
     <button type="button" data-go="list">List</button>
   </div>
+  <div class="sec">Life</div>
   <div class="grid">
     <button class="app" data-go="chat"><div class="icon">💬</div><span>Chat</span></button>
     <button class="app" data-go="camera"><div class="icon">📷</div><span>Camera</span></button>
@@ -104,88 +130,116 @@ body.desk .dock{display:none!important;pointer-events:none}
     <a class="app" href="sms:"><div class="icon">✉️</div><span>Messages</span></a>
     <a class="app" href="tel:"><div class="icon">📞</div><span>Phone</span></a>
     <a class="app" href="/imagine"><div class="icon">✨</div><span>Imagine</span></a>
+  </div>
+  <div class="sec">Computer</div>
+  <div class="grid">
     <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Code desk</span></a>
     <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
     <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>Portal</span></a>
+    <a class="app" href="/phoneai/computer"><div class="icon">🖥</div><span>Computer</span></a>
     <a class="app" href="/phoneai/glasses"><div class="icon">👓</div><span>Glasses</span></a>
     <a class="app" href="/phoneai/airpods"><div class="icon">🎧</div><span>AirPods</span></a>
     <a class="app" href="/phoneai/web"><div class="icon">🌐</div><span>Web live</span></a>
-    <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
+  </div>
+  <div class="sec">MCP &amp; knowledge</div>
+  <div class="grid">
+    <button class="app" data-go="mcp"><div class="icon">⬡</div><span>MCP</span></button>
+    <a class="app" href="/phoneai/mcp"><div class="icon">⌂</div><span>MCP apps</span></a>
+    <a class="app" href="/phoneai/registry"><div class="icon">▣</div><span>Registry</span></a>
+    <a class="app" href="/docs"><div class="icon">📄</div><span>Docs</span></a>
     <a class="app" href="/agents"><div class="icon">🙂</div><span>Agents</span></a>
+    <a class="app" href="/claims"><div class="icon">®</div><span>Claims</span></a>
+  </div>
+  <div class="sec">House</div>
+  <div class="grid">
+    <a class="app" href="/phoneai/runtime"><div class="icon">⏻</div><span>Runtime</span></a>
     <a class="app" href="/phoneai/tv"><div class="icon">📺</div><span>TV node</span></a>
     <a class="app" href="/phoneai/doorbell"><div class="icon">🔔</div><span>Doorbell</span></a>
     <a class="app" href="/phoneai/cam"><div class="icon">💻</div><span>PC cam</span></a>
-    <a class="app" href="/claims"><div class="icon">®</div><span>Claims</span></a>
     <button class="app" data-go="settings"><div class="icon">⚙</div><span>Settings</span></button>
   </div>
-  <p class="more">PhoneAI Kernel™ is the phone seat on this PC — not a receptionist. Portal is the live PC stream (watch + touch). Anti is the Antigravity desktop app. They are separate. Rotate the phone for a computer workspace. <a href="/phoneai">Website</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a> · <a href="/claims">Claims</a></p>
+  <p class="more">PhoneAI Kernel™ is the phone seat on this PC — not a receptionist. Portal is the live PC stream. Anti is Antigravity. Rotate for a computer workspace. <a href="/phoneai">Website</a> · <a href="/phoneai/os">OS</a> · <a href="/setup">Setup</a> · <a href="/login">Seat</a></p>
   <div class="ws-desk" id="homeWs">__PHONEAI_WS_STAGE__</div>
 </section>
 
 <section class="view" id="v-chat">
-  <div class="hero"><h1>Chat</h1><p class="lead">Talks to Grok or Codex on this computer — not a cloud toy.</p></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Chat</h1><p class="lead">Talks to Grok or Codex on this computer — not a cloud toy.</p></div>
   <div class="engines" id="chatEng"></div>
   <div class="log" id="clog"></div>
   <form class="form" id="cf"><textarea id="ct" placeholder="Remind me, draft a text, where is…" rows="1"></textarea><button>Send</button></form>
 </section>
 
 <section class="view" id="v-camera">
-  <div class="hero"><h1>Camera</h1><p class="lead">Snap a photo. It lands in Photos and the sovereign explorer.</p></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Camera</h1><p class="lead">Snap a photo. It lands in Photos and the sovereign explorer.</p></div>
   <div style="padding:0 14px"><video id="vid" autoplay playsinline></video><canvas id="cv" hidden></canvas></div>
   <div class="form"><button class="go" type="button" id="snap">Shutter</button><button class="go" type="button" data-go="photos" style="background:#222;color:#fff">Photos</button></div>
 </section>
 
 <section class="view" id="v-photos">
-  <div class="hero"><h1>Photos</h1></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Photos</h1></div>
   <div class="gallery" id="gal"></div>
 </section>
 
 <section class="view" id="v-maps">
-  <div class="hero"><h1>Maps</h1><p class="lead">Opens Google Maps on the phone.</p></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Maps</h1><p class="lead">Opens Google Maps on the phone.</p></div>
   <form class="form" id="mf"><input id="mq" placeholder="Coffee near me, 123 Main…"/><button>Go</button></form>
   <div class="form"><button class="go" type="button" id="here">Use my location</button></div>
 </section>
 
 <section class="view" id="v-notes">
-  <div class="hero"><h1>Notes</h1></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Notes</h1></div>
   <form class="form" id="nf"><input id="nt" placeholder="Quick note"/><button>Save</button></form>
   <div id="nl"></div>
 </section>
 
 <section class="view" id="v-remind">
-  <div class="hero"><h1>Reminders</h1></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Reminders</h1></div>
   <form class="form" id="rf"><input id="rt" placeholder="Remind me to…"/><button>Set</button></form>
   <div id="rl"></div>
 </section>
 
 <section class="view" id="v-list">
-  <div class="hero"><h1>List</h1></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>List</h1></div>
   <form class="form" id="lf"><input id="lt" placeholder="Milk, charger…"/><button>Add</button></form>
   <div id="ll"></div>
 </section>
 
+<section class="view" id="v-mcp">
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>MCP apps</h1><p class="lead">Every MCP on this PC is an app here. Open one, run a phone-safe tool. <a href="/phoneai/mcp" style="color:#58a6ff">Full folder</a> · <a href="/docs/view/how-to/PHONEAI_MCP" style="color:#58a6ff">Docs</a></p></div>
+  <div class="grid" id="mcpGrid"></div>
+  <div id="mcpPane" style="display:none;padding:0 8px 16px">
+    <button class="quick" type="button" id="mcpBack" style="margin:8px 16px">← Apps</button>
+    <div class="hero" style="padding-top:0"><h1 id="mcpName">Server</h1><p class="lead" id="mcpBlurb"></p></div>
+    <div id="mcpTools"></div>
+    <pre id="mcpOut" style="display:none;margin:10px 16px;white-space:pre-wrap;word-break:break-word;background:#0c0c0e;border:1px solid var(--line);border-radius:12px;padding:10px;font-size:12px;max-height:220px;overflow:auto"></pre>
+  </div>
+</section>
+
 <section class="view" id="v-settings">
-  <div class="hero"><h1>Settings</h1><p class="lead">Main chat is Grok. Toggle extra CLIs for the code desk.</p></div>
+  <div class="hero"><button class="back" type="button" data-go="home">← Home</button><h1>Settings</h1><p class="lead">Main chat is Grok. Toggle extra CLIs for the code desk. Pair + Face ID live here.</p></div>
   <div id="srows"></div>
 </section>
 
 <nav class="dock">
-  <button class="app" data-go="home"><div class="icon">▦</div><span>Home</span></button>
+  <button class="app on" data-go="home"><div class="icon">▦</div><span>Home</span></button>
   <button class="app" data-go="chat"><div class="icon">💬</div><span>Chat</span></button>
-  <a class="app" href="/phoneai/work"><div class="icon">✦</div><span>Desk</span></a>
-  <a class="app" href="/phoneai/anti"><div class="icon">🪐</div><span>Anti</span></a>
+  <a class="app" href="/phoneai/os"><div class="icon">▣</div><span>OS</span></a>
   <a class="app" href="/phoneai/portal"><div class="icon">🖥</div><span>PC</span></a>
+  <button class="app" data-go="mcp"><div class="icon">⬡</div><span>MCP</span></button>
   <button class="app" data-go="settings"><div class="icon">⚙</div><span>Set</span></button>
 </nav>
 <script>
 function tick(){document.getElementById('clk').textContent=new Date().toTimeString().slice(0,5)}
 tick();setInterval(tick,30000);
 function show(id){
+  id=id||'home';
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id==='v-'+id));
   location.hash=id==='home'?'':id;
+  document.querySelectorAll('.dock [data-go]').forEach(el=>el.classList.toggle('on', el.getAttribute('data-go')===id));
   if(id==='camera') cam();
   if(id==='photos'||id==='notes'||id==='remind'||id==='list') life();
   if(id==='settings') settings();
+  if(id==='mcp') mcpApps();
   if(document.body.classList.contains('desk')){
     document.getElementById('v-home').classList.add('on');
     document.getElementById('v-chat').classList.add('on');
@@ -257,6 +311,37 @@ async function paintEngines(){
   ['eng','chatEng'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
 }
 paintEngines();
+async function pulse(){
+  const el=document.getElementById('pulse');
+  const pills=document.getElementById('pills');
+  try{
+    const h=await fetch('/v1/health',{credentials:'include',cache:'no-store'}).then(r=>r.json()).catch(()=>({}));
+    const up=!!(h.ok||h.status==='ok'||h.up);
+    if(el){ el.classList.toggle('on', up); el.lastChild.textContent=up?' host':' down'; }
+    const mcp=await fetch('/v1/phoneai/mcp',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+    if(pills) pills.innerHTML=
+      '<i class="'+(up?'on':'')+'">'+(up?'Host up':'Host')+'</i>'+
+      '<i>'+(mcp.count||0)+' MCP</i>'+
+      '<i>Kernel</i>'+
+      '<i>Face ID</i>';
+  }catch(_){ if(el) el.classList.remove('on'); }
+}
+pulse(); setInterval(pulse, 20000);
+const find=document.getElementById('find');
+if(find) find.addEventListener('input',()=>{
+  const q=(find.value||'').toLowerCase().trim();
+  document.querySelectorAll('#v-home .grid .app').forEach(a=>{
+    const t=(a.textContent||'').toLowerCase();
+    a.classList.toggle('hide', q && t.indexOf(q)<0);
+  });
+  document.querySelectorAll('#v-home .sec').forEach(sec=>{
+    const grid=sec.nextElementSibling;
+    if(!grid||!grid.classList.contains('grid')) return;
+    const vis=[...grid.querySelectorAll('.app')].some(x=>!x.classList.contains('hide'));
+    sec.style.display=(!q||vis)?'':'none';
+    grid.style.display=(!q||vis)?'':'none';
+  });
+});
 async function sendLife(kind,text,extra){
   extra=Object.assign({engine:chatEngine}, extra||{});
   const r=await fetch('/v1/phoneai/life',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,text,extra})});
@@ -316,7 +401,10 @@ async function settings(){
     +'<div class="item"><b>Always-on host</b><small>Agents can bring :8787 up</small>'
     +'<div class="form" style="border:0;padding:8px 0"><button class="go" type="button" id="rt-up">Bring up</button>'
     +'<a class="go" href="/phoneai/runtime" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Runtime</a>'
-    +'<a class="go" href="/setup" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Setup</a></div></div>';
+    +'<a class="go" href="/phoneai/os" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">OS</a>'
+    +'<a class="go" href="/phoneai/pair" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Pair</a>'
+    +'<a class="go" href="/setup" style="display:inline-grid;place-items:center;background:#222;color:#fff;text-decoration:none">Setup</a></div></div>'
+    +'<div class="item"><b>Registry</b><small>Every app, MCP, paper</small><div class="form" style="border:0;padding:8px 0"><a class="go" href="/phoneai/registry" style="display:inline-grid;place-items:center;text-decoration:none">Open</a></div></div>';
 }
 document.getElementById('srows').addEventListener('click', async e=>{
   if(e.target && e.target.id==='rt-up'){
@@ -330,14 +418,56 @@ document.getElementById('srows').addEventListener('click', async e=>{
   await fetch('/v1/phoneai/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   settings();
 });
+let MCP_APPS=[];
+async function mcpApps(){
+  const grid=document.getElementById('mcpGrid');
+  const pane=document.getElementById('mcpPane');
+  if(!grid) return;
+  grid.style.display='grid'; if(pane) pane.style.display='none';
+  try{
+    const j=await fetch('/v1/phoneai/mcp',{credentials:'include'}).then(r=>r.json());
+    MCP_APPS=j.apps||[];
+    grid.innerHTML=MCP_APPS.map(a=>'<button class="app" data-mcp="'+esc(a.id)+'"><div class="icon">'+esc(a.icon)+'</div><span>'+esc(a.name)+'</span></button>').join('')
+      || '<p class="lead" style="grid-column:1/-1">No MCP servers.</p>';
+  }catch(_){ grid.innerHTML='<p class="lead" style="grid-column:1/-1">Sign in + Face ID to load MCP apps.</p>'; }
+}
+function openMcp(id){
+  const a=MCP_APPS.find(x=>x.id===id); if(!a) return;
+  const grid=document.getElementById('mcpGrid'); const pane=document.getElementById('mcpPane');
+  if(grid) grid.style.display='none'; if(pane) pane.style.display='block';
+  document.getElementById('mcpName').textContent=a.name;
+  document.getElementById('mcpName').setAttribute('data-id', a.id);
+  document.getElementById('mcpBlurb').textContent=(a.kind||'')+' · '+(a.blurb||'');
+  const tools=a.safe_tools&&a.safe_tools.length?a.safe_tools:a.tools||[];
+  document.getElementById('mcpTools').innerHTML=tools.map(t=>'<div class="item"><b>'+esc(t)+'</b><small>phone-safe · this PC</small><div class="form" style="border:0;padding:8px 0"><button class="go" type="button" data-mcp-run="'+esc(t)+'">Open</button></div></div>').join('')
+    || '<div class="item">No phone-safe tools</div>';
+  const out=document.getElementById('mcpOut'); if(out) out.style.display='none';
+}
+document.getElementById('mcpGrid').addEventListener('click',e=>{ const b=e.target.closest('[data-mcp]'); if(b) openMcp(b.getAttribute('data-mcp')); });
+document.getElementById('mcpBack').onclick=()=>{ const grid=document.getElementById('mcpGrid'); const pane=document.getElementById('mcpPane'); if(grid) grid.style.display='grid'; if(pane) pane.style.display='none'; };
+document.getElementById('mcpTools').addEventListener('click', async e=>{
+  const b=e.target.closest('[data-mcp-run]'); if(!b) return;
+  const sid=document.getElementById('mcpName').getAttribute('data-id');
+  const a=MCP_APPS.find(x=>x.id===sid)||MCP_APPS[0];
+  const out=document.getElementById('mcpOut'); out.style.display='block'; out.textContent='running…';
+  try{
+    const j=await fetch('/v1/phoneai/mcp/invoke',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({server:a&&a.id,tool:b.getAttribute('data-mcp-run')})}).then(r=>r.json());
+    out.textContent=JSON.stringify(j,null,2).slice(0,8000);
+  }catch(err){ out.textContent=String(err); }
+});
 </script>
 </body></html>
 """
 
 
 def phoneai_os_html() -> str:
-    from pocket.workspace_stage import CSS, HTML as WS, JS
-
+    try:
+        from pocket.workspace_stage import CSS, HTML as WS, JS
+    except Exception:
+        return (
+            PHONEAI_OS_HTML.replace("__PHONEAI_WS_STAGE__", "")
+            .replace("__PHONEAI_WS_JS__", "")
+        )
     return (
         PHONEAI_OS_HTML.replace("</style>", CSS + "\n</style>")
         .replace("__PHONEAI_WS_STAGE__", WS)
@@ -432,49 +562,117 @@ PHONEAI_SYSTEM_HTML = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-title" content="PhoneAI OS"/>
 <title>PhoneAI OS</title>
 <style>
-:root{--g:#00ff86;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--p:#14141c}
+:root{--g:#00ff86;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.1);--p:#14141c;--c:#58a6ff}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100dvh;background:#05060a;color:var(--fg);font:16px/1.45 ui-sans-serif,system-ui}
-body{max-width:430px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px 88px}
-.bar{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+body{max-width:430px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px 88px;
+  background:radial-gradient(640px 320px at -10% 0%,rgba(88,166,255,.1),transparent 50%),#05060a}
+.bar{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bar .pulse{display:inline-flex;align-items:center;gap:6px;letter-spacing:.08em}
+.bar .pulse b{width:7px;height:7px;border-radius:50%;background:#555;display:inline-block}
+.bar .pulse.on b{background:var(--g);box-shadow:0 0 8px var(--g)}
 h1{font-size:28px;letter-spacing:-.04em;margin:10px 0 4px}
 .lead{color:var(--muted);font-size:14px}
 .layers{display:flex;gap:8px;margin:14px 0}
 .layers a{flex:1;text-align:center;padding:10px;border-radius:14px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:800;font-size:13px}
 .layers a.on{background:var(--g);color:#042}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.pills{display:flex;gap:6px;overflow:auto;margin:0 0 12px}
+.pills i{flex:0 0 auto;font-style:normal;font-size:11px;border:1px solid var(--line);border-radius:999px;padding:5px 9px;color:var(--muted)}
+.pills i.on{color:#042;background:var(--g);border-color:var(--g)}
+.find{width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:var(--fg);padding:10px 12px;font:inherit;margin:0 0 8px}
+.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .card{display:block;padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--p);color:var(--fg);text-decoration:none}
+.card:active{transform:scale(.98)}
 .card b{display:block;font-size:15px}
 .card span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.card.hide{display:none}
 .dock{position:fixed;left:14px;right:14px;bottom:calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:space-around;padding:10px;border-radius:22px;background:rgba(18,18,24,.92);border:1px solid var(--line)}
 .dock a{color:var(--muted);text-decoration:none;font-size:11px;font-weight:800}
+.dock a.on{color:var(--g)}
 </style></head><body>
-<div class="bar"><span>PHONEAI OS</span><span id="clk"></span></div>
+<div class="bar"><span>PHONEAI OS</span><span class="pulse" id="pulse"><b></b> host</span><span id="clk"></span></div>
 <h1>PhoneAI OS</h1>
-<p class="lead">The phone is a kernel seat on your computer — Codex, Grok, and the live screen are OS services, not cloud apps.</p>
+<p class="lead">Services on this computer — Codex, Grok, Portal, MCP, agents. Kernel is the home screen. OS is the control plane.</p>
 <div class="layers">
   <a href="/phoneai/app">Kernel</a>
   <a class="on" href="/phoneai/os">OS</a>
 </div>
-<div class="grid">
+<div class="pills" id="pills"></div>
+<input class="find" id="find" type="search" placeholder="Find a service" autocomplete="off"/>
+<div class="sec">Work</div>
+<div class="grid" data-sec="Work">
   <a class="card" href="/phoneai/app#chat"><b>Chat</b><span>Grok · Codex first-class</span></a>
   <a class="card" href="/phoneai/work"><b>Code desk</b><span>Codex CLI already on this PC</span></a>
   <a class="card" href="/v1/team/workspace"><b>Team workspace</b><span>Long work · shared disk</span></a>
-  <a class="card" href="/phoneai/portal"><b>Screen</b><span>pocket.stream.v1 · embody</span></a>
   <a class="card" href="/agents"><b>Agents</b><span>Every first-class roster</span></a>
+</div>
+<div class="sec">Screen</div>
+<div class="grid" data-sec="Screen">
+  <a class="card" href="/phoneai/portal"><b>Screen</b><span>pocket.stream.v1 · embody</span></a>
+  <a class="card" href="/phoneai/computer"><b>Computer</b><span>Portal contained on this phone</span></a>
+  <a class="card" href="/phoneai/anti"><b>Antigravity</b><span>Desktop app stream</span></a>
+  <a class="card" href="/phoneai/glasses"><b>Glasses HUD</b><span>Wear the same seat</span></a>
+</div>
+<div class="sec">MCP</div>
+<div class="grid" data-sec="MCP">
+  <a class="card" href="/phoneai/mcp"><b>MCP apps</b><span>Pocket · Nexus · GitHub · CF</span></a>
+  <a class="card" href="/phoneai/registry"><b>Registry</b><span>Every app · MCP · paper</span></a>
+  <a class="card" href="/webmcp"><b>WebMCP</b><span>Page actions for agents</span></a>
+  <a class="card" href="/docs"><b>Docs</b><span>How-to + white papers</span></a>
+</div>
+<div class="sec">Host</div>
+<div class="grid" data-sec="Host">
   <a class="card" href="/phoneai/app#settings"><b>Pair</b><span>Code + Face ID, not owner</span></a>
+  <a class="card" href="/phoneai/runtime"><b>Runtime</b><span>One watchdog</span></a>
   <a class="card" href="/v1/engines"><b>Engines</b><span>JSON live catalog</span></a>
   <a class="card" href="/claims"><b>Claims</b><span>Kernel™ · SCREEN-KERNEL</span></a>
-  <a class="card" href="/phoneai/runtime"><b>Runtime</b><span>One watchdog</span></a>
 </div>
 <p class="lead" style="margin-top:18px">Kernel = identity, screen, pair. OS = apps, agents, Codex, life. Future phones run this seat, not a receptionist.</p>
 <nav class="dock">
   <a href="/phoneai/app">Kernel</a>
+  <a class="on" href="/phoneai/os">OS</a>
   <a href="/phoneai/portal">Portal</a>
+  <a href="/phoneai/mcp">MCP</a>
   <a href="/phoneai/work">Codex</a>
-  <a href="/agents">Agents</a>
 </nav>
-<script>document.getElementById('clk').textContent=new Date().toTimeString().slice(0,5);</script>
+<script>
+document.getElementById('clk').textContent=new Date().toTimeString().slice(0,5);
+setInterval(()=>{document.getElementById('clk').textContent=new Date().toTimeString().slice(0,5)},30000);
+async function pulse(){
+  const el=document.getElementById('pulse');
+  const pills=document.getElementById('pills');
+  try{
+    const h=await fetch('/v1/health',{credentials:'include',cache:'no-store'}).then(r=>r.json()).catch(()=>({}));
+    const up=!!(h.ok||h.status==='ok'||h.up);
+    if(el){ el.classList.toggle('on', up); el.lastChild.textContent=up?' host':' down'; }
+    const j=await fetch('/v1/registry',{credentials:'include'}).then(r=>r.json()).catch(()=>({}));
+    const c=j.counts||{};
+    pills.innerHTML=
+      '<i class="'+(up?'on':'')+'">'+(up?'Host up':'Host')+'</i>'+
+      '<i>'+(c.mcp_apps||0)+' MCP</i>'+
+      '<i>'+(c.agents||0)+' agents</i>'+
+      '<i>'+(c.skills||0)+' skills</i>'+
+      '<i>'+(c.papers||0)+' papers</i>';
+  }catch(_){}
+}
+pulse(); setInterval(pulse, 20000);
+const find=document.getElementById('find');
+find.addEventListener('input',()=>{
+  const q=(find.value||'').toLowerCase().trim();
+  document.querySelectorAll('.card').forEach(a=>{
+    const t=(a.textContent||'').toLowerCase();
+    a.classList.toggle('hide', q && t.indexOf(q)<0);
+  });
+  document.querySelectorAll('.sec').forEach(sec=>{
+    const grid=sec.nextElementSibling;
+    if(!grid) return;
+    const vis=[...grid.querySelectorAll('.card')].some(x=>!x.classList.contains('hide'));
+    sec.style.display=(!q||vis)?'':'none';
+    grid.style.display=(!q||vis)?'':'none';
+  });
+});
+</script>
 </body></html>
 """
 
@@ -792,7 +990,7 @@ PHONEAI_PORTAL_HTML = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#000000"/>
-<title>Portal · PhoneAI · 3.13.2</title>
+<title>Portal · PhoneAI · 3.13.3</title>
 <style>
 :root{--bg:#05060a;--fg:#f4f4f5;--muted:#8b8b98;--line:rgba(255,255,255,.12);--g:#00ff86}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -819,12 +1017,14 @@ body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns=
 .tabs{top:calc(48px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .apps{top:calc(88px + env(safe-area-inset-top));display:flex;gap:6px;overflow:auto;padding:6px 10px;border-bottom:1px solid var(--line);-webkit-overflow-scrolling:touch;touch-action:pan-x}
 .bar{bottom:0;display:flex;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-.ctrl{bottom:calc(56px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:8px 10px;border-top:1px solid var(--line)}
+.ctrl{bottom:calc(56px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:auto auto;gap:8px;padding:8px 10px;border-top:1px solid var(--line);z-index:20;touch-action:manipulation;pointer-events:auto}
 .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .seg button{border:0;background:transparent;color:var(--muted);padding:8px 12px;font-weight:800;font-size:12px}
 .seg button.on{background:var(--g);color:#042}
-.ctrl button{min-height:48px;border:1px solid var(--line);border-radius:12px;background:#14141c;color:#fff;font-weight:800;font-size:13px}
+.ctrl button{min-height:52px;border:1px solid var(--line);border-radius:14px;background:#14141c;color:#fff;font-weight:800;font-size:13px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .ctrl button.held,.ctrl button.on{background:var(--g);color:#042}
+.ctrl .pad-lab{grid-column:1 / -1;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 2px;min-height:0;border:0;background:transparent;text-align:left;pointer-events:none}
+body.pad-move .ctrl .arrows{outline:1px solid var(--g)}
 .bar input{flex:1;min-height:48px;border-radius:12px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:10px;font:inherit}
 .bar button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px}
 .hint{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;color:#d4d4d8;background:rgba(0,0,0,.55);padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5}
@@ -844,13 +1044,13 @@ body.hold-mode .mode-badge i{mask-image:url("data:image/svg+xml;utf8,<svg xmlns=
 .pills button{min-width:44px;min-height:36px;border-radius:999px;border:1px solid var(--line);background:rgba(5,6,10,.72);color:#fff;font-weight:800;font-size:11px;letter-spacing:.04em}
 .pills button.on{background:var(--g);color:#042}
 body.hud-off .top,body.hud-off .tabs,body.hud-off .apps{opacity:0;pointer-events:none;visibility:hidden}
-body.hud-off .ctrl,body.hud-off .bar{opacity:0;pointer-events:none;visibility:hidden}
-body.hud-off .hint{opacity:0}
-body.hud-off .joy{opacity:0;pointer-events:none}
-.typebox{position:fixed;left:10px;right:10px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:15;display:flex;gap:8px;align-items:center}
+body.hud-off .bar{opacity:0;pointer-events:none;visibility:hidden}
+body.hud-off .hint{opacity:.55}
+body.hud-off .joy{opacity:.9;pointer-events:auto}
+body.hud-off .ctrl{opacity:1;pointer-events:auto;visibility:visible;background:rgba(5,6,10,.72)}
+.typebox{position:fixed;left:10px;right:10px;bottom:calc(148px + env(safe-area-inset-bottom));z-index:15;display:flex;gap:8px;align-items:center}
 .typebox input{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:rgba(12,12,14,.88);color:#fff;padding:10px 12px;font:inherit;backdrop-filter:blur(10px)}
 .typebox button{border:0;border-radius:12px;background:var(--g);color:#042;font-weight:800;padding:0 14px;min-height:44px}
-body:not(.hud-off) .typebox{bottom:calc(118px + env(safe-area-inset-bottom))}
 .dot{display:block}
 body.mobile .hint{left:10px;right:10px;transform:none}
 @media (orientation:landscape){
@@ -864,6 +1064,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button type="button" id="faceBtn">Face ID</button>
   <button type="button" id="pairBtn">Pair</button>
   <button type="button" id="focusPill">Focus</button>
+  <button type="button" id="desk2Btn">Desk 2</button>
   <button type="button" id="hudbtn">HUD</button>
 </div>
 <div class="top">
@@ -893,10 +1094,12 @@ body.mobile .hint{left:10px;right:10px;transform:none}
 <div class="ctrl">
   <button type="button" id="lmb">L click</button>
   <button type="button" id="rmb">R click</button>
-  <button type="button" id="sup">Scroll ▲</button>
-  <button type="button" id="sdn">Scroll ▼</button>
   <button type="button" id="moveBtn">Move</button>
   <button type="button" id="focusBtn">Focus</button>
+  <button type="button" id="scL" class="arrows" aria-label="Left">◀</button>
+  <button type="button" id="sup" class="arrows" aria-label="Up">▲</button>
+  <button type="button" id="sdn" class="arrows" aria-label="Down">▼</button>
+  <button type="button" id="scR" class="arrows" aria-label="Right">▶</button>
 </div>
 <form class="bar" id="kb">
   <input id="keysHud" placeholder="HUD type" autocomplete="off" autocapitalize="off" spellcheck="false"/>
@@ -907,7 +1110,7 @@ body.mobile .hint{left:10px;right:10px;transform:none}
   <button>Send</button>
 </form>
 <script>
-let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false, fitLocked=false;
+let mode='touch', target='desktop', busy=false, fitMode='contain', phoneFocus=false, fitLocked=false, padMode='scroll';
 let zoom=1, panX=0, panY=0;
 let lastNx=0.5, lastNy=0.5, lastDrag=0, lastTyped='', armed=false, lastTap=0, activeHwnd=0;
 let tabTaps={hwnd:0,n:0,t:0}, streamTaps={n:0,t:0};
@@ -949,17 +1152,24 @@ function netProfile(){
     if(downlink>=20 || rtt && rtt<=40) return {label:'5G', max_w:960, q:62, fps:18};
     return {label:'LTE', max_w:800, q:56, fps:12};
   }
-  if(cellular) return {label:'CELL', max_w:800, q:52, fps:10};
-  return {label:'LAN', max_w:1280, q:68, fps:24};
+  if(cellular) return {label:'CELL', max_w:800, q:52, fps:12};
+  return {label:'LAN', max_w:1024, q:64, fps:16};
+}
+let fpsShow=0, fpsN=0, fpsT=0, lastFrameAt=0;
+function noteFrame(){
+  lastFrameAt=Date.now();
+  fpsN++;
+  if(lastFrameAt-fpsT>=1000){ fpsShow=fpsN; fpsN=0; fpsT=lastFrameAt; }
 }
 function applyNet(){
   net=netProfile();
   const el=document.getElementById('net');
-  if(el) el.textContent=net.label+(liveOk?' · LIVE':'');
+  if(el) el.textContent=net.label+(liveOk?' · LIVE':'')+' · '+(fpsShow||net.fps)+'fps';
   if(liveOk && live && live.readyState===1){
-    live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps, target:target, hwnd:activeHwnd||0}));
+    try{ live.send(JSON.stringify({kind:'cfg', max_w:net.max_w, q:net.q, fps:net.fps, target:target, hwnd:activeHwnd||0})); }catch(_){}
   }
 }
+let lastNat=0;
 function layout(){
   const g=glass();
   stage.style.left=g.left+'px';
@@ -968,6 +1178,7 @@ function layout(){
   stage.style.height=g.height+'px';
   const s=stage.getBoundingClientRect();
   const iw=img.naturalWidth||16, ih=img.naturalHeight||9;
+  lastNat=(iw*10000)+ih;
   const ar=iw/Math.max(1,ih);
   let w=s.width, h=w/ar;
   if(h>s.height){ h=s.height; w=h*ar; }
@@ -976,6 +1187,10 @@ function layout(){
   img.style.top=((s.height-h)/2)+'px';
   img.style.width=w+'px';
   img.style.height=h+'px';
+}
+function maybeLayout(){
+  const k=((img.naturalWidth||0)*10000)+(img.naturalHeight||0);
+  if(k!==lastNat) layout();
 }
 function applyView(){
   if(zoom<=1.02){ zoom=1; panX=0; panY=0; }
@@ -1088,17 +1303,18 @@ function openLive(){
   try{ live=new WebSocket(proto+'://'+location.host+'/v1/phoneai/portal/ws'); }
   catch(_){ live=null; setTimeout(openLive, liveBackoff); return; }
   live.binaryType='blob';
-  live.onopen=()=>{ liveOk=true; liveBackoff=400; applyNet(); hint.textContent='Live desk — '+net.label+' · Fit is 1:1 with the PC'; };
-  live.onclose=()=>{ liveOk=false; applyNet(); liveBackoff=Math.min(liveBackoff*1.6, 5000); setTimeout(openLive, liveBackoff); };
-  live.onerror=()=>{ liveOk=false; };
+  live.onopen=()=>{ liveOk=true; liveBackoff=400; applyNet(); hint.textContent='Live desk — '+net.label+' · persistent '+net.fps+'fps'; };
+  live.onclose=()=>{ liveOk=false; applyNet(); liveBackoff=Math.min(liveBackoff*1.6, 4000); setTimeout(openLive, liveBackoff); };
+  live.onerror=()=>{};
   live.onmessage=ev=>{
     if(typeof ev.data==='string') return;
     const blob=ev.data;
+    noteFrame();
     const paint=bmp=>{
       const url=URL.createObjectURL(blob);
       const prev=blobUrl;
       img.src=url;
-      layout();
+      maybeLayout();
       if(prev && prev!==url) URL.revokeObjectURL(prev);
       blobUrl=url;
       if(bmp && bmp.close) try{ bmp.close(); }catch(_){}
@@ -1223,7 +1439,7 @@ function loadWins(){
     }).join('') || '<button type="button" disabled>No windows</button>';
   }).catch(()=>{});
 }
-loadWins(); setInterval(loadWins, 3000);
+loadWins(); setInterval(()=>{ if(!document.body.classList.contains('hud-off')) loadWins(); }, 4000);
 document.getElementById('tabs').onclick=e=>{
   const tab=e.target.closest('[data-hwnd]'); if(!tab) return;
   e.preventDefault(); e.stopPropagation();
@@ -1270,16 +1486,20 @@ document.getElementById('apps').onclick=e=>{
   setTimeout(loadWins, 800);
 };
 function tick(){
-  if(liveOk){ setTimeout(tick, 800); return; }
-  if(document.hidden){ setTimeout(tick, 400); return; }
-  if(busy){ setTimeout(tick, 80); return; }
+  const want=Math.max(50, Math.floor(1000/Math.max(8, net.fps||12)));
+  if(document.hidden){ setTimeout(tick, 500); return; }
+  const fresh=lastFrameAt && (Date.now()-lastFrameAt)<want*1.8;
+  if(liveOk && fresh){ setTimeout(tick, 120); return; }
+  if(busy){ setTimeout(tick, 50); return; }
   busy=true;
-  applyNet();
   const im=new Image();
-  im.onload=()=>{ img.src=im.src; layout(); busy=false; setTimeout(tick, Math.max(60, 1000/net.fps)); };
-  im.onerror=()=>{ busy=false; setTimeout(tick, 700); };
+  im.onload=()=>{ img.src=im.src; maybeLayout(); noteFrame(); busy=false; setTimeout(tick, want); };
+  im.onerror=()=>{ busy=false; setTimeout(tick, 280); };
   im.src='/v1/phoneai/portal/frame?target='+encodeURIComponent(target)+'&hwnd='+(activeHwnd||0)+'&max_w='+net.max_w+'&q='+net.q+'&t='+Date.now();
 }
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden){ lastFrameAt=0; if(!liveOk) openLive(); }
+});
 tick();
 img.addEventListener('load', layout);
 document.getElementById('mode').onclick=e=>{
@@ -1455,6 +1675,7 @@ stage.addEventListener('pointercancel', ev=>{ if(usingTouch || ev.pointerType===
 stage.addEventListener('contextmenu', ev=>ev.preventDefault());
 
 function bindPress(el, down, up){
+  if(!el) return;
   let on=false;
   const s=ev=>{ ev.preventDefault(); ev.stopPropagation(); if(on) return; on=true; el.classList.add('held'); down(); };
   const e=ev=>{ if(!on) return; on=false; el.classList.remove('held'); if(up) up(); };
@@ -1467,23 +1688,54 @@ function bindPress(el, down, up){
 }
 bindPress(document.getElementById('lmb'), ()=>{ send('down', lastNx, lastNy); setScreenMode('hold'); hint.textContent='Holding left click'; }, ()=>{ send('up', lastNx, lastNy); setScreenMode(''); });
 bindPress(document.getElementById('rmb'), ()=>send('right', lastNx, lastNy));
-bindPress(document.getElementById('moveBtn'), ()=>{
-  gest='move';
-  startAt={x:lastNx, y:lastNy, nx:lastNx, ny:lastNy, cx:0, cy:0, lastX:0, lastY:0, moved:false};
-  setScreenMode('move');
-  hint.textContent='Move armed — drag the window';
-});
-let scrollHold=null;
-function holdScroll(dy){
-  send('scroll', lastNx, lastNy, {dy:dy});
-  scrollHold=setInterval(()=>send('scroll', lastNx, lastNy, {dy:dy}), 160);
+function setPadMode(m){
+  padMode=m==='move'?'move':'scroll';
+  document.body.classList.toggle('pad-move', padMode==='move');
+  const mb=document.getElementById('moveBtn');
+  if(mb) mb.classList.toggle('on', padMode==='move');
+  setScreenMode(padMode==='move'?'move':'');
+  hint.textContent=padMode==='move'?'Move pad — hold arrows to slide the window':'Scroll pad — hold arrows. Toggle Move for window drag.';
 }
-function endScroll(){ if(scrollHold){ clearInterval(scrollHold); scrollHold=null; } }
-bindPress(document.getElementById('sup'), ()=>holdScroll(-0.5), endScroll);
-bindPress(document.getElementById('sdn'), ()=>holdScroll(0.5), endScroll);
+bindPress(document.getElementById('moveBtn'), ()=>{
+  setPadMode(padMode==='move'?'scroll':'move');
+  if(padMode==='move'){
+    gest='move';
+    startAt={x:lastNx, y:lastNy, nx:lastNx, ny:lastNy, cx:0, cy:0, lastX:0, lastY:0, moved:false};
+  }
+});
+let padHold=null;
+function holdPad(dx, dy){
+  let n=0;
+  const fire=()=>{
+    n++;
+    if(padMode==='move'){
+      send('move_window', lastNx, lastNy, {dx:dx*0.035, dy:dy*0.035, hwnd:activeHwnd||undefined});
+      hint.textContent='Moving window';
+    } else {
+      send('scroll', lastNx, lastNy, {dx:dx, dy:dy});
+      hint.textContent=activeHwnd?'Scrolling this window':'Scrolling the PC';
+    }
+    padHold=setTimeout(fire, n>5?38:72);
+  };
+  fire();
+}
+function endPad(){ if(padHold){ clearTimeout(padHold); padHold=null; } }
+bindPress(document.getElementById('sup'), ()=>holdPad(0, padMode==='move'?-1:-0.42), endPad);
+bindPress(document.getElementById('sdn'), ()=>holdPad(0, padMode==='move'?1:0.42), endPad);
+bindPress(document.getElementById('scL'), ()=>holdPad(padMode==='move'?-1:-0.42, 0), endPad);
+bindPress(document.getElementById('scR'), ()=>holdPad(padMode==='move'?1:0.42, 0), endPad);
 bindPress(document.getElementById('focusBtn'), ()=>{
   setPhoneFocus(!phoneFocus);
 });
+const desk2Btn=document.getElementById('desk2Btn');
+if(desk2Btn) desk2Btn.onclick=()=>{
+  const on=target!=='monitor:1';
+  target=on?'monitor:1':'desktop';
+  phoneFocus=false;
+  desk2Btn.classList.toggle('on', on);
+  applyNet();
+  hint.textContent=on?'Desk 2 · secondary / virtual display':'Laptop · full desktop';
+};
 document.getElementById('hudbtn').onclick=()=>{
   const off=document.body.classList.contains('hud-off');
   if(off) goGlass();
@@ -1516,12 +1768,15 @@ document.getElementById('kb').onsubmit=submitType;
 document.getElementById('typeform').onsubmit=submitType;
 (function(){
   const pad=document.getElementById('joy'), knob=document.getElementById('knob');
-  let on=false, ox=0, oy=0, raf=0;
+  if(!pad||!knob) return;
+  let on=false, ox=0, oy=0, raf=0, jx=0, jy=0;
   function setKnob(dx,dy){
     const m=Math.hypot(dx,dy)||1, r=28;
     const nx=dx/m*Math.min(m,r), ny=dy/m*Math.min(m,r);
     knob.style.transform='translate('+nx+'px,'+ny+'px)';
-    send('joy', lastNx, lastNy, {dx:Math.round(nx*3.2), dy:Math.round(ny*3.2)});
+    jx=Math.round(nx*3.2); jy=Math.round(ny*3.2);
+    if(raf) return;
+    raf=requestAnimationFrame(()=>{ raf=0; send('joy', lastNx, lastNy, {dx:jx, dy:jy}); });
   }
   function start(ev){ on=true; const t=finger(ev); const r=pad.getBoundingClientRect(); ox=r.left+r.width/2; oy=r.top+r.height/2; ev.preventDefault(); }
   function move(ev){ if(!on) return; ev.preventDefault(); const t=finger(ev); setKnob(t.clientX-ox, t.clientY-oy); }
@@ -1792,9 +2047,13 @@ def kernel_manifest() -> dict:
     return {
         "ok": True,
         "os": "PhoneAI Kernel",
-        "version": "1.0.0",
+        "os_url": "/phoneai/os",
+        "version": "1.1.0",
         "landing": "/phoneai",
         "app": "/phoneai/app",
+        "mcp": "/phoneai/mcp",
+        "registry": "/phoneai/registry",
+        "docs": "/docs",
         "pocket": "http://127.0.0.1:8787",
         "seat": {"user": "phoneai", "ok": seat.get("ok"), "explorer": seat.get("explorer")},
         "companion": live_status(),
@@ -1806,6 +2065,7 @@ def kernel_manifest() -> dict:
             "Grok chat · camera · maps · notes · code desk · Antigravity",
             "Always-on runtime — agents bring the host up",
             "Coder — long-term Grok agent for Pocket + PhoneAI + forge",
+            "MCP apps inside the kernel (Pocket · Nexus · Loom · GitHub · Cloudflare · files)",
             "MCP · Agent Mail · Novae",
         ],
     }

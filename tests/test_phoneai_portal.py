@@ -9,6 +9,51 @@ from pocket.phoneai_portal import (
 )
 
 
+def test_virtual_desktop_module_no_keybd():
+    import inspect
+    from pocket import virtual_desktop as vd
+
+    src = inspect.getsource(vd)
+    assert "keybd_event" not in src
+    r = vd.move_hwnds_to_other_desktop([])
+    assert r.get("moved") == 0
+
+
+def test_park_moves_pocket_off_work_display(monkeypatch):
+    from pocket import screen_share as ss
+
+    mons = [
+        {"id": 0, "x": 0, "y": 0, "w": 1920, "h": 1080, "primary": True},
+        {"id": 1, "x": 1920, "y": 0, "w": 1080, "h": 1920, "primary": False},
+    ]
+    views = [{"hwnd": 42, "title": "Portal · PhoneAI", "x": 40, "y": 40, "w": 700, "h": 500}]
+    moved = []
+    monkeypatch.setattr(ss, "monitor_rects", lambda: mons)
+    monkeypatch.setattr(ss, "viewer_rects", lambda: views)
+    monkeypatch.setattr(ss, "_move_hwnd", lambda hwnd, x, y, w, h: moved.append((hwnd, x, y, w, h)) or True)
+    monkeypatch.setattr(
+        ss,
+        "set_share",
+        lambda **k: {"ok": True, "mode": k.get("mode"), "target": k.get("target"), "monitor": 0, "label": k.get("label")},
+    )
+    r = ss.park_pocket_for_vision()
+    assert r["ok"] is True
+    assert r["displays"] == 2
+    assert moved and moved[0][0] == 42
+    assert moved[0][1] >= 1920
+    assert str(r.get("target") or "").startswith("monitor:")
+
+
+def test_viewer_titles_catch_portal_and_desk():
+    from pocket.screen_share import is_viewer_title
+
+    assert is_viewer_title("Portal · PhoneAI · 3.13.3")
+    assert is_viewer_title("POCKET Desk")
+    assert is_viewer_title("http://127.0.0.1:8787/desk")
+    assert not is_viewer_title("Visual Studio Code")
+    assert not is_viewer_title("Microsoft Copilot: Your AI companion")
+
+
 def test_map_touch_clamps_and_orders():
     a = map_touch(-2, -2)
     b = map_touch(0, 0)
@@ -24,9 +69,17 @@ def test_portal_html_phone_zoom_and_controls():
     assert "scale(" in html
     assert 'id="lmb"' in html and 'id="rmb"' in html
     assert 'id="sup"' in html and 'id="sdn"' in html
+    assert 'id="scL"' in html and 'id="scR"' in html
     assert "L click" in html
     assert 'id="focusBtn"' in html
     assert 'id="moveBtn"' in html
+    assert 'id="desk2Btn"' in html
+    assert "holdPad" in html
+    assert "padMode" in html
+    assert "maybeLayout" in html
+    assert "lastFrameAt" in html
+    assert "visibilitychange" in html
+    assert "noteFrame" in html
     assert 'id="joy"' in html
     assert "layout()" in html
     assert "setPhoneFocus" in html

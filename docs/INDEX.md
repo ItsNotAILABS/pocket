@@ -7,6 +7,10 @@ This is the **master map** of everything built and wired. How-to recipes: [HOW_T
 
 **Binding doctrine (read first):** [../DOCTRINE.md](../DOCTRINE.md) · [DOCTRINE.md](DOCTRINE.md) · live `GET /v1/doctrine`
 
+**PhoneAI papers:** [research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER.md](research/PHONEAI_KERNEL_PUBLIC_SEAT_PAPER.md) · [research/PHONEAI_MCP_APPS_PAPER.md](research/PHONEAI_MCP_APPS_PAPER.md) · [whitepapers/PHONEAI_PUBLIC_TUNNEL.md](whitepapers/PHONEAI_PUBLIC_TUNNEL.md) · [whitepapers/PHONEAI_MCP_APPS.md](whitepapers/PHONEAI_MCP_APPS.md)
+
+**Vision stills:** [brand/VISION.md](brand/VISION.md) · `/brand/vision/`
+
 ---
 
 ## Which POCKET?
@@ -38,11 +42,14 @@ This is the **master map** of everything built and wired. How-to recipes: [HOW_T
 |----|------|---------------|--------|
 | desk | Desk | `/desk` · sessions/jobs | [how-to/DESK.md](how-to/DESK.md) |
 | phone | Phone | `/phone` · pair | [how-to/PHONE.md](how-to/PHONE.md) |
+| phoneai | **PhoneAI Kernel** | `/phoneai` · `/phoneai/app` | [how-to/PHONEAI.md](how-to/PHONEAI.md) |
+| phoneai_mcp | **MCP apps** | `/phoneai/mcp` | [how-to/PHONEAI_MCP.md](how-to/PHONEAI_MCP.md) |
+| registry | **Full registry** | `/registry` · `/v1/registry` | [how-to/REGISTRY.md](how-to/REGISTRY.md) |
 | agent_mail | **Agent Mail** | `/mail` · `/v1/agent-mail/*` | [how-to/AGENT_MAIL.md](how-to/AGENT_MAIL.md) |
 | pocket_mail | POCKET MAIL (SMTP) | `/v1/mail/*` | same |
 | genetic_flow | **Internal models · genetic** | mode=`genetic` · `/v1/genetic/*` | [how-to/GENETIC_FLOW.md](how-to/GENETIC_FLOW.md) |
 | web_ui | **Website UI + engines** | `/v1/web-ui/*` · MCP | [how-to/WEB_UI_ENGINES.md](how-to/WEB_UI_ENGINES.md) |
-| mcp | MCP Colony | stdio MCP server | [how-to/MCP.md](how-to/MCP.md) |
+| mcp | MCP Colony | `/phoneai/mcp` · stdio | [how-to/MCP.md](how-to/MCP.md) |
 | install | Install slices | `/install` | [how-to/INSTALL.md](how-to/INSTALL.md) |
 | keep | KEEP · ISOLATE · RECALL | `/v1/keep` · isolate · recall | [KEEP_ISOLATE_RECALL_MAIL.md](KEEP_ISOLATE_RECALL_MAIL.md) |
 | rah | RAH harnesses | `/v1/rah/run` | [how-to/RAH.md](how-to/RAH.md) |

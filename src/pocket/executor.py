@@ -1084,7 +1084,7 @@ def _run_planning_ai(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str,
         cmd = [
             grok,
             "--single",
-            plan_prompt[:12000],
+            plan_prompt[:4000],
             "--cwd",
             cwd,
             "--max-turns",
@@ -1094,8 +1094,9 @@ def _run_planning_ai(prompt: str, cwd: str, job_id: str = "") -> Tuple[str, str,
             "--output-format",
             "plain",
         ]
-        env = {**os.environ}
-        env["PATH"] = str(Path(grok).parent) + os.pathsep + env.get("PATH", "")
+        from pocket.grok_bridge import grok_cli_env
+
+        env = grok_cli_env(grok)
         out, rc, err = run_streaming(
             cmd, job_id=job_id, cwd=cwd, env=env, timeout=300, engine="plan"
         )

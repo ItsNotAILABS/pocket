@@ -28,8 +28,21 @@ def test_parse_steps_lookup_stays_lookup():
 
 def test_copilot_explicit_gate(monkeypatch):
     monkeypatch.setenv("POCKET_COPILOT_AUTO", "0")
-    r = open_windows_copilot(explicit=True)
-    assert r.get("skipped") is True
-    monkeypatch.delenv("POCKET_COPILOT_AUTO", raising=False)
     r2 = open_windows_copilot(explicit=False)
     assert r2.get("skipped") is True
+    opened = []
+
+    def fake_popen(*a, **k):
+        opened.append(a)
+        class P:
+            pass
+        return P()
+
+    monkeypatch.setattr("subprocess.Popen", fake_popen)
+    r = open_windows_copilot(explicit=True)
+    assert r.get("skipped") is not True
+    assert r.get("ok") is True
+    assert opened
+    monkeypatch.delenv("POCKET_COPILOT_AUTO", raising=False)
+    r3 = open_windows_copilot(explicit=False)
+    assert r3.get("skipped") is True
