@@ -144,6 +144,19 @@ body.screen-col-open.screen-col-wide{--screen-w:min(480px,40vw)}
 .main{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--bg)}
 .main-stage{flex:1;min-height:0;display:flex;flex-direction:row;min-width:0}
 .main-stage .transcript{flex:1;min-width:0;min-height:0}
+body.split-on .transcript,body.split-on .composer,body.split-on .habitat,body.split-on .agent-console-panel{display:none!important}
+.split-stage{display:none;flex:1;min-height:0;min-width:0;grid-template-columns:1fr 1fr}
+body.split-on .split-stage{display:grid}
+.split-pane{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line);background:var(--bg)}
+.split-pane:last-child{border-right:0}
+.split-pane .sp-h{flex:0 0 auto;padding:8px 10px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;font-size:12px;font-weight:700}
+.split-pane .sp-h span{color:var(--muted);font-weight:500;font-size:11px}
+.split-pane .sp-log{flex:1;overflow:auto;padding:10px 12px;min-height:0;font-size:13px;line-height:1.45;white-space:pre-wrap}
+.split-pane .sp-form{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+.split-pane .sp-form textarea{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:#0c0c0e;color:#fff;padding:8px;font:inherit;resize:none}
+.split-pane .sp-form button{border:0;border-radius:10px;background:var(--accent);color:#042;font-weight:800;padding:0 12px}
+#btnSplit.on{background:rgba(16,163,127,.2);color:var(--accent);border-color:rgba(16,163,127,.45)}
+.sitem.docked{outline:1px solid rgba(16,163,127,.45)}
 .habitat{
   display:none;flex-direction:column;width:min(320px,38vw);min-width:240px;
   border-left:1px solid var(--line);background:linear-gradient(180deg,#0c0c10 0%,#09090b 100%);
@@ -1577,11 +1590,24 @@ body.device-computer .rail{display:flex!important}
       <span class="tag" id="mainWs">workspace</span>
       <select id="wsSelect"></select>
       <div class="grow"></div>
+      <button type="button" class="icon" id="btnSplit" onclick="toggleSplit()" title="Two agents side by side on this desk">Side by side</button>
       <button type="button" class="icon sess-ctl" id="btnVoiceEngine" onclick="toggleVoiceEngine()" title="Activate voice engine — this agent talks and listens" style="display:none">🎙 Voice engine</button>
       <button type="button" class="icon sess-ctl" id="btnStop" onclick="stopActiveSession()" title="Stop work (keep this chat)" style="display:none">Stop</button>
       <button type="button" class="icon sess-ctl" id="btnEnd" onclick="endActiveSession()" title="End this chat" style="display:none">End</button>
     </div>
     <div class="main-stage" id="mainStage">
+    <div class="split-stage" id="splitStage">
+      <div class="split-pane" data-slot="0">
+        <div class="sp-h" id="spH0">Left — pick Spark / Grok / Codex</div>
+        <div class="sp-log" id="spLog0"></div>
+        <form class="sp-form" onsubmit="event.preventDefault();sendPane(0)"><textarea id="spIn0" placeholder="Steer this agent…"></textarea><button>Send</button></form>
+      </div>
+      <div class="split-pane" data-slot="1">
+        <div class="sp-h" id="spH1">Right — Shift-click a session to dock</div>
+        <div class="sp-log" id="spLog1"></div>
+        <form class="sp-form" onsubmit="event.preventDefault();sendPane(1)"><textarea id="spIn1" placeholder="Steer this agent…"></textarea><button>Send</button></form>
+      </div>
+    </div>
     <div class="transcript" id="transcript">
       <div class="empty" id="emptyHome">
         <div class="mark">P</div>
@@ -1594,8 +1620,7 @@ body.device-computer .rail{display:flex!important}
           <button type="button" data-mode="assist">Assist</button>
           <button type="button" data-mode="studio">Studio</button>
           <button type="button" data-mode="spark">Spark</button>
-          <button type="button" data-mode="spark">Spark</button>
-      <button type="button" data-mode="muse_spark">Muse</button>
+          <button type="button" data-mode="muse_spark">Muse</button>
           <button type="button" data-mode="voice">Aria</button>
           <button type="button" data-mode="build">Build</button>
           <button type="button" data-mode="plan">Plan</button>
@@ -3008,6 +3033,7 @@ async function pickAgent(mode){
       if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
         try{ await armComputerVision(); }catch(_){}
       }
+      if(splitOn && activeId) dockSplit(activeId);
       return;
     }
     await newSess(mode);
@@ -3015,9 +3041,66 @@ async function pickAgent(mode){
     if(/^(vision|oculus|see|screen|vcomp)$/i.test(mode)){
       try{ await armComputerVision(); }catch(_){}
     }
+    if(splitOn && activeId) dockSplit(activeId);
   }catch(e){
     toast('Could not open '+(mode||'agent')+': '+(e.message||e),'err');
   }
+}
+let splitOn=false, splitIds=[null,null], splitTimer=null;
+function toggleSplit(){
+  splitOn=!splitOn;
+  document.body.classList.toggle('split-on', splitOn);
+  const b=$('btnSplit'); if(b) b.classList.toggle('on', splitOn);
+  if(splitOn){
+    if(activeId && !splitIds[0]) splitIds[0]=activeId;
+    paintSplit();
+    if(splitTimer) clearInterval(splitTimer);
+    splitTimer=setInterval(()=>{ if(splitOn) paintSplit(); }, 2500);
+    toast('Side by side on this desk — Shift-click a session to dock the other pane');
+  } else if(splitTimer){
+    clearInterval(splitTimer); splitTimer=null;
+  }
+}
+function dockSplit(id){
+  if(!id) return;
+  if(!splitIds[0] || splitIds[0]===id) splitIds[0]=id;
+  else if(!splitIds[1] || splitIds[1]===id) splitIds[1]=id;
+  else { splitIds[0]=splitIds[1]; splitIds[1]=id; }
+  if(!splitOn) toggleSplit();
+  else paintSplit();
+}
+async function paintSplit(){
+  for(let i=0;i<2;i++){
+    const id=splitIds[i];
+    const h=$('spH'+i), log=$('spLog'+i);
+    if(!h||!log) continue;
+    if(!id){ h.textContent=(i?'Right':'Left')+' — pick an agent'; log.textContent=''; continue; }
+    try{
+      const s=await api('/v1/sessions/'+id);
+      h.innerHTML=esc((s.mode||'session').toUpperCase())+' <span>'+esc(s.title||id)+' · '+(s.status||'idle')+'</span>';
+      const msgs=s.messages||[];
+      log.innerHTML=msgs.slice(-12).map(m=>{
+        const role=m.role||m.from||'agent';
+        const t=String(m.content||m.text||m.result||'').slice(0,1200);
+        return '<div class="msg '+(role==='user'?'user':'agent')+'"><div class="mb">'+esc(t)+'</div></div>';
+      }).join('') || '<div class="hint">Empty — send a prompt in this pane.</div>';
+      log.scrollTop=log.scrollHeight;
+    }catch(_){ h.textContent='session '+id; }
+  }
+}
+async function sendPane(i){
+  const id=splitIds[i];
+  const box=$('spIn'+i);
+  const text=(box&&box.value||'').trim();
+  if(!id){ toast('Dock a session in this pane first'); return; }
+  if(!text) return;
+  if(box) box.value='';
+  try{
+    await api('/v1/sessions/'+id+'/messages',{method:'POST',body:JSON.stringify({
+      text, workspace:($('wsSelect')&&$('wsSelect').value)||'workspace', device:DEVICE, interrupt:true
+    })});
+    await paintSplit();
+  }catch(e){ toast('Send failed: '+(e.message||e),'err'); }
 }
 function toast(msg, kind){
   const t=$('toast'); if(!t) return;
@@ -4892,7 +4975,7 @@ function renderSessionList(){
   if(!sessions.length){ box.innerHTML='<div class="hint">No sessions yet. Start <b>NEXUS</b>, <b>MESIE</b>, Codex, or Term — they show here.</div>'; return; }
   sessions.forEach(s=>{
     const d=document.createElement('div');
-    d.className='sitem'+(s.id===activeId?' on':'');
+    d.className='sitem'+(s.id===activeId?' on':'')+(splitIds.indexOf(s.id)>=0?' docked':'');
     const last=(s.messages&&s.messages.length)?s.messages[s.messages.length-1]:null;
     const preview=last?((last.text||last.result||'').slice(0,42)):(s.mode);
     const thr=s.engine_thread_id||s.codex_session_id||'';
@@ -4906,6 +4989,7 @@ function renderSessionList(){
     d.onclick=e=>{
       e.preventDefault(); e.stopPropagation();
       if(e.target && (e.target.classList.contains('x')||e.target.getAttribute('data-close'))){ closeSess(s.id); return; }
+      if(e.shiftKey || splitOn){ dockSplit(s.id); if(!e.shiftKey) selectSess(s.id); return; }
       selectSess(s.id);
     };
     box.appendChild(d);
