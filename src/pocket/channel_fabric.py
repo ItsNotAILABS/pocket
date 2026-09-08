@@ -10,6 +10,7 @@ import uuid
 from typing import Any, Dict
 
 from pocket.doctrine_laws import validate_message
+from pocket.envelope_hardening import execution_allowed
 from pocket.technology_garden import hardened_envelope, validate_hardened_envelope
 
 CHANNELS: Dict[str, Dict[str, Any]] = {
@@ -76,13 +77,30 @@ def envelope(*, sender: str, recipient: str, channel_name: str, kind: str, body:
         msg["hardening_validation"] = secured
         return msg
     out = secured["envelope"]
-    out["hardening_validation"] = {"ok": True, "ttl_s": ttl}
+    # This diagnostic is explicitly excluded from canonical_digest. It describes
+    # sealing, not semantic message content, so create -> transport -> validate works.
+    out["hardening_validation"] = {
+        "ok": True,
+        "authorized": secured.get("authorized", False),
+        "terminal": secured.get("terminal", False),
+        "ttl_s": ttl,
+    }
     return out
 
 
 def validate_envelope(message: Dict[str, Any], *, now: float | None = None, seen_nonces: tuple[str, ...] = ()) -> Dict[str, Any]:
-    """Validate tamper/expiry/replay protections at transport ingress."""
+    """Validate integrity plus authorization state at transport ingress."""
     return validate_hardened_envelope(message, now=now, seen_nonces=seen_nonces)
+
+
+def authorize_consequence(message: Dict[str, Any], *, now: float | None = None, seen_nonces: tuple[str, ...] = ()) -> Dict[str, Any]:
+    """Fail-closed execution gate. Side effects require explicit `approved`."""
+    validation = validate_envelope(message, now=now, seen_nonces=seen_nonces)
+    return {
+        **validation,
+        "execute": execution_allowed(validation),
+        "decision": "approved" if execution_allowed(validation) else ("denied" if validation.get("terminal") else "blocked"),
+    }
 
 
 def route_for(kind: str, *, consequence: str = "") -> Dict[str, Any]:
@@ -110,6 +128,7 @@ def manifest() -> Dict[str, Any]:
         "channels": {k: dict(v) for k, v in CHANNELS.items()},
         "transports": list(TRANSPORTS),
         "retention_ttl_seconds": dict(RETENTION_TTL_SECONDS),
-        "hardening": ["canonical-digest", "bounded-ttl", "nonce", "replay-hook", "side-effect-approval"],
+        "hardening": ["canonical-digest", "bounded-ttl", "nonce", "replay-hook", "side-effect-approval", "fail-closed-consequence-gate"],
+        "authorization_invariant": "validation is not authorization; side effects require validation ok AND approval=approved",
         "invariant": "logical HZ labels carry semantics/cadence; they do not imply literal RF transport",
     }

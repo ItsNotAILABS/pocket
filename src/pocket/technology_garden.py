@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import hashlib
-import json
-import time
 from dataclasses import dataclass, asdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
+
+from pocket.envelope_hardening import canonical_digest, hardened_envelope, validate_hardened_envelope
 
 @dataclass(frozen=True)
 class Technology:
@@ -71,49 +70,6 @@ def validate_dependency_graph() -> Dict[str, Any]:
     return {"ok": not missing and not cycles, "missing": missing, "cycles": cycles}
 
 
-def canonical_digest(value: Any) -> str:
-    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return hashlib.sha256(raw).hexdigest()
-
-
-def hardened_envelope(message: Dict[str, Any], *, ttl_s: int = 300, now: float | None = None) -> Dict[str, Any]:
-    now = float(time.time() if now is None else now)
-    required = ("schema","message_id","request_id","from","to","channel","kind","state")
-    missing = [k for k in required if not message.get(k)]
-    if missing:
-        return {"ok": False, "violations": ["missing:" + ",".join(missing)]}
-    if ttl_s < 1 or ttl_s > 86400:
-        return {"ok": False, "violations": ["ttl_out_of_bounds"]}
-    out = dict(message)
-    out.setdefault("created_at", now)
-    out["expires_at"] = float(out["created_at"]) + ttl_s
-    out.setdefault("nonce", hashlib.sha256(f"{out['message_id']}:{out['request_id']}:{out['created_at']}".encode()).hexdigest()[:24])
-    if out.get("side_effect") and out.get("approval") not in {"confirm","approved","deny"}:
-        return {"ok": False, "violations": ["side_effect_requires_explicit_approval"]}
-    out["canonical_digest"] = canonical_digest({k:v for k,v in out.items() if k != "canonical_digest"})
-    return {"ok": True, "envelope": out}
-
-
-def validate_hardened_envelope(message: Dict[str, Any], *, now: float | None = None, seen_nonces: Iterable[str] = ()) -> Dict[str, Any]:
-    now = float(time.time() if now is None else now)
-    violations: List[str] = []
-    for key in ("schema","message_id","request_id","from","to","channel","kind","state","created_at","expires_at","nonce","canonical_digest"):
-        if message.get(key) in (None, ""):
-            violations.append(f"missing:{key}")
-    if violations:
-        return {"ok": False, "violations": violations}
-    if float(message["expires_at"]) < now:
-        violations.append("expired")
-    if message["nonce"] in set(seen_nonces):
-        violations.append("replay")
-    if message.get("side_effect") and message.get("approval") not in {"confirm","approved","deny"}:
-        violations.append("approval_invalid")
-    expected = canonical_digest({k:v for k,v in message.items() if k != "canonical_digest"})
-    if expected != message["canonical_digest"]:
-        violations.append("digest_mismatch")
-    return {"ok": not violations, "violations": violations}
-
-
 def hardening_manifest() -> Dict[str, Any]:
     graph = validate_dependency_graph()
     return {
@@ -130,5 +86,7 @@ def hardening_manifest() -> Dict[str, Any]:
             "minimum_assertions":128,
             "hash_manifest":True,
             "signed_receipt_optional":True,
+            "integration_roundtrip_required":True,
+            "exact_validator_hash_required":True,
         },
     }
