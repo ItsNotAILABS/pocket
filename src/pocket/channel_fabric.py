@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict
 
 from pocket.doctrine_laws import validate_message
+from pocket.technology_garden import hardened_envelope, validate_hardened_envelope
 
 CHANNELS: Dict[str, Dict[str, Any]] = {
     "user": {"hz":0,"class":"command","risk":"mixed","retention":"session","participants":["user","voice","host","agent"]},
@@ -27,6 +28,16 @@ CHANNELS: Dict[str, Dict[str, Any]] = {
 }
 
 TRANSPORTS = ("mesh-disk", "http", "mcp", "websocket", "in-process", "device-bridge")
+RETENTION_TTL_SECONDS = {
+    "short": 60,
+    "session": 3600,
+    "bounded": 900,
+    "project": 14400,
+    "incident": 21600,
+    "audit": 86400,
+    "release": 86400,
+    "durable": 86400,
+}
 
 
 def channel(name: str) -> Dict[str, Any]:
@@ -59,7 +70,19 @@ def envelope(*, sender: str, recipient: str, channel_name: str, kind: str, body:
         "lineage": {"parent_id": parent_id or None},
     }
     msg["law_validation"] = validate_message(msg)
-    return msg
+    ttl = RETENTION_TTL_SECONDS.get(ch["retention"], 300)
+    secured = hardened_envelope(msg, ttl_s=ttl)
+    if not secured.get("ok"):
+        msg["hardening_validation"] = secured
+        return msg
+    out = secured["envelope"]
+    out["hardening_validation"] = {"ok": True, "ttl_s": ttl}
+    return out
+
+
+def validate_envelope(message: Dict[str, Any], *, now: float | None = None, seen_nonces: tuple[str, ...] = ()) -> Dict[str, Any]:
+    """Validate tamper/expiry/replay protections at transport ingress."""
+    return validate_hardened_envelope(message, now=now, seen_nonces=seen_nonces)
 
 
 def route_for(kind: str, *, consequence: str = "") -> Dict[str, Any]:
@@ -86,5 +109,7 @@ def manifest() -> Dict[str, Any]:
         "schema": "pocket.channel-fabric.v1",
         "channels": {k: dict(v) for k, v in CHANNELS.items()},
         "transports": list(TRANSPORTS),
+        "retention_ttl_seconds": dict(RETENTION_TTL_SECONDS),
+        "hardening": ["canonical-digest", "bounded-ttl", "nonce", "replay-hook", "side-effect-approval"],
         "invariant": "logical HZ labels carry semantics/cadence; they do not imply literal RF transport",
     }
