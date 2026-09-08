@@ -1,0 +1,11 @@
+{
+  "assertions": 300,
+  "ci_used": false,
+  "generated_at": "2026-09-07T22:31:26.379693+00:00",
+  "manifest_sha256": "43f4eb6487400fad390b0ea70160b0aa2aa994969cc5495a4aab3b103f3b82e1",
+  "minimum": 128,
+  "schema": "pocket.local-validation-receipt.v1",
+  "status": "passed",
+  "suite": "technology-garden-hardening",
+  "validator_sha256": "cea6917062224a83e25a1c58c618632b1f475ad9a2dddbf2e82da9231aca304e"
+}
