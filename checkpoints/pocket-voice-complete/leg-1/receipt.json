@@ -1,0 +1,37 @@
+{
+  "claim_boundary": "Real fine-tune leg on synthetic data with the model's own torch engine. Synthetic held-out accuracy only -- not real-speech accuracy. The next leg needs real transcribed speech data.",
+  "data_provenance": "synthetic (same 18k/2k generator as base; ceiling noted)",
+  "elapsed_s": 650.4,
+  "epochs": 4,
+  "eval_acc": 0.9845,
+  "eval_loss": 0.04021972215175629,
+  "family": "transformer-classifier-torch",
+  "finished_unix": 1789067765,
+  "growth_plan": {
+    "achieved_ratio": 2.1377205794156455,
+    "d_ff": [
+      160,
+      320
+    ],
+    "n_layers": [
+      2,
+      3
+    ],
+    "operator": "net2net-widen-ffn+identity-depth"
+  },
+  "kind": "train-leg",
+  "leg": 1,
+  "model_id": "pocket-voice-complete",
+  "params": 302977,
+  "parent": {
+    "model_id": "pocket-voice-complete",
+    "note": "8 epochs synthetic, best eval acc 0.9800",
+    "params": 141729
+  },
+  "preservation_max_abs_diff": 0.0,
+  "receipt_sha256": "ac1cb7df608182a18a858e9dc3bb579389a974a4f37ec9af84150a2f8e9a749e",
+  "schema": "auro.engine.leg_receipt.v1",
+  "unit": "synthetic examples",
+  "units_seen": 72000,
+  "weights_sha256": "2f168539b3a41d1aeb74b4605dcf506bed443221f8d20c2374e283284171e791"
+}

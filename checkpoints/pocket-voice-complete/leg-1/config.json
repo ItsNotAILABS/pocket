@@ -1,0 +1,19 @@
+{
+  "model_type": "pocket-voice-complete",
+  "architectures": [
+    "PocketVoiceComplete"
+  ],
+  "vocab_size": 44,
+  "d_model": 96,
+  "n_layers": 3,
+  "n_heads": 4,
+  "d_ff": 320,
+  "max_len": 64,
+  "dropout": 0.1,
+  "pad_id": 0,
+  "unk_id": 1,
+  "n_parameters": 302977,
+  "task": "binary semantic-completeness classification",
+  "training_data": "synthetic (see README.md)",
+  "grown_from": "pocket-voice-complete (141729 params, 8 epochs, best acc 0.9800)"
+}
