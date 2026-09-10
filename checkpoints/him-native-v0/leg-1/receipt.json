@@ -1,0 +1,57 @@
+{
+  "claim_boundary": "Real training leg on real text with the model's own manual-backprop engine. Small context-MLP; not a capability claim.",
+  "data_provenance": "real text: tinyshakespeare + gutenberg (alice, sherlock, frankenstein), byte-level",
+  "elapsed_s": 150.3,
+  "family": "context-mlp-numpy",
+  "finished_unix": 1789066815,
+  "growth_plan": {
+    "achieved_ratio": 1.9090710621111233,
+    "hidden": [
+      128,
+      256
+    ],
+    "operator": "net2net-widen-mlp"
+  },
+  "kind": "train-leg",
+  "leg": 1,
+  "loss_curve": [
+    5.526987552642822,
+    4.035080432891846,
+    3.3674204349517822,
+    2.440647602081299,
+    2.729501485824585,
+    2.652237892150879,
+    3.0774948596954346,
+    2.546501398086548,
+    2.73297381401062,
+    2.7699458599090576,
+    2.3691725730895996,
+    2.521803140640259,
+    2.504826307296753,
+    2.414912462234497,
+    2.243980884552002,
+    2.4240334033966064,
+    2.6441309452056885,
+    2.2107932567596436,
+    2.3579890727996826,
+    2.5278890132904053
+  ],
+  "loss_decreased": true,
+  "loss_first": 5.526987552642822,
+  "loss_last": 2.4063453674316406,
+  "model_id": "HIM-native-v1-leg1",
+  "params": 279824,
+  "parent": {
+    "model_id": "HIM-native-v0",
+    "note": "1200 steps, converged on 4k-token corpus",
+    "params": 146576
+  },
+  "preservation_max_abs_diff": 8.344650268554688e-07,
+  "receipt_sha256": "beb8c88080f7474e22c8b302dcba47c62c229f5ec35734f69c1bcc829da06230",
+  "schema": "auro.engine.leg_receipt.v1",
+  "steps": 800,
+  "steps_per_s": 5.3,
+  "unit": "byte-tokens",
+  "units_seen": 76800,
+  "weights_sha256": "56de6fafa5a7f6b761836ef5865af864c3bc21a0ab4751f822f7beac7c06fe6a"
+}

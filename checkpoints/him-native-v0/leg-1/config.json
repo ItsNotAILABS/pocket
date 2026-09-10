@@ -1,0 +1,8 @@
+{
+  "context_length": 16,
+  "embedding_dim": 48,
+  "hidden_dim": 256,
+  "tokenizer": "byte-272-v2",
+  "architecture": "context_mlp_causal_lm",
+  "grown_from": "HIM-native-v0"
+}

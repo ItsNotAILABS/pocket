@@ -1,0 +1,62 @@
+{
+  "claim_boundary": "Real training leg on real text with the model's own autograd engine. Small byte-level model; not a capability claim.",
+  "config_patch_note": "head_dim=32 made explicit in config post-training (was implicit from hidden_size/n_heads); tensor bytes unchanged, file hash regenerated to match shipped bytes.",
+  "data_provenance": "real text: tinyshakespeare + gutenberg (alice, sherlock, frankenstein), 2.26M chars, byte-level",
+  "elapsed_s": 116.9,
+  "family": "causal-transformer-numpy",
+  "finished_unix": 1789067013,
+  "growth_plan": {
+    "achieved_ratio": 1.9400963966031672,
+    "ffn": [
+      512,
+      1024
+    ],
+    "heads": [
+      4,
+      8
+    ],
+    "operator": "net2net-widen-transformer"
+  },
+  "kind": "train-leg",
+  "leg": 1,
+  "loss_curve": [
+    11.40349292755127,
+    5.051584243774414,
+    3.6014859676361084,
+    3.9367706775665283,
+    3.9044711589813232,
+    3.118255853652954,
+    3.3406589031219482,
+    3.002643585205078,
+    3.33414626121521,
+    3.0506489276885986,
+    3.118823289871216,
+    2.921168088912964,
+    2.871746063232422,
+    2.765474319458008,
+    2.813182830810547,
+    2.5944664478302,
+    2.969292402267456,
+    2.8864552974700928,
+    2.6458380222320557,
+    2.7989890575408936
+  ],
+  "loss_decreased": true,
+  "loss_first": 11.40349292755127,
+  "loss_last": 3.1641266345977783,
+  "model_id": "auro.web.v1",
+  "params": 1081984,
+  "parent": {
+    "model_id": "auro.web.v1",
+    "note": "pocket main checkpoint, 2000 claimed steps",
+    "params": 557696
+  },
+  "preservation_max_abs_diff": 1.71661376953125e-05,
+  "receipt_sha256": "226cab8d2a1c1b3f1747d5fcf2efb0f8f7c83436fd4cd19feb53c9c2828f5666",
+  "schema": "auro.engine.leg_receipt.v1",
+  "steps": 300,
+  "steps_per_s": 2.57,
+  "unit": "bytes",
+  "units_seen": 28800,
+  "weights_sha256": "314142902efd56ea7e3e6ba73d02dacd1f07413fcc99bc18e627b5207fd009c0"
+}
