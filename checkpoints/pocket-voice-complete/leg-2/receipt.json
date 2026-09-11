@@ -1,0 +1,38 @@
+{
+  "claim_boundary": "Real fine-tune leg on synthetic data. Synthetic held-out accuracy only -- not real-speech accuracy. The next leg needs real transcribed speech.",
+  "data_provenance": "synthetic (same 18k/2k generator; ceiling noted)",
+  "elapsed_s": 637.8,
+  "epochs": 4,
+  "eval_acc": 0.984,
+  "eval_loss": 0.04302177288383245,
+  "family": "transformer-classifier-torch",
+  "finished_unix": 1789078047,
+  "growth_plan": {
+    "achieved_ratio": 2.143743584496513,
+    "d_ff": [
+      320,
+      640
+    ],
+    "n_layers": [
+      3,
+      4
+    ],
+    "operator": "net2net-widen-ffn+identity-depth"
+  },
+  "kind": "train-leg",
+  "leg": 2,
+  "model_id": "pocket-voice-complete",
+  "params": 649505,
+  "parent": {
+    "model_id": "pocket-voice-complete-leg1",
+    "note": "leg-1: 4 epochs synthetic, eval acc 0.9845",
+    "params": 302977,
+    "receipt_sha256": "ac1cb7df608182a18a858e9dc3bb579389a974a4f37ec9af84150a2f8e9a749e"
+  },
+  "preservation_max_abs_diff": 4.76837158203125e-07,
+  "receipt_sha256": "de90693bd5ee1f8d39564abc6613ab4cbef3b298752f0acf57f2d9343d45618c",
+  "schema": "auro.engine.leg_receipt.v1",
+  "unit": "synthetic examples",
+  "units_seen": 72000,
+  "weights_sha256": "ed52a2a47b2899b82aaba174d17066bbc1782fd24478426f07476994ca5777c7"
+}
