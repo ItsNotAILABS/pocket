@@ -1,0 +1,29 @@
+{
+  "schema": "mesie.receipt.v1",
+  "generated_at": "2026-09-22T06:30:02.720274+00:00",
+  "subject": "pocket.agent-approval.e2e-verification",
+  "protocol": "POCKET-AGENTIC-APPROVAL/1.0",
+  "mode": "local",
+  "inputs": [
+    "tests/test_agent_approval.py (11 tests, isolated POCKET_AGENT_APPROVAL_HOME)",
+    "live CLI e2e: issue -> list -> approve -> check -> revoke -> check"
+  ],
+  "outputs": [
+    "11/11 unit tests passed (PYTHONPATH=src python3 tests/test_agent_approval.py)",
+    "live e2e: issued code WCNAW2 for device e2e-test-phone / app photo-digest / scope owner-capability",
+    "list showed 1 pending request with masked code hint WC**W2",
+    "approve exact code -> ok:true, binding b24ebc5c-fd9e-412d-aabe-1e4f635b8812",
+    "check -> granted:true; revoke -> count:1; check -> granted:false",
+    "per-event MESIE receipts in ~/.pocket/agent_approval/receipts/ (issued/approved/revoked)",
+    "test binding revoked; no live state left behind"
+  ],
+  "checks": [
+    "code is 6 chars from unambiguous alphabet, secrets-generated",
+    "exact-match approval via constant-time compare; wrong code denied with receipt",
+    "expired requests cannot be approved; double-approve rejected",
+    "unauthorized approver rejected against request policy allowlist",
+    "scope isolation verified; wildcard scope verified",
+    "raw codes absent from all receipts; list masks codes"
+  ],
+  "hash": "sha256:e82711dd1ec9f5a10bc52b7cf16012bf76ec7abf79ea0dec9f3d0a145bce4c32"
+}
