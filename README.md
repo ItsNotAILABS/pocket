@@ -50,6 +50,12 @@ Agents think first. They use at most one tool. Long work lives in a **tenant-jai
 
 ---
 
+## POCKET LIGHT
+
+Open http://127.0.0.1:8787/pocket-light after the Pocket server reloads. One thread per project. VAUL and CAPSULA are paired (vault seals, capsule carries). Senda links via Stocklana /pocket-light.
+
+---
+
 ## Product film
 
 <table>
