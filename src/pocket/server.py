@@ -1600,10 +1600,39 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.spark_api import status as spark_status
 
             return self._json(200, spark_status())
+        if path in ("/names", "/handles", "/toolbox"):
+            from pocket.names_ui import names_html
+
+            return self._html(names_html())
+        if path in ("/v1/names", "/api/names"):
+            from pocket.names import status as names_status
+
+            return self._json(200, names_status())
+        if path in ("/webgpu", "/iochain", "/io-chain"):
+            from pocket.iochain_ui import iochain_html
+
+            return self._html(iochain_html())
+        if path in ("/v1/iochain", "/api/iochain"):
+            from pocket.iochain import status as iochain_status
+
+            return self._json(200, iochain_status())
         if path in ("/spark", "/phoneai/spark"):
             from pocket.spark_ui import spark_html
 
             return self._html(spark_html())
+        if path in ("/pocket-light", "/light"):
+            from pocket.pocket_light_ui import pocket_light_html
+
+            return self._html(pocket_light_html())
+        if path in ("/v1/pocket-light", "/api/pocket-light"):
+            from pocket.pocket_light import status as light_status
+
+            return self._json(200, light_status())
+        if path in ("/v1/pocket-light/thread", "/api/pocket-light/thread"):
+            from pocket.pocket_light import thread as light_thread
+
+            q = parse_qs(urlparse(self.path).query)
+            return self._json(200, light_thread((q.get("id") or [""])[0]))
         if path in ("/v1/eyes", "/api/eyes"):
             from pocket.agent_eyes import catalog as eyes_cat, see as eyes_see
             from pocket.host_control import allow as host_ok
@@ -4789,12 +4818,40 @@ class Handler(BaseHTTPRequestHandler):
                     long_term=body.get("long_term"),
                 ),
             )
+        if path in ("/v1/names/claim", "/api/names/claim"):
+            from pocket.names import claim as names_claim
+            from pocket.rbac import principal as rbac_principal
+
+            p = rbac_principal(self.headers)
+            return self._json(
+                200,
+                names_claim(
+                    str(body.get("name") or ""),
+                    str(body.get("zone") or "toolbox"),
+                    owner=str(p.get("user") or "pocket"),
+                ),
+            )
         if path in ("/v1/spark/chat", "/api/spark/chat"):
             from pocket.spark_work import work as spark_work
 
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
             cwd = str(body.get("cwd") or body.get("repo") or "")
             return self._json(200, spark_work(text, cwd=cwd))
+        if path in ("/v1/pocket-light/chat", "/api/pocket-light/chat"):
+            from pocket.pocket_light import post as light_post
+
+            return self._json(
+                200,
+                light_post(
+                    str(body.get("thread") or body.get("id") or ""),
+                    str(body.get("text") or body.get("prompt") or body.get("message") or ""),
+                    agent=str(body.get("agent") or "grok"),
+                ),
+            )
+        if path in ("/v1/pocket-light/threads", "/api/pocket-light/threads"):
+            from pocket.pocket_light import open_loose
+
+            return self._json(200, open_loose(str(body.get("title") or body.get("text") or "")))
         if path in ("/v1/crew/spawn", "/api/crew/spawn"):
             from pocket.crew import spawn as crew_spawn
 
@@ -9141,6 +9198,13 @@ def serve(host: str = "0.0.0.0", port: int = PORT) -> None:
     # Mesh / auro arm AFTER bind — never block first HTTP (login/desk)
     def _bg_hooks():
         try:
+            from pocket.keep_agents import revive as keep_revive
+
+            kr = keep_revive()
+            print(f"[POCKET] KEEP revive armed={len(kr.get('armed') or [])}", flush=True)
+        except Exception as e:
+            print(f"[POCKET] KEEP revive warn: {e}", flush=True)
+        try:
             from pocket.agent_hook import ensure_mesh_hook
 
             hook = ensure_mesh_hook()
@@ -9163,7 +9227,7 @@ def serve(host: str = "0.0.0.0", port: int = PORT) -> None:
         except Exception as e:
             print(f"[POCKET] auro14b warn: {e}", flush=True)
 
-    ensure_embedded_worker()
+    threading.Thread(target=ensure_embedded_worker, name="pocket-embedded-worker", daemon=True).start()
     # Wake Pocket Voice in background so mic/Aria never start cold
     def _wake_voice():
         try:

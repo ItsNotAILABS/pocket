@@ -1619,6 +1619,9 @@ body.device-computer .rail{display:flex!important}
           <button type="button" data-mode="codex">Codex</button>
           <button type="button" data-mode="grok">Grok</button>
           <button type="button" data-mode="claude">Claude</button>
+          <button type="button" onclick="location.href='/pocket-light'">POCKET LIGHT</button>
+          <button type="button" onclick="location.href='/names'">Pocket Names</button>
+          <button type="button" onclick="location.href='/webgpu'">IOChain WebGPU</button>
           <button type="button" data-mode="assist">Assist</button>
           <button type="button" data-mode="studio">Studio</button>
           <button type="button" data-mode="spark">Spark</button>
@@ -4204,6 +4207,14 @@ const APP_TAB_ROUTES={
       {label:'Desk', fn:'showAppTab', arg:'desk'}
     ]
   },
+  pocket_light:{
+    path:'/pocket-light', title:'POCKET LIGHT', group:'Agents',
+    blurb:'Workspace shell. One thread per project. Files and previews on this page. Not a desk tab.',
+    actions:[
+      {label:'Open POCKET LIGHT', fn:'showAppTab', arg:'pocket_light', primary:true},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
   crew:{
     path:'/crew', title:'Crew', group:'Agents',
     blurb:'One lane per repo. 1–2 agents side by side on different parts. Stays in this Desktop/Edge window.',
@@ -4235,6 +4246,22 @@ const APP_TAB_ROUTES={
       {label:'Imagine stills', fn:'showAppTab', arg:'imagine'},
       {label:'Creative chat', fn:'showAppTab', arg:'creative'},
       {label:'Screen eyes', fn:'showAppTab', arg:'screen'},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
+  names:{
+    path:'/names', title:'Pocket Names', group:'Studios',
+    blurb:'Own the root — you.toolbox / lab.aiapps. People claim handles, they do not buy domains.',
+    actions:[
+      {label:'Open Names', fn:'appPanelReload', primary:true},
+      {label:'Desk', fn:'showAppTab', arg:'desk'}
+    ]
+  },
+  webgpu:{
+    path:'/webgpu', title:'IOChain · WebGPU', group:'Studios',
+    blurb:'Idle GPUs → trustable inference, settled on Solana. Exact IOChain pitch.',
+    actions:[
+      {label:'Open WebGPU', fn:'appPanelReload', primary:true},
       {label:'Desk', fn:'showAppTab', arg:'desk'}
     ]
   },
@@ -4459,6 +4486,10 @@ function appPanelOpenExternal(){
 function showAppTab(tab){
   tab=String(tab||'desk').toLowerCase().replace(/-/g,'_');
   closeTabMore();
+  if(tab==='pocket_light' || tab==='light'){
+    location.href='/pocket-light';
+    return;
+  }
   // Desk home: close overlays, keep habitat floor available
   if(tab==='desk' || tab==='chat' || tab==='home'){
     closeAppPanel();
