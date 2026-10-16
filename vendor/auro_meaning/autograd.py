@@ -346,13 +346,16 @@ def rms_norm(x: Tensor, weight: Tensor, eps: float = 1e-6) -> Tensor:
                 weight.grad = np.sum(g * x.data * inv_d, axis=tuple(range(0, g.ndim - 1)))
         if x.requires_grad:
             x._ensure_grad()
-            # dy/dx = inv*w + x * w * d(inv)/dx
-            # d(inv)/dx_i = -0.5 (m+eps)^-1.5 * d(m)/dx_i, m = mean x^2, dm/dx_i = 2x_i/n
+            # y_j = x_j * inv * w_j, inv = (mean(x^2)+eps)^-0.5 (scalar per row)
+            # dy_j/dx_i = delta_ij * inv * w_j + x_j * w_j * d(inv)/dx_i
+            # d(inv)/dx_i = -inv^3 * x_i / n
+            # => grad_x_i = g_i * inv * w_i - (inv^3 * x_i / n) * sum_j(g_j * x_j * w_j)
+            # The coupling term REDUCES over the feature axis (the original code
+            # multiplied elementwise by g_i * w_i instead — max rel err 1.0000).
             n = x.data.shape[-1]
-            d_inv_dm = -0.5 * np.power(ms.data + eps, -1.5)
-            dm_dx = (2.0 / n) * x.data
-            d_inv_dx = d_inv_dm * dm_dx
-            x.grad = x.grad + g * (inv_d * weight.data + x.data * weight.data * d_inv_dx)
+            s = np.sum(g * x.data * weight.data, axis=-1, keepdims=True)
+            coupling = -(np.power(inv_d, 3) / n) * x.data * s
+            x.grad = x.grad + g * inv_d * weight.data + coupling
 
     out._backward = _bw
     out._prev = (x, weight)
