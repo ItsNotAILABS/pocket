@@ -1600,6 +1600,10 @@ class Handler(BaseHTTPRequestHandler):
             from pocket.spark_api import status as spark_status
 
             return self._json(200, spark_status())
+        if path in ("/v1/nebius", "/v1/nebius/status", "/api/nebius"):
+            from pocket.nebius_api import status as nebius_status
+
+            return self._json(200, nebius_status())
         if path in ("/spark", "/phoneai/spark"):
             from pocket.spark_ui import spark_html
 
@@ -4795,6 +4799,36 @@ class Handler(BaseHTTPRequestHandler):
             text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
             cwd = str(body.get("cwd") or body.get("repo") or "")
             return self._json(200, spark_work(text, cwd=cwd))
+        if path in ("/v1/nebius/chat", "/api/nebius/chat"):
+            from pocket.nebius_api import chat as nebius_chat
+
+            text = str(body.get("text") or body.get("prompt") or body.get("message") or "")
+            return self._json(
+                200,
+                nebius_chat(
+                    text,
+                    system=str(body.get("system") or ""),
+                    model=str(body.get("model") or ""),
+                ),
+            )
+        if path in ("/v1/nebius/brief", "/api/nebius/brief"):
+            from pocket.nebius_brief import daily_brief as nebius_daily_brief
+
+            facts = body.get("facts") if isinstance(body.get("facts"), list) else []
+            pending = body.get("pending") if isinstance(body.get("pending"), list) else None
+            return self._json(
+                200,
+                nebius_daily_brief(
+                    facts,
+                    pending,
+                    include_state_pending=bool(body.get("include_state_pending")),
+                ),
+            )
+        if path in ("/v1/nebius/explain", "/api/nebius/explain"):
+            from pocket.nebius_brief import explain_approval as nebius_explain
+
+            req = body.get("request") if isinstance(body.get("request"), dict) else body
+            return self._json(200, nebius_explain(req))
         if path in ("/v1/crew/spawn", "/api/crew/spawn"):
             from pocket.crew import spawn as crew_spawn
 
